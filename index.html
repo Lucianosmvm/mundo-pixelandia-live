@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mundo Pixelândia</title>
+<title>Mundo Pixelândia LIVE</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#24361d">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -133,10 +133,26 @@ body.pxCinema #pxQuick{opacity:.65}body.pxCinema #pxQuick:hover{opacity:1}
   <div class="top"><span id="clock">Dia 1 · 07:00</span><span class="vn" id="vnHud"></span></div>
   <div id="res"></div>
   <div id="goal"></div>
+  <div class="tip" id="liveOverlay"></div>
 </div>
 
 <div id="panel" class="box">
   <div class="ph"><input id="villageName" value="Mundo Pixelândia" maxlength="28" title="Nome da vila"><button class="btn sm" id="hideBtn" title="Esconder painel (H)">✕</button></div>
+
+  <section class="card">
+    <h3>Chat simulado da live</h3>
+    <form id="liveChatForm">
+      <label for="liveViewer">Usuário do chat</label>
+      <input class="in" id="liveViewer" placeholder="@nico" maxlength="40" required>
+      <label for="liveMessage">Mensagem</label>
+      <input class="in" id="liveMessage" placeholder="!morador Nico | lenhador" maxlength="120" required>
+      <button class="btn big">Enviar ao jogo</button>
+    </form>
+    <p class="tip" id="liveFeedback" role="status"></p>
+    <p class="tip">Use <b>!morador Nome | profissão</b>. Escolha entre lenhador, pedreiro, fazendeiro e minerador. Use <b>!meu</b> para localizar seu personagem.</p>
+    <p class="tip" id="liveBallot"></p>
+    <button class="btn sm" id="liveCloseVote" hidden>Encerrar votação</button>
+  </section>
   <section class="card">
     <h3>➕ Novo morador</h3>
     <label for="fName">Nome</label>
@@ -204,7 +220,8 @@ const G_GRASS=0,G_PATH=1,G_WATER=2,G_SAND=3,G_SOIL=4,G_SEA=5,G_RAIL=6;
 const isWaterG=g=>g===G_WATER||g===G_SEA;
 const O_TREE=1,O_ROCK=2,O_LAMP=3,O_FLOWER=4,O_FIRE=5,O_CRATE=6;
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
-const SPEED=48, DAYSEC=300, SAVE_KEY='vilaInscritos_v1';
+const SPEED=48, DAYSEC=300, SAVE_KEY='mundoPixelandiaLive_v1';
+let liveState = newLiveState();
 const QUARRIES=[[CX+1,CY-18],[CX-55,CY-12],[CX+56,CY+28],[CX+22,CY+46],[CX-30,CY-45]];
 const idx=(x,y)=>y*W+x, inB=(x,y)=>x>=0&&y>=0&&x<W&&y<H;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -348,7 +365,7 @@ function carve(R,x0,y0,x1,y1,isRoad){
   }
   if(isRoad)spawn={x,y};
 }
-function genWorld(){
+function genWorld(founding = false){
   const R=mulberry32(seed);
   ground=new Uint8Array(N);obj=new Uint8Array(N);objVar=new Uint8Array(N);
   bld=new Int16Array(N).fill(-1);crop=new Uint8Array(N);cropT=new Float32Array(N);
@@ -357,17 +374,25 @@ function genWorld(){
   lake(CX+15,CY+12,6.2);lake(CX-23,CY+16,3.4);lake(CX+50,CY-34,10);lake(CX-50,CY+32,8);lake(CX-42,CY-36,5);lake(CX+40,CY+44,4.5);
   for(const[qx,qy]of QUARRIES)for(let y=qy-7;y<=qy+7;y++)for(let x=qx-7;x<=qx+7;x++){if(!inB(x,y))continue;const d=Math.hypot(x-qx,y-qy),i=idx(x,y);if(ground[i]!==G_GRASS)continue;if(d<4.6){obj[i]=R()<0.42?O_ROCK:0;objVar[i]=(R()*2)|0;}else if(d<6.2&&obj[i]===O_TREE&&R()<0.5)obj[i]=0;}
   for(let i=0;i<N;i++)if(obj[i]===O_TREE&&R()<0.01){obj[i]=O_ROCK;objVar[i]=(R()*2)|0;}
-  addSea(R);
-  carve(R,CX,CY+2,CX+((R()*8)|0)-4,H-1,true);
-  carve(R,CX+2,CY+1,CX+9,CY+8,false);
-  carve(R,CX,CY-2,CX+1,CY-15,false);
+  addSea(R, !founding);
+  if(founding){
+    spawn = {x:CX, y:CY+4};
+    for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){
+      if(dx*dx+dy*dy<=25)obj[idx(CX+dx,CY+dy)]=0;
+    }
+  }else{
+    carve(R,CX,CY+2,CX+((R()*8)|0)-4,H-1,true);
+    carve(R,CX+2,CY+1,CX+9,CY+8,false);
+    carve(R,CX,CY-2,CX+1,CY-15,false);
+  }
   for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){if(dx*dx+dy*dy<=6.5){const i=idx(CX+dx,CY+dy);ground[i]=G_PATH;obj[i]=0;}}
   obj[idx(CX,CY)]=O_FIRE;obj[idx(CRX,CRY)]=O_CRATE;
 }
 function newWorld(){
   if(typeof invitePreviewStop==='function'&&INVITE_PREVIEW)invitePreviewStop(false);
   TOUR=null;
-  seed=(Math.random()*1e9)|0;genWorld();computePoints();TRAINS.clear();PLANES.clear();SHIPS=[];DIST={};DPOS={};DAYLOG=[];
+  liveState=newLiveState();
+  seed=(Math.random()*1e9)|0;genWorld(true);computePoints();TRAINS.clear();PLANES.clear();SHIPS=[];DIST={};DPOS={};DAYLOG=[];
   buildings=[];queue=[];constructionVotes=[];npcs=[];particles=[];reserved.clear();bById.clear();
   res={wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0};
   mins=7*60;nextId=1;nextBid=1;lastLunch=0;follow=null;npcVer++;
@@ -636,8 +661,12 @@ function findSpot(w,h){
   return null;
 }
 function tryStartSite(){
+  if(liveState.deadline&&!liveState.winner)return {};
+  const firstProject=queue.find(project=>project.founding);
   let lack=null,noSpace=false,rW=0,rS=0;const tried=new Set();
-  for(let qi=0;qi<queue.length;qi++){const q=queue[qi],d=BT[q.type],cw2=q.free?0:d.wood,cs2=q.free?0:d.stone;
+  for(let qi=0;qi<queue.length;qi++){const q=queue[qi];
+    if(firstProject&&q!==firstProject)continue;
+    const d=BT[q.type],cw2=q.free?0:d.wood,cs2=q.free?0:d.stone;
     const hold=()=>{if(q.manual){rW+=cw2;rS+=cs2}};
     if(res.wood<cw2+rW){lack=lack||'wood';hold();continue}
     if(res.stone<cs2+rS){lack=lack||'stone';hold();continue}
@@ -647,7 +676,9 @@ function tryStartSite(){
     const b={id:nextBid++,type:q.type,x:s.x,y:s.y,w:d.w,h:d.h,done:false,progress:0,need:d.time,manual:!!q.manual,owner:q.owner??null,startedAt:gtime};
     const result=constructionVotes.find(v=>v.id===q.voteId);
     if(result)result.buildingId=b.id;
-    placeBuilding(b);buildings.push(b);bById.set(b.id,b);logEv('🏗️ Obra iniciada: '+d.icon+' '+bName(b));
+    placeBuilding(b);buildings.push(b);bById.set(b.id,b);
+    if(firstProject)liveState.firstBuildingId=b.id;
+    logEv('🏗️ Obra iniciada: '+d.icon+' '+bName(b));
     return{started:b};
   }
   return{lack,noSpace};
@@ -699,6 +730,7 @@ function think(n){
   if(n.carry==='stone'&&n.carryN<6&&(n.prof==='minerador'||n.prof==='pedreiro')&&aiMiner(n))return;
   if(n.carry&&n.carry!=='letter'){if(n.carryRes)planDeliver(n);else n.carry=null;return}
   n.carry=null;
+  if(!hasProf('pedreiro')&&n===npcs[0]&&(queue.length||buildings.some(b=>!b.done))&&aiBuilder(n))return;
   const P=PROF[n.prof];let ok=false;
   if(P&&P.ai)ok=P.ai(n);
   if(!ok||!n.plan.length)aiWander(n);
@@ -875,7 +907,8 @@ function endDay({dawn=390,realTime=false}={}){
   if(!$('panel').classList.contains('hidden')&&isMobile())togglePanel()}
 function setDayMode(m){dayMode=m;document.querySelectorAll('[data-day]').forEach(x=>x.classList.toggle('on',x.dataset.day===m));save()}
 function worldTick(dt){
-  timeStep(dt);simT+=dt;
+  if(npcs.length)timeStep(dt);
+  simT+=dt;
   tickAcc+=dt;if(tickAcc<0.5)return;const st=tickAcc;tickAcc=0;
   for(let i=0;i<N;i++){if(crop[i]>=1&&crop[i]<=3){cropT[i]+=st*(EV.rain>0?2.5:1)*(isWinter()?0.5:1);if(cropT[i]>=22){crop[i]++;cropT[i]=0}}}
   abstractWork(st);
@@ -924,10 +957,10 @@ function floatTxt(x,y,t){particles.push({x,y,vx:0,vy:-14,life:1.6,max:1.6,type:'
 // ================== MAR, CAIS, FERROVIA, AEROPORTO ==================
 const AIRPT={x:CX-38,y:CY-14};let COAST={x:W-20,y:CY+18},LAKEPT={x:CX+10,y:CY+8},SEAX=new Int16Array(H).fill(W);
 function shoreX(y,ph){return W-16+Math.round(Math.sin(y*0.13+ph)*2+Math.sin(y*0.31+ph*2)*1.2)}
-function addSea(R){const ph=R()*6;
+function addSea(R, withRoad = true){const ph=R()*6;
   for(let y=0;y<H;y++){const sx=shoreX(y,ph);for(let x=Math.max(0,sx-2);x<W;x++){const i=idx(x,y);if(bld[i]>=0)continue;
     if(x>sx){ground[i]=G_SEA;obj[i]=0;crop[i]=0}else if(!isWaterG(ground[i])){ground[i]=G_SAND;obj[i]=0;crop[i]=0}}}
-  const ty=CY+18;carve(R,CX+3,CY+3,shoreX(ty,ph)-1,ty,false);COAST={x:shoreX(ty,ph)-1,y:ty};
+  const ty=CY+18;if(withRoad)carve(R,CX+3,CY+3,shoreX(ty,ph)-1,ty,false);COAST={x:shoreX(ty,ph)-1,y:ty};
 }
 function computePoints(){let bd=1e9;
   for(let y=0;y<H;y++){SEAX[y]=W;for(let x=0;x<W;x++){const g=ground[idx(x,y)];if(g===G_SEA&&x<SEAX[y])SEAX[y]=x;if(g===G_WATER){const d=(x-CX)**2+(y-CY)**2;if(d<bd){bd=d;LAKEPT={x,y}}}}}
@@ -1706,7 +1739,7 @@ function render(){
     else if(e.k===O_TREE){const s=shakes.get(e.i);ctx.drawImage(treeImgs[objVar[e.i]&3],e.X-4+(s?Math.round(Math.sin(gtime*50)):0),e.Y-18)}
     else if(e.k===O_ROCK)ctx.drawImage(rockImgs[objVar[e.i]&1],e.X,e.Y);
     else if(e.k===O_FIRE)drawFire(e.X,e.Y,lights);
-    else if(e.k===O_CRATE)drawCrate(e.X,e.Y);
+    else if(e.k===O_CRATE&&npcs.length)drawCrate(e.X,e.Y);
     else if(e.k===O_LAMP)drawLamp(e.X,e.Y,lights,dk>0.1);
   }
   if(dk>0.2)for(const e of list)if(e.k==='n'&&e.n.prof==='policial')lights.push({x:e.n.x,y:e.n.y-8,r:34,a:0.9});
@@ -1794,7 +1827,10 @@ function frame(now){
   if(!(REC&&REC.arrivalScene)&&!TOUR&&follow!=null){const n=npcs.find(m=>m.id===follow);if(n&&n.active){cam.x+=(n.x-cam.x)*Math.min(1,dt*4);cam.y+=(n.y-cam.y)*Math.min(1,dt*4)}else if(!n)follow=null}
   if(follow!=null&&followUntil&&now>followUntil&&!pinnedFollow){follow=null;followUntil=0}
   clampCam();render();recFrame(now);
-  uiAcc+=dt;if(uiAcc>0.5){uiAcc=0;refreshHud();refreshPanel(false)}
+  uiAcc+=dt;if(uiAcc>0.5){uiAcc=0;refreshHud();refreshPanel(false);
+    if(liveState.deadline&&!liveState.winner&&Date.now()>=liveState.deadline)closeLiveBallot();
+    refreshLiveBallot();
+  }
   saveAcc+=dt;if(saveAcc>20){saveAcc=0;if(!ARRIVAL_PREVIEW)save()}
   requestAnimationFrame(frame);
 }
@@ -1988,7 +2024,7 @@ function tlSnap(){
   if(TL.frames.length>360){const f=TL.frames,out=[f[0]];for(let i=1;i<f.length;i+=2){if(i+1<f.length){const a=f[i],b=f[i+1];b.c=a.c&&b.c?a.c+','+b.c:(a.c||b.c);out.push(b)}else out.push(f[i])}TL.frames=out}
   tlStore();
 }
-function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('vilaInscritos',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('mundoPixelandiaLive',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
 let tlStoreT=null;
 function tlStore(){clearTimeout(tlStoreT);tlStoreT=setTimeout(async()=>{try{const db=await idb();db.transaction('kv','readwrite').objectStore('kv').put(JSON.stringify(TL),'tl')}catch(e){}},400)}
 async function tlLoad(){try{const db=await idb();const v=await new Promise((res,rej)=>{const r=db.transaction('kv').objectStore('kv').get('tl');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
@@ -3129,7 +3165,7 @@ function welcomeGroupPreview(){
 }
 
 const WELCOME_QUEUE=[];
-const WELCOME_DRAFT_KEY='pixelandia-welcome-draft';
+const WELCOME_DRAFT_KEY='pixelandia-live-welcome-draft';
 let LAST_WELCOME=null,WELCOME_USE_SCRIPT=false;
 function saveWelcomeDraft(){
  try{
@@ -3139,7 +3175,7 @@ function saveWelcomeDraft(){
   }));
  }catch(e){}
 }
-const SCRIPT_KEY='pixelandia-welcome-script-v1';
+const SCRIPT_KEY='pixelandia-live-welcome-script-v1';
 let WELCOME_SCRIPT='';
 try{WELCOME_SCRIPT=localStorage.getItem(SCRIPT_KEY)||''}catch(e){}
 const STUDIO_SCRIPTS={vote:'',event:''};
@@ -3215,7 +3251,7 @@ function cameraScriptTimeline(scenes,origin){
  return cues.sort((a,b)=>a.time-b.time);
 }
 
-for(const k of ['vote','event'])try{STUDIO_SCRIPTS[k]=localStorage.getItem('pixelandia-script-'+k)||''}catch(e){}
+for(const k of ['vote','event'])try{STUDIO_SCRIPTS[k]=localStorage.getItem('pixelandia-live-script-'+k)||''}catch(e){}
 function studioScriptParse(raw,mode){
  const scenes=[];let current=null;
  const allowed=mode==='vote'?['CENA: VILA','VOTACAO','CENA: FINAL']:['CENA: VILA','EVENTO','CENA: FINAL'];
@@ -3237,7 +3273,7 @@ function studioScriptParse(raw,mode){
 function studioScriptRead(mode){
  if(!['vote','event'].includes(mode)||!$('stScriptMode')?.checked)return null;
  const raw=$('stScriptText').value;STUDIO_SCRIPTS[mode]=raw;
- try{localStorage.setItem('pixelandia-script-'+mode,raw)}catch(e){}
+ try{localStorage.setItem('pixelandia-live-script-'+mode,raw)}catch(e){}
  try{return studioScriptParse(raw,mode)}catch(e){alert(e.message);return false}
 }
 function mountSceneBuilder(mode){
@@ -3649,7 +3685,7 @@ function openRecMenu(){
    USE_STUDIO_SCRIPT[mode]=e.target.checked;
    $('stScriptArea').style.display=e.target.checked?'block':'none';
   };
-  const persist=()=>{STUDIO_SCRIPTS[mode]=ta.value;try{localStorage.setItem('pixelandia-script-'+mode,ta.value)}catch(e){}};
+  const persist=()=>{STUDIO_SCRIPTS[mode]=ta.value;try{localStorage.setItem('pixelandia-live-script-'+mode,ta.value)}catch(e){}};
   ta.oninput=persist;
   $('stScriptExample').onclick=()=>{
    if(ta.value.trim()&&!confirm('Substituir o roteiro atual?'))return;
@@ -3978,12 +4014,13 @@ function clickAt(sx,sy){const wx=cam.x+(sx-cw/2)/cam.z,wy=cam.y+(sy-ch/2)/cam.z;
 // ================== SALVAR ==================
 const enc=a=>{let s='';for(let i=0;i<a.length;i+=4096)s+=String.fromCharCode.apply(null,Array.from(a.subarray(i,i+4096),v=>48+v));return s};
 const dec=(s,T2)=>{const a=new T2(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i)-48;return a};
-function serialize(){return JSON.stringify({v:2,seed,villageName,mins,res,lastLunch,goalIdx,hooks,ground:enc(ground),obj:enc(obj),objVar:enc(objVar),crop:enc(crop),
+function serialize(){return JSON.stringify({v:2,liveState,seed,villageName,mins,res,lastLunch,goalIdx,hooks,ground:enc(ground),obj:enc(obj),objVar:enc(objVar),crop:enc(crop),
   buildings:buildings.map(b=>[b.id,b.type,b.x,b.y,b.done?1:0,Math.round(b.progress*10)/10,b.manual?1:0,b.owner??-1,b.rail?b.rail.map(v=>v.toString(36)).join('.'):0]),sea:1,season:SEASON,coast:COAST,dist:DIST,dayMode,epMin,daylog:DAYLOG,constructionVotes,queue,nextId,nextBid,spawn,
   npcs:npcs.map(n=>[n.id,n.name,n.prof,n.sex,n.custom,n.home,n.si,n.hi,n.pi,n.ci,n.beard?1:0,n.fed?1:0,n.day||1,n.spouse??-1,n.kids&&n.kids.length?n.kids.map(k=>k.name+'|'+k.sex):0,n.st||0,(n.vip?1:0)|(n.fan?2:0)|(n.mayor?4:0),n.pet?n.pet.k+n.pet.c+(n.pet.name?'|'+n.pet.name:''):0])})}
 function restoreNPCs(){for(const n of npcs){if(n.prof==='custom'&&/poli?ss?onograf/.test(norm(n.custom||''))){n.prof='polissonografista';n.custom=''}if(n.prof==='custom'&&typeof PROF_ALIAS!=='undefined'&&PROF_ALIAS[norm(n.custom||'')]){n.prof=PROF_ALIAS[norm(n.custom)];n.custom=''}npcColors(n);n.st=n.st||{};n.kids=n.kids||[];if(n.spouse==null)n.spouse=-1;n.day=n.day||1;n.abT=0;n.kid=null;n.petO=null;if(n.pet===undefined)n.pet=null;Object.assign(n,{dir:'down',plan:[],step:null,carry:null,carryN:0,carryRes:null,inside:false,sleeping:false,idle:0,walkT:0,animT:0,lifeT:0,anim:null,bubble:null,status:'Acordando',active:false,x:spawn.x*T+8,y:spawn.y*T+12})}}
 function load(s){
   if(!s||(s.v!==1&&s.v!==2))throw new Error('bad');
+  liveState=s.liveState||newLiveState();
   constructionVotes=Array.isArray(s.constructionVotes)?s.constructionVotes.filter(v=>v&&Number.isSafeInteger(v.id)&&Object.hasOwn(BT,v.type)):[];
   seed=s.seed;goalIdx=s.goalIdx||0;hooks=Object.assign({wed:0,kid:0,gos:0},s.hooks);stopEventsQuiet();villageName=(!s.villageName||['Vila dos Inscritos','Pixelândia','Vila '+'Pixelândia'].includes(s.villageName))?'Mundo Pixelândia':s.villageName;$('villageName').value=villageName;mins=s.mins;res=Object.assign({wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0},s.res);lastLunch=s.lastLunch||0;
   if(s.v===1){migrateV1(s)}else{
@@ -4019,6 +4056,111 @@ function migrateV1(s){
 }
 function save(){try{localStorage.setItem(SAVE_KEY,serialize())}catch(e){}}
 
+
+const FOUNDING_PROFESSIONS = new Set(['lenhador', 'pedreiro', 'fazendeiro', 'minerador']);
+const FIRST_PROJECTS = { casa: 'primeira casa', serraria: 'primeira serraria' };
+
+function newLiveState(){
+  return { residents: [], ballots: [], deadline: 0, winner: null, firstBuildingId: null };
+}
+
+function refreshLiveBallot(){
+  const open = liveState.deadline > 0 && !liveState.winner;
+  $('liveCloseVote').hidden = !open;
+  if(open){
+    const seconds = Math.max(0, Math.ceil((liveState.deadline - Date.now()) / 1000));
+    const houses = liveState.ballots.filter(([, choice]) => choice === 'casa').length;
+    $('liveBallot').textContent = `Primeira obra · ${seconds}s · !votar casa (${houses}) ou !votar serraria (${liveState.ballots.length - houses})`;
+  }else if(liveState.winner){
+    const project = buildings.find(b => b.id === liveState.firstBuildingId);
+    const progress = project ? (project.done ? 'concluída' : 'em construção') :
+      queue.some(job => job.founding) ? 'aguardando materiais e terreno' : 'removida da fila';
+    $('liveBallot').textContent = `O chat escolheu a ${FIRST_PROJECTS[liveState.winner]} · ${progress}.`;
+  }else{
+    $('liveBallot').textContent = 'A primeira chegada abre a votação da obra inicial.';
+  }
+  $('liveOverlay').textContent = open ? $('liveBallot').textContent :
+    (liveState.winner ? $('liveBallot').textContent + ' · ' : '') + '!morador Nome | profissão';
+}
+
+function closeLiveBallot(){
+  if(!liveState.deadline || liveState.winner)return;
+  const houses = liveState.ballots.filter(([, choice]) => choice === 'casa').length;
+  const winner = houses * 2 >= liveState.ballots.length ? 'casa' : 'serraria';
+  liveState.winner = winner;
+  const index = queue.findIndex(project => project.type === winner && project.owner == null);
+  if(index >= 0)queue.splice(index, 1);
+  queue.unshift({type:winner, manual:true, founding:true});
+  lastTry = -99;
+  announce('O chat decidiu!', 'A vila vai construir a ' + FIRST_PROJECTS[winner]);
+  logEv('🗳️ O chat escolheu a ' + FIRST_PROJECTS[winner]);
+  save();
+  refreshPanel(true);
+  refreshLiveBallot();
+}
+
+function handleLiveChat(viewer, message){
+  const id = norm(viewer).replace(/^@/, '');
+  if(!id)return 'Informe o usuário do chat.';
+  if(liveState.deadline && Date.now() >= liveState.deadline)closeLiveBallot();
+  const registration = liveState.residents.find(([user]) => user === id);
+  const resident = registration && npcs.find(n => n.id === registration[1]);
+  const [command, ...words] = message.trim().split(/\s+/);
+  const args = words.join(' ');
+
+  if(command.toLowerCase() === '!morador'){
+    if(resident)return `Você já tem um morador: ${resident.name}.`;
+    const fields = args.split('|').map(value => value.trim());
+    const [name, profession = ''] = fields;
+    if(fields.length !== 2 || !/^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} ._'’-]{0,17}$/u.test(name) || badName(name)){
+      return 'Use !morador Nome | profissão. Escolha um nome válido de até 18 caracteres.';
+    }
+    const key = norm(profession);
+    const prof = key === 'carpinteiro' || key === 'carpinteira' ? 'pedreiro' : PROF_ALIAS[key];
+    if(!FOUNDING_PROFESSIONS.has(prof))return 'Escolha lenhador, pedreiro, fazendeiro ou minerador.';
+    const sex = norm(PROF[prof].labelF) === key || key === 'carpinteira' ? 'f' : 'm';
+    const n = addNPC(name, prof, sex, '');
+    liveState.residents = liveState.residents.filter(([user]) => user !== id);
+    liveState.residents.push([id, n.id]);
+    if(!liveState.deadline && !liveState.winner)liveState.deadline = Date.now() + 60000;
+    addHL(2, n.name + ' chegou à vila', n.x, n.y);
+    save();
+    return `${n.name} chegou à fogueira como ${profLabel(n)}.`;
+  }
+  if(command.toLowerCase() === '!votar'){
+    if(!liveState.deadline || liveState.winner)return 'A votação da primeira obra está fechada.';
+    const choice = norm(args);
+    if(!Object.hasOwn(FIRST_PROJECTS, choice))return 'Use !votar casa ou !votar serraria.';
+    liveState.ballots = liveState.ballots.filter(([user]) => user !== id);
+    liveState.ballots.push([id, choice]);
+    save();
+    return `Seu voto foi registrado para ${FIRST_PROJECTS[choice]}.`;
+  }
+  if(command.toLowerCase() === '!meu'){
+    if(!resident)return 'Crie seu morador com !morador Nome | profissão.';
+    if(!resident.active && !resident.abT)activate(resident);
+    follow = resident.id;
+    pinnedFollow = false;
+    followUntil = performance.now() + 14000;
+    const contributions = resident.st || {};
+    announce(resident.name, profLabel(resident) + ' · ' + resident.status);
+    return `${resident.name} · ${resident.status} · ${contributions.t || 0} árvores cortadas · ${contributions.o || 0} turnos de construção.`;
+  }
+  return 'Comandos disponíveis: !morador, !votar e !meu.';
+}
+
+$('liveChatForm').addEventListener('submit', event => {
+  event.preventDefault();
+  const input = $('liveMessage');
+  $('liveFeedback').textContent = handleLiveChat($('liveViewer').value, input.value);
+  refreshLiveBallot();
+  if(!$('panel').classList.contains('hidden')){
+    input.select();
+    input.focus();
+  }
+});
+$('liveCloseVote').onclick = closeLiveBallot;
+
 // ================== INÍCIO ==================
 resize();addEventListener('resize',resize);
 initSprites();
@@ -4026,7 +4168,8 @@ if(innerWidth<700){activeMax=100;document.querySelectorAll('[data-act]').forEach
 try{const a=+localStorage.getItem(SAVE_KEY+'_act');if(a){activeMax=a;document.querySelectorAll('[data-act]').forEach(x=>x.classList.toggle('on',+x.dataset.act===a))}}catch(e){}
 let loaded=false;
 try{const s=localStorage.getItem(SAVE_KEY);if(s){load(JSON.parse(s));loaded=true;centerCam()}}catch(e){console.warn(e);loaded=false}
-if(!loaded)newWorld();else tlLoad();
+if(!loaded){newWorld();save()}else tlLoad();
+refreshLiveBallot();
 refreshHud();refreshPanel(true);
 if(innerWidth<700&&npcs.length)togglePanel();
 requestAnimationFrame(frame);
@@ -4044,7 +4187,7 @@ const drawer=document.createElement('section');drawer.id='pxDrawer';drawer.setAt
 const toast=document.createElement('div');toast.id='pxToast';document.body.appendChild(toast);let toastTimer;
 function notice(t){toast.textContent=t;toast.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.display='none',3400)}
 let view='',cinema=false,cinemaTimer=null,cycle=0,lastDay=0,lastEventDay=0;
-const KEY='pixelandia_enhancements_v1';let social={};
+const KEY='pixelandia_live_enhancements_v1';let social={};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'{}');social=s.social||{};lastEventDay=s.lastEventDay||0}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify({social,lastEventDay}))}catch(e){}}
 function clamp(v){return Math.max(0,Math.min(100,v))}
