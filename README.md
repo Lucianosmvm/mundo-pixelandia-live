@@ -49,17 +49,19 @@ A vila começa na **Era da Pedra** e avança até a **Era Moderna**. Para sair d
 | 2 | 🌾 Agrícola | fazendeiro, pecuarista, cozinheiro | celeiro, curral, poço, moinho, paliçada, cozinha comunitária | 7 moradores, 9 obras, moinho e paliçada, Metalurgia, 250 🍖, 400 🪵, 120 🪨 |
 | 3 | 🥉 Bronze | comerciante, músico, padeiro, líder | mercado, mina, templo, muralha, palácio, taverna, fonte, estátua, padaria | 10 moradores, 15 obras, templo e mina, Fundição de ferro, 120 🪙, 350 🪨 |
 | 4 | ⚔️ Ferro | ferreiro, guarda | ferraria, torre de vigia, estábulo, posto da guarda, sobrado | 14 moradores, 22 obras, ferraria e torre, Engenharia, 100 ⚙️, 300 🪙 |
-| 5 | 🏛️ Clássica | professor, marinheiro, curandeiro | academia, porto, anfiteatro, parque, casa de cura | 19 moradores, 29 obras, academia e anfiteatro, Filosofia |
+| 5 | 🏛️ Clássica | professor, marinheiro, curandeiro | academia, porto, anfiteatro, parque, casa de cura, aqueduto | 19 moradores, 29 obras, academia, anfiteatro e aqueduto, Filosofia |
 | 6 | 🏰 Medieval | mensageiro | mosteiro, castelo, estalagem, casa dos mensageiros | 24 moradores, 36 obras, castelo, Feudalismo |
-| 7 | 📜 Baixa Idade Média | jardineiro | biblioteca, farol | 30 moradores, 43 obras, biblioteca, Universidades |
-| 8 | 🎨 Renascença | bombeiro | banco, quartel de bombeiros | 36 moradores, 50 obras, banco, Navegação |
-| 9 | 🏭 Industrial | maquinista, enfermeiro, polissonografista | estação de trem, hospital, prédio, roda-gigante | 45 moradores, 60 obras, estação e hospital, Eletricidade |
-| 10 | 🚀 Moderna | piloto | aeroporto, estádio, foguete | era final |
+| 7 | 📜 Baixa Idade Média | jardineiro | biblioteca, farol, catedral, universidade | 30 moradores, 43 obras, biblioteca, catedral e universidade, Universidades |
+| 8 | 🎨 Renascença | bombeiro, cientista | banco, quartel de bombeiros | 36 moradores, 50 obras, banco, Navegação |
+| 9 | 🏭 Industrial | maquinista, enfermeiro, polissonografista, operário, engenheiro | estação de trem, hospital, prédio, roda-gigante, fábrica, usina | 45 moradores, 60 obras, estação, fábrica e usina, Eletricidade, 300 ⚡ |
+| 10 | 🚀 Moderna | piloto, programador | aeroporto, estádio, foguete, centro de tecnologia | **grande final** (abaixo) |
 
-As eras 5 a 10 também pedem produção total de ouro, ferro ou pedra (o overlay mostra os valores).
+As eras 5 a 10 também pedem produção total de ouro, ferro, pedra ou energia (o overlay mostra os valores).
 
-- **Pesquisa:** o chat vota o que a vila vai descobrir (`1`, `2`, `3`). A pesquisa-chave da era sempre está entre as opções. Ela avança sozinha, e cada mensagem no chat e cada `!ajudar` aceleram. Algumas pesquisas liberam obras: Ferramentas de pedra → oficina, Cestaria → depósito, Rituais → totem, Domesticação → curral, Moagem → moinho, Comércio → mercado, Mineração → mina, Forja → ferraria, Equitação → estábulo.
-- **Recursos novos:** 🪙 ouro aparece no Bronze (mina e comércio) e ⚙️ ferro no Ferro (mina e ferraria). A oficina produz ferramentas e o moinho, comida.
+**Grande final:** na Era Moderna, com 55 moradores, 70 obras, foguete, aeroporto e centro de tecnologia, a pesquisa Corrida espacial e 1.500 ⚡ produzidos, o foguete da vila decola. Há festa, fogos, o ranking dos fundadores na tela e XP para todos. Acontece uma vez por mundo; depois a vila continua viva.
+
+- **Pesquisa:** o chat vota o que a vila vai descobrir (`1`, `2`, `3`). A pesquisa-chave da era sempre está entre as opções. Ela avança sozinha, e cada mensagem no chat e cada `!ajudar` aceleram. Algumas pesquisas liberam obras: Ferramentas de pedra → oficina, Cestaria → depósito, Rituais → totem, Domesticação → curral, Moagem → moinho, Comércio → mercado, Mineração → mina, Forja → ferraria, Equitação → estábulo, Aquedutos → aqueduto, Medicina → casa de cura, Mosteiros → mosteiro, Arquitetura gótica → catedral, Universidades → universidade, Bancos → banco, Máquina a vapor → fábrica, Ferrovia → estação, Usina a carvão → usina, Aviação → aeroporto, Computação → centro de tecnologia, Corrida espacial → foguete. Universidade (+25%), centro de tecnologia (+50%) e cientistas aceleram as pesquisas; Cavalaria (+10) e Pólvora (+20) aumentam a defesa.
+- **Recursos novos:** 🪙 ouro aparece no Bronze (mina, comércio e fábrica), ⚙️ ferro no Ferro (mina e ferraria) e ⚡ energia na Industrial (usina, mais com engenheiro). A oficina e a fábrica produzem ferramentas; o moinho e o aqueduto, comida.
 - **O mundo muda de cara:** as casas passam de palha e tronco para barro, pedra, tijolo e, na era final, concreto. Alguns nomes acompanham a era: Cabana → Casa de barro → Casa; Guarda → Policial; Curandeiro → Médico.
 - **Profissão do futuro:** quem pede uma profissão de era posterior chega como aprendiz e se forma quando a vila chega lá.
 - **Metas de população** dão de presente uma obra da era atual, nunca um prédio do futuro.
@@ -80,7 +82,7 @@ A defesa soma:
 - **Chat:** `!defender` vale +2, até 3 vezes por pessoa.
 - **Mercenários:** doações durante o ataque.
 
-A força dos saqueadores cresce com a era, a população e o número de ataques.
+A força dos saqueadores cresce com a era, a população e o número de ataques. Os inimigos mudam com a época: **saqueadores** até o Ferro, **invasores** na Clássica e Medieval, **piratas** na Renascença (sempre pelo mar, a leste) e **bandidos** da era Industrial em diante.
 
 **Guerreiro** é profissão da Era da Pedra (também aceita soldado, lanceiro, cavaleiro, vigia, espadachim). Fora dos ataques, patrulha as defesas.
 

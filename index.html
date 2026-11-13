@@ -292,6 +292,13 @@ const BT={
   muralha:{label:'Muralha',icon:'🧱',grp:'w',w:6,h:2,wood:5,stone:40,time:24,open:'muralha'},
   torre:{label:'Torre de vigia',icon:'🛡️',grp:'w',w:2,h:2,wood:14,stone:16,time:18,open:'torre'},
   estabulo:{label:'Estábulo',icon:'🐎',grp:'w',w:4,h:3,wood:24,stone:4,time:18,wall:'#8b5a2b',roof:'#5e3418'},
+  // Eras 5 a 10
+  aqueduto:{label:'Aqueduto',icon:'🌉',grp:'c',w:6,h:2,wood:5,stone:50,time:28,open:'aqueduto',fun:3},
+  catedral:{label:'Catedral',icon:'⛪',grp:'c',w:5,h:5,wood:40,stone:90,time:60,wall:'#e8e2d0',roof:'#5a5f6b',fun:6},
+  universidade:{label:'Universidade',icon:'🎓',grp:'w',w:5,h:4,wood:45,stone:50,time:50,wall:'#9a5a3c',roof:'#2e4e6e',flag:'#c0392b'},
+  fabrica:{label:'Fábrica',icon:'🏭',grp:'w',w:5,h:4,wood:40,stone:60,time:50,wall:'#8e4a3a',roof:'#3d3d44'},
+  usina:{label:'Usina',icon:'⚡',grp:'w',w:5,h:4,wood:20,stone:90,time:60,open:'usina'},
+  centrotec:{label:'Centro de tecnologia',icon:'💻',grp:'w',w:4,h:4,wood:30,stone:80,time:60,wall:'#5f9fd6',roof:'#2b3a4a'},
 };
 const GOALS=[[5,'poco'],[15,'fonte'],[30,'parque'],[50,'estatua'],[100,'farol'],[200,'rodagigante'],[350,'estacao'],[500,'castelo'],[1000,'estadio'],[1500,'aeroporto'],[2500,'teatro'],[5000,'foguete'],[10000,'LAUNCH']];
 const BRIGAS=['por causa de uma galinha','por quem pescou o maior peixe','porque um cortou a árvore favorita do outro','por causa do volume da música','pela última coxinha da festa','por causa de uma fofoca da taverna','porque um pisou na horta do outro','por causa de um jogo de dominó'];
@@ -322,6 +329,10 @@ const LINES={
   enfermeiro:['Tomou o remédio?','Pressão ótima!','Cuide-se 🩹'],
   bombeiro:['Tudo seguro!','Treinando a mangueira','Sem fogo hoje 🚒'],
   guerreiro:['Ninguém passa! 🛡️','Vila protegida','Treino todo dia 💪','De olho na floresta 👀'],
+  cientista:['Eureka! 💡','Hipótese confirmada!','Mais um experimento…'],
+  operario:['Turno puxado hoje','Linha de produção a todo vapor 🏭','Hora do almoço!'],
+  engenheiro:['A usina tá estável ⚡','Calculando…','Funciona na prática!'],
+  programador:['Funciona na minha máquina 💻','Deploy na sexta? Nunca.','Café e código ☕','Achei o bug!'],
   _:['Que dia lindo!','Adoro essa vila','Oi, vizinho!','Bora trabalhar!']
 };
 const PROF={
@@ -350,6 +361,10 @@ const PROF={
   enfermeiro:{label:'Enfermeiro',labelF:'Enfermeira',icon:'🩹',shirt:'#7fc8e8',hat:null,ai:aiWorkplace,bld:'hospital'},
   bombeiro:{label:'Bombeiro',labelF:'Bombeira',icon:'🚒',shirt:'#c0392b',hat:'hard',hatC:'#d63a2a',ai:aiFire,bld:'quartel'},
   guerreiro:{label:'Guerreiro',labelF:'Guerreira',icon:'🛡️',shirt:'#7a2a1a',hat:'helmet',hatC:'#9a9a9a',ai:aiGuard},
+  cientista:{label:'Cientista',labelF:'Cientista',icon:'🔬',shirt:'#f5f5f5',hat:null,glasses:true,ai:aiWorkplace,bld:'universidade'},
+  operario:{label:'Operário',labelF:'Operária',icon:'🏭',shirt:'#3b5a8a',hat:'cap',hatC:'#2c3e50',ai:aiWorkplace,bld:'fabrica'},
+  engenheiro:{label:'Engenheiro',labelF:'Engenheira',icon:'⚙️',shirt:'#e67e22',hat:'hard',hatC:'#f1c40f',ai:aiWorkplace,bld:'usina'},
+  programador:{label:'Programador',labelF:'Programadora',icon:'💻',shirt:'#2c3e50',hat:null,glasses:true,ai:aiWorkplace,bld:'centrotec'},
 };
 const NAMES_M=['Lucas','Pedro','João','Gabriel','Rafael','Mateus','Gustavo','Bruno','Felipe','Thiago','Diego','Caio','Enzo','Davi','Miguel','Arthur','Heitor','Bernardo','Vitor','Samuel'];
 const NAMES_F=['Ana','Maria','Júlia','Beatriz','Larissa','Camila','Fernanda','Sofia','Laura','Helena','Alice','Valentina','Manuela','Luiza','Isabela','Giovana','Clara','Lívia'];
@@ -416,7 +431,7 @@ function newWorld(){
   liveState=newLiveState();
   seed=(Math.random()*1e9)|0;genWorld(true);computePoints();TRAINS.clear();PLANES.clear();SHIPS=[];DIST={};DPOS={};DAYLOG=[];
   buildings=[];queue=[];constructionVotes=[];npcs=[];particles=[];reserved.clear();bById.clear();
-  res={wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0,iron:0};
+  res={wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0,iron:0,energy:0};
   mins=7*60;nextId=1;nextBid=1;lastLunch=0;follow=null;npcVer++;
   villageName=document.getElementById('villageName').value||'Mundo Pixelândia';
   goalIdx=0;hooks={wed:0,kid:0,gos:0};stopEventsQuiet();
@@ -1409,6 +1424,16 @@ function drawOpen(b,d){
     px(c,'#e5b53a',x+w/2-1,y-28,2,4);px(c,'#3f9a2a',x+w/2-4,y-4,8,3);px(c,'#5fbf3a',x+w/2-6,y-8,5,4);px(c,'#5fbf3a',x+w/2+1,y-9,5,4);px(c,'#2e7d22',x+w/2,y-6,1,6);
     px(c,'#e5b53a',x+w/2-9,y+h-14,18,6);px(c,'#b8862a',x+w/2-9,y+h-9,18,1);
     if(darkness()>0.15&&b.lights)b.lights.push({x:x+w/2,y:y,r:40,a:0.8,warm:true});
+  }else if(d.open==='aqueduto'){
+    px(c,'rgba(0,0,0,.2)',x,y+h-3,w,4);
+    px(c,'#c9bfa8',x,y-6,w,10);px(c,'#e2d8c0',x,y-6,w,2);px(c,'#3d8fd6',x+2,y-4,w-4,2);
+    for(let k=0;k<6;k++){const ax=x+k*16;px(c,'#c9bfa8',ax,y+4,4,h-4);px(c,'#c9bfa8',ax+12,y+4,4,h-4);px(c,'#b5ab94',ax+4,y+4,8,3);px(c,'#a89e88',ax+3,y+4,1,h-4)}
+  }else if(d.open==='usina'){
+    px(c,'rgba(0,0,0,.2)',x+2,y+h-3,w-2,4);
+    px(c,'#b9bfc6',x+2,y+22,w-34,h-22);px(c,'#8f949b',x+2,y+22,w-34,2);for(let k=0;k<3;k++)px(c,darkness()>0.15?'#ffd66b':'#3a4a5a',x+8+k*14,y+32,8,8);
+    for(let k=0;k<2;k++){const tx=x+w-30+k*15;px(c,'#d8dce0',tx,y+4,13,h-4);px(c,'#c0c5ca',tx+1,y+4,2,h-4);px(c,'#e8ecef',tx-1,y+2,15,3);
+      if(Math.random()<0.25)particles.push({x:tx+6,y:y+2,vx:rnd(-3,3),vy:-10,life:3,max:3,type:'smoke',size:3})}
+    px(c,'#f1c40f',x+10,y+24,8,4);px(c,'#2b1d14',x+12,y+25,4,2);
   }else if(d.open==='totem'){
     px(c,'rgba(0,0,0,.2)',x+8,y+h-3,16,3);const tx=x+12;px(c,'#7a4a24',tx,y-16,8,h+12);
     const cols=['#c0392b','#2e7d7a','#e3a92b'];for(let k=0;k<3;k++){const yy=y-14+k*12;px(c,cols[k],tx,yy,8,3);px(c,'#fff',tx+1,yy+5,2,2);px(c,'#fff',tx+5,yy+5,2,2);px(c,'#2b1d14',tx+2,yy+6,1,1);px(c,'#2b1d14',tx+6,yy+6,1,1);px(c,'#2b1d14',tx+2,yy+9,4,1)}
@@ -1482,6 +1507,10 @@ const STY={
   oficina:{wall:'log',roof:'steep',rc:'#5b3a1e',feat:['anvil']},
   templo:{wall:'stoneclean',wc:'#e8dcc0',roof:'classic',rc:'#b08d2a',feat:['columns'],door:'#7a5a3a'},
   estabulo:{wall:'barn',wc:'#8b5a2b',roof:'gable',rc:'#5e3418',door:'barn'},
+  catedral:{wall:'stoneclean',wc:'#e8e2d0',roof:'steep',rc:'#5a5f6b',tall:2,feat:['steeple','rose'],win:'arch',door:'#5e3418'},
+  universidade:{wall:'brick',wc:'#9a5a3c',roof:'hip',rc:'#2e4e6e',tall:1,feat:['belltower','columns'],win:'arch',trim:'#f5f0e6'},
+  fabrica:{wall:'brick',wc:'#8e4a3a',roof:'flat',rc:'#3d3d44',tall:1,feat:['stack'],win:'big'},
+  centrotec:{wall:'glass',roof:'flat',rc:'#2b3a4a',tall:3,feat:['glassband']},
   mansao:{wall:'plaster',wc:'#fbf6ea',roof:'classic',rc:'#2b5f8a',feat:['columns','garden'],door:'#2b5f8a',tall:1,flower:true},
 };
 const pickH=(arr,id,k)=>arr[(hash(id,k,17)*arr.length)|0];
@@ -1874,7 +1903,7 @@ function updateAmbient(dt){
   particles=particles.filter(p=>p.life>0);if(particles.length>600)particles.splice(0,particles.length-600);
   natureTick(dt);for(const b of buildings)if(b.done&&b.type==='curral'&&onScreen(idx(b.x,b.y)))curralTick(b,dt);
   for(const[k,v]of shakes){const nv=v-dt;if(nv<=0)shakes.delete(k);else shakes.set(k,nv)}
-  const h=hour(),morn=h>6&&h<9||h>17&&h<22;for(const b of buildings){if(b.done&&b._chim&&(morn||b.type==='ferraria')&&Math.random()<dt*0.6&&onScreen(idx(b.x,b.y)))particles.push({x:b._chim[0],y:b._chim[1],vx:rnd(2,6),vy:-9,life:2.5,max:2.5,type:'smoke',size:1.5})}
+  const h=hour(),morn=h>6&&h<9||h>17&&h<22;for(const b of buildings){if(b.done&&b._chim&&(morn||b.type==='ferraria'||b.type==='fabrica')&&Math.random()<dt*0.6&&onScreen(idx(b.x,b.y)))particles.push({x:b._chim[0],y:b._chim[1],vx:rnd(2,6),vy:-9,life:2.5,max:2.5,type:'smoke',size:1.5})}
 }
 
 let last=performance.now(),uiAcc=0,saveAcc=0;
@@ -2140,7 +2169,7 @@ function refreshHud(){
   const h=hour(),hh=Math.floor(h),mm=Math.floor((h-hh)*6)*10;
   $('clock').textContent=(FF?`🌙 Dia ${day()} · noite...`:(dayMode==='ep'&&h>=16&&h<20.5)?`🌇 Dia ${day()} · fim de tarde`:`${isNight()?'🌙':h<17?'☀️':'🌇'} Dia ${day()} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`)+' · '+SEASONS[SEASON].icon;
   $('vnHud').textContent=villageName;
-  $('res').innerHTML=`<span title="Moradores">👥 ${fmt(npcs.length)}</span><span title="Madeira">🪵 ${fmt(res.wood)}</span><span title="Pedra">🪨 ${fmt(res.stone)}</span><span title="Peixe">🐟 ${fmt(res.fish)}</span><span title="Colheita">🥕 ${fmt(res.crops)}</span><span title="Refeições">🍲 ${fmt(res.meals)}</span>${(liveState.era??9)>=2?`<span title="Ouro">🪙 ${fmt(res.coins)}</span>`:''}${(liveState.era??9)>=3?`<span title="Ferro">⚙️ ${fmt(res.iron||0)}</span>`:''}<span title="Ferramentas">🔧 ${fmt(res.tools)}</span><span title="Felicidade">${happiness>=70?'😄':happiness>=45?'🙂':npcs.length?'😟':'😶'} ${happiness}%</span>${homeless?`<span class="warn" title="Moradores sem casa">🏚️ ${fmt(homeless)} sem casa</span>`:''}`;
+  $('res').innerHTML=`<span title="Moradores">👥 ${fmt(npcs.length)}</span><span title="Madeira">🪵 ${fmt(res.wood)}</span><span title="Pedra">🪨 ${fmt(res.stone)}</span><span title="Peixe">🐟 ${fmt(res.fish)}</span><span title="Colheita">🥕 ${fmt(res.crops)}</span><span title="Refeições">🍲 ${fmt(res.meals)}</span>${(liveState.era??9)>=2?`<span title="Ouro">🪙 ${fmt(res.coins)}</span>`:''}${(liveState.era??9)>=3?`<span title="Ferro">⚙️ ${fmt(res.iron||0)}</span>`:''}${(liveState.era??9)>=8?`<span title="Energia">⚡ ${fmt(res.energy||0)}</span>`:''}<span title="Ferramentas">🔧 ${fmt(res.tools)}</span><span title="Felicidade">${happiness>=70?'😄':happiness>=45?'🙂':npcs.length?'😟':'😶'} ${happiness}%</span>${homeless?`<span class="warn" title="Moradores sem casa">🏚️ ${fmt(homeless)} sem casa</span>`:''}`;
   $('empty').style.display=npcs.length?'none':'block';
   const g=goalAt(goalIdx),prev=goalIdx>0?goalAt(goalIdx-1)[0]:0,pct=clamp((npcs.length-prev)/(g[0]-prev)*100,0,100);
   const gh=`🎯 Meta: ${goalLabel(g[1])} · faltam <b>${fmt(g[0]-npcs.length)}</b> moradores<div class="gbar"><i style="width:${pct.toFixed(1)}%"></i></div>`;if($('goal').dataset.h!==gh){$('goal').dataset.h=gh;$('goal').innerHTML=gh}
@@ -4086,7 +4115,7 @@ function load(s){
   if(!s||(s.v!==1&&s.v!==2))throw new Error('bad');
   liveState=s.liveState||newLiveState();
   constructionVotes=Array.isArray(s.constructionVotes)?s.constructionVotes.filter(v=>v&&Number.isSafeInteger(v.id)&&Object.hasOwn(BT,v.type)):[];
-  seed=s.seed;goalIdx=s.goalIdx||0;hooks=Object.assign({wed:0,kid:0,gos:0},s.hooks);stopEventsQuiet();villageName=(!s.villageName||['Vila dos Inscritos','Pixelândia','Vila '+'Pixelândia'].includes(s.villageName))?'Mundo Pixelândia':s.villageName;$('villageName').value=villageName;mins=s.mins;res=Object.assign({wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0,iron:0},s.res);lastLunch=s.lastLunch||0;
+  seed=s.seed;goalIdx=s.goalIdx||0;hooks=Object.assign({wed:0,kid:0,gos:0},s.hooks);stopEventsQuiet();villageName=(!s.villageName||['Vila dos Inscritos','Pixelândia','Vila '+'Pixelândia'].includes(s.villageName))?'Mundo Pixelândia':s.villageName;$('villageName').value=villageName;mins=s.mins;res=Object.assign({wood:0,stone:0,fish:0,crops:0,meals:0,coins:0,tools:0,iron:0,energy:0},s.res);lastLunch=s.lastLunch||0;
   if(s.v===1){migrateV1(s)}else{
     ground=dec(s.ground,Uint8Array);obj=dec(s.obj,Uint8Array);objVar=dec(s.objVar,Uint8Array);crop=dec(s.crop,Uint8Array);
     if(ground.length!==N)throw new Error('size');

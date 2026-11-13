@@ -33,28 +33,30 @@ const ERAS = [
     need: { pop: 14, built: 22, has: ['ferraria', 'torre'], research: 'engenharia', prod: { iron: 100, gold: 300 } } },
   { name: 'Era Clássica', icon: '🏛️',
     profs: ['professor', 'marinheiro', 'medico'],
-    blds: ['escola', 'cais', 'teatro', 'parque', 'clinica'],
-    need: { pop: 19, built: 29, has: ['escola', 'teatro'], research: 'filosofia', prod: { gold: 600, iron: 250 } } },
+    blds: ['escola', 'cais', 'teatro', 'parque', 'clinica', 'aqueduto'],
+    need: { pop: 19, built: 29, has: ['escola', 'teatro', 'aqueduto'], research: 'filosofia', prod: { gold: 600, iron: 250 } } },
   { name: 'Medieval', icon: '🏰',
     profs: ['carteiro'],
     blds: ['capela', 'castelo', 'hotel', 'correio'],
     need: { pop: 24, built: 36, has: ['castelo'], research: 'feudalismo', prod: { stone: 1500, gold: 900 } } },
   { name: 'Baixa Idade Média', icon: '📜',
     profs: ['jardineiro'],
-    blds: ['biblioteca', 'farol'],
-    need: { pop: 30, built: 43, has: ['biblioteca'], research: 'universidades', prod: { gold: 1300, iron: 500 } } },
+    blds: ['biblioteca', 'farol', 'catedral', 'universidade'],
+    need: { pop: 30, built: 43, has: ['biblioteca', 'catedral', 'universidade'], research: 'universidades', prod: { gold: 1300, iron: 500 } } },
   { name: 'Renascença', icon: '🎨',
-    profs: ['bombeiro'],
+    profs: ['bombeiro', 'cientista'],
     blds: ['banco', 'quartel'],
     need: { pop: 36, built: 50, has: ['banco'], research: 'navegacao', prod: { gold: 1800 } } },
   { name: 'Era Industrial', icon: '🏭',
-    profs: ['maquinista', 'enfermeiro', 'polissonografista'],
-    blds: ['estacao', 'hospital', 'predio', 'rodagigante'],
-    need: { pop: 45, built: 60, has: ['estacao', 'hospital'], research: 'eletricidade', prod: { iron: 1500, gold: 2500 } } },
+    profs: ['maquinista', 'enfermeiro', 'polissonografista', 'operario', 'engenheiro'],
+    blds: ['estacao', 'hospital', 'predio', 'rodagigante', 'fabrica', 'usina'],
+    need: { pop: 45, built: 60, has: ['estacao', 'fabrica', 'usina'], research: 'eletricidade', prod: { iron: 1500, gold: 2500, energy: 300 } } },
   { name: 'Era Moderna', icon: '🚀',
-    profs: ['piloto'],
-    blds: ['aeroporto', 'estadio', 'foguete'],
-    need: null },
+    profs: ['piloto', 'programador'],
+    blds: ['aeroporto', 'estadio', 'foguete', 'centrotec'],
+    need: null,
+    // Grande final: cumprir isto lança o foguete da vila.
+    finale: { pop: 55, built: 70, has: ['foguete', 'aeroporto', 'centrotec'], research: 'espaco', prod: { energy: 1500 } } },
 ];
 // Pesquisas: o chat vota qual estudar. "key" é a que abre caminho para a próxima era.
 const RESEARCH = {
@@ -71,11 +73,25 @@ const RESEARCH = {
   forja: { era: 3, icon: '⚒️', label: 'Forja', unlock: ['ferraria'], fx: () => { res.tools += 10; return 'Ferraria liberada e +10 🔧'; } },
   equitacao: { era: 3, icon: '🐎', label: 'Equitação', unlock: ['estabulo'], fx: () => 'Estábulo liberado' },
   engenharia: { era: 3, icon: '📐', label: 'Engenharia', key: true, fx: () => 'Pontes, estradas e aquedutos' },
+  aquedutos: { era: 4, icon: '🌉', label: 'Aquedutos', unlock: ['aqueduto'], fx: () => 'Água corrente: aqueduto liberado' },
+  medicina: { era: 4, icon: '🌿', label: 'Medicina antiga', unlock: ['clinica'], fx: () => 'Casa de cura liberada' },
   filosofia: { era: 4, icon: '🦉', label: 'Filosofia', key: true, fx: () => 'A vila começa a pensar grande' },
+  monasterios: { era: 5, icon: '🕯️', label: 'Mosteiros', unlock: ['capela'], fx: () => 'Mosteiro liberado' },
+  cavalaria: { era: 5, icon: '🐴', label: 'Cavalaria', fx: () => { L().defBonus = (L().defBonus || 0) + 10; return '+10 de defesa contra invasores'; } },
   feudalismo: { era: 5, icon: '🛡️', label: 'Feudalismo', key: true, fx: () => 'Castelos e senhores' },
-  universidades: { era: 6, icon: '🎓', label: 'Universidades', key: true, fx: () => 'O conhecimento se espalha' },
+  gotica: { era: 6, icon: '⛪', label: 'Arquitetura gótica', unlock: ['catedral'], fx: () => 'Catedral liberada' },
+  imprensa: { era: 6, icon: '📰', label: 'Imprensa', fx: () => { res.coins += 80; return 'Notícias correm: +80 🪙'; } },
+  universidades: { era: 6, icon: '🎓', label: 'Universidades', key: true, unlock: ['universidade'], fx: () => 'Universidade liberada: pesquisas mais rápidas' },
+  polvora: { era: 7, icon: '💥', label: 'Pólvora', fx: () => { L().defBonus = (L().defBonus || 0) + 20; return '+20 de defesa contra piratas'; } },
+  bancos: { era: 7, icon: '🏦', label: 'Bancos', unlock: ['banco'], fx: () => 'Banco liberado' },
   navegacao: { era: 7, icon: '🧭', label: 'Navegação oceânica', key: true, fx: () => 'Mares abertos' },
+  vapor: { era: 8, icon: '♨️', label: 'Máquina a vapor', unlock: ['fabrica'], fx: () => 'Fábrica liberada' },
+  ferrovia: { era: 8, icon: '🚂', label: 'Ferrovia', unlock: ['estacao'], fx: () => 'Estação de trem liberada' },
+  carvao: { era: 8, icon: '🪨', label: 'Usina a carvão', unlock: ['usina'], fx: () => 'Usina liberada: ⚡ energia!' },
   eletricidade: { era: 8, icon: '⚡', label: 'Eletricidade', key: true, fx: () => 'Luz em todas as casas' },
+  aviacao: { era: 9, icon: '✈️', label: 'Aviação', unlock: ['aeroporto'], fx: () => 'Aeroporto liberado' },
+  computacao: { era: 9, icon: '💻', label: 'Computação', unlock: ['centrotec'], fx: () => 'Centro de tecnologia liberado' },
+  espaco: { era: 9, icon: '🚀', label: 'Corrida espacial', unlock: ['foguete'], fx: () => 'Foguete liberado: rumo às estrelas!' },
 };
 function researchNeed(k) { return 150 + RESEARCH[k].era * 50; }
 // Nomes das obras e profissões mudam com a era (ex.: Cabana → Casa de barro → Casa).
@@ -102,7 +118,7 @@ function applyEraNames() {
 // Apelidos de profissão das primeiras eras.
 for (const [a, p] of [['guarda', 'policial'], ['curandeiro', 'medico'], ['curandeira', 'medico'], ['mensageiro', 'carteiro'], ['mensageira', 'carteiro'],
   ['lider', 'prefeito'], ['chefe', 'prefeito'], ['construtor', 'pedreiro'], ['construtora', 'pedreiro'], ['coletor', 'fazendeiro'], ['coletora', 'fazendeiro'],
-  ['agricultor', 'fazendeiro'], ['guerreiro', 'guerreiro'], ['guerreira', 'guerreiro'], ['soldado', 'guerreiro'], ['soldada', 'guerreiro'], ['lanceiro', 'guerreiro'], ['lanceira', 'guerreiro'], ['cavaleiro', 'guerreiro'], ['cavaleira', 'guerreiro'], ['defensor', 'guerreiro'], ['defensora', 'guerreiro'], ['vigia', 'guerreiro'], ['legionario', 'guerreiro'], ['espadachim', 'guerreiro'], ['agricultora', 'fazendeiro'], ['pastor', 'pecuarista'], ['pastora', 'pecuarista'], ['ferreira', 'ferreiro']]) PROF_ALIAS[norm(a)] = p;
+  ['agricultor', 'fazendeiro'], ['guerreiro', 'guerreiro'], ['guerreira', 'guerreiro'], ['soldado', 'guerreiro'], ['soldada', 'guerreiro'], ['lanceiro', 'guerreiro'], ['lanceira', 'guerreiro'], ['cavaleiro', 'guerreiro'], ['cavaleira', 'guerreiro'], ['defensor', 'guerreiro'], ['defensora', 'guerreiro'], ['vigia', 'guerreiro'], ['legionario', 'guerreiro'], ['espadachim', 'guerreiro'], ['pesquisador', 'cientista'], ['pesquisadora', 'cientista'], ['inventor', 'cientista'], ['inventora', 'cientista'], ['operaria', 'operario'], ['metalurgico', 'operario'], ['engenheira', 'engenheiro'], ['eletricista', 'engenheiro'], ['programadora', 'programador'], ['dev', 'programador'], ['desenvolvedor', 'programador'], ['desenvolvedora', 'programador'], ['hacker', 'programador'], ['agricultora', 'fazendeiro'], ['pastor', 'pecuarista'], ['pastora', 'pecuarista'], ['ferreira', 'ferreiro']]) PROF_ALIAS[norm(a)] = p;
 
 function eraUnlocked(kind) { const out = []; for (let i = 0; i <= L().era; i++) out.push(...ERAS[i][kind]); return out; }
 function eraOfProf(p) { return ERAS.findIndex(e => e.profs.includes(p)); }
@@ -338,9 +354,13 @@ function startResearch(k) {
   feed(`🔬 A vila começou a pesquisar ${RESEARCH[k].icon} ${RESEARCH[k].label}`);
   liveDirty = true; save();
 }
+function researchMult() {
+  const count = t => buildings.filter(b => b.done && b.type === t).length;
+  return 1 + 0.25 * count('universidade') + 0.5 * count('centrotec') + Math.min(0.5, countProf('cientista') * 0.05);
+}
 function researchAdd(v) {
   const c = L().research.cur; if (!c) return;
-  c.prog += v; if (c.prog >= c.need) finishResearch();
+  c.prog += v * researchMult(); if (c.prog >= c.need) finishResearch();
 }
 function finishResearch() {
   const s = L(), c = s.research.cur; if (!c) return;
@@ -541,10 +561,10 @@ function processSpotlight() {
 }
 
 // ================== ERA ==================
-const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'] };
+const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
 function eraProgress() {
-  const s = L(), e = ERAS[s.era]; if (!e.need) return null;
-  const done = buildings.filter(b => b.done), n = e.need;
+  const s = L(), e = ERAS[s.era], n = e.need || (!s.finale && e.finale); if (!n) return null;
+  const done = buildings.filter(b => b.done);
   const items = [
     { t: `👥 ${npcs.length}/${n.pop}`, ok: npcs.length >= n.pop, f: Math.min(1, npcs.length / n.pop) },
     { t: `🏗️ ${done.length}/${n.built}`, ok: done.length >= n.built, f: Math.min(1, done.length / n.built) },
@@ -553,6 +573,23 @@ function eraProgress() {
   ];
   if (n.research) { const ok = s.research.done.includes(n.research), r = RESEARCH[n.research]; items.push({ t: `${r.icon} ${r.label}`, ok, f: ok ? 1 : 0 }); }
   return { items, f: items.reduce((a, i) => a + i.f, 0) / items.length, ok: items.every(i => i.ok) };
+}
+// Final do jogo: o foguete da vila decola. Acontece uma vez por mundo.
+function launchFinale() {
+  const s = L(); if (s.finale) return;
+  s.finale = Date.now();
+  const r = buildings.find(b => b.type === 'foguete' && b.done);
+  if (r) { EV.launch = { b: r.id, t: 0 }; camTo((r.x + 1.5) * T, r.y * T); }
+  EV.party = Math.max(EV.party, 90);
+  const top = topViewers(3).map((v, i) => `${i + 1}º ${v.name}`).join(' · ');
+  announce('🚀 A VILA CHEGOU AO ESPAÇO!', `${villageName} completou as 10 eras!` + (top ? ' ' + top : ''));
+  feed(`🚀 O foguete decolou! ${villageName} completou as 10 eras. Obrigado, chat!`);
+  logEv('🚀 Fim das 10 eras: o foguete decolou!');
+  addHL(5, '🚀 O foguete da vila decolou', CX * T + 8, CY * T + 8);
+  sfx('fanfare'); for (let i = 0; i < 30; i++) setTimeout(() => firework(), i * 300);
+  for (const v of Object.values(s.viewers)) if (npcOf(v)) addXp(v, 50);
+  showTop = Date.now() + 30000;
+  save();
 }
 function eraNeedText() { const p = eraProgress(); return p ? 'Próxima era: ' + p.items.map(i => (i.ok ? '✅ ' : '') + i.t).join(' · ') : ''; }
 function eraUp() {
@@ -581,7 +618,7 @@ function eraUp() {
 let prodLast = null;
 function trackProduction() {
   const s = L();
-  const cur = { wood: res.wood, stone: res.stone, food: res.fish + res.crops + res.meals, gold: res.coins, iron: res.iron || 0 };
+  const cur = { wood: res.wood, stone: res.stone, food: res.fish + res.crops + res.meals, gold: res.coins, iron: res.iron || 0, energy: res.energy || 0 };
   if (prodLast) for (const k in cur) { const d = cur[k] - prodLast[k]; if (d > 0) s.prod[k] = (s.prod[k] || 0) + d; }
   prodLast = cur;
 }
@@ -594,6 +631,10 @@ function buildingProduction() {
   if (mi && era >= 2) res.coins += mi * (hasProf('minerador') ? 2 : 1);
   if (mi && era >= 3) res.iron = (res.iron || 0) + mi * (hasProf('ferreiro') || hasProf('minerador') ? 2 : 1);
   const fe = count('ferraria'); if (fe && era >= 3) res.iron = (res.iron || 0) + fe;
+  const aq = count('aqueduto'); if (aq) res.crops += aq * 2;
+  const fa = count('fabrica'); if (fa && era >= 8) { const k = hasProf('operario') ? 2 : 1; res.coins += fa * 3 * k; if (res.tools < toolCap()) res.tools += fa; }
+  const us = count('usina'); if (us && era >= 8) res.energy = (res.energy || 0) + us * 3 * (hasProf('engenheiro') ? 2 : 1);
+  const ct = count('centrotec'); if (ct && era >= 9) res.energy = (res.energy || 0) + ct;
 }
 
 // ================== CICLO ==================
@@ -628,7 +669,7 @@ function liveTick() {
       if (w > (v.work || 0)) { addXp(v, w - (v.work || 0)); v.work = w; }
     }
     buildingProduction();
-    const p = eraProgress(); if (p && p.ok) eraUp();
+    const p = eraProgress(); if (p && p.ok) { if (ERAS[s.era].need) eraUp(); else launchFinale(); }
   }
   renderLiveHud();
 }
@@ -639,14 +680,14 @@ function secs(t) { const s = Math.max(0, Math.ceil((t - Date.now()) / 1000)); re
 let lastHud = '';
 function renderLiveHud() {
   const s = L(), e = ERAS[s.era], p = eraProgress();
-  let h = `<div class="lh-era"><b>${e.icon} ${esc(e.name)}</b> <span class="tm">${s.era + 1}/${ERAS.length}</span>`;
+  let h = `<div class="lh-era"><b>${e.icon} ${esc(e.name)}${!e.need && !s.finale ? ' · rumo ao espaço' : ''}</b> <span class="tm">${s.era + 1}/${ERAS.length}</span>`;
   if (p) h += bar(p.f) + `<small>${p.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${esc(i.t)}</span>`).join(' ')}</small>`;
-  else h += '<small>Era final: a vila chegou ao futuro!</small>';
+  else h += s.finale ? '<small>🏆 Vila completa: o foguete decolou!</small>' : '<small>Era final</small>';
   h += '</div>';
   const rd = s.raid;
   if (rd) {
     const def = rd.phase === 'warn' ? raidDefense(rd) : rd.def;
-    if (rd.phase === 'warn') h += `<div class="lh-box raid"><b>⚔️ Saqueadores ao ${esc(rd.dir)}!</b> <span class="tm">⏱ ${secs(rd.ends)}</span><div class="opt"><span>🛡️ Defesa</span><em>${def}</em>${bar(def / Math.max(def, rd.str), 'c')}</div><div class="opt"><span>🗡️ Saqueadores</span><em>${rd.str}</em>${bar(rd.str / Math.max(def, rd.str), 'r')}</div><small>Digite <b>!defender</b> · Pix e Super Chat contratam mercenários</small></div>`;
+    if (rd.phase === 'warn') h += `<div class="lh-box raid"><b>⚔️ ${esc(rd.kind || 'Saqueadores')} ao ${esc(rd.dir)}!</b> <span class="tm">⏱ ${secs(rd.ends)}</span><div class="opt"><span>🛡️ Defesa</span><em>${def}</em>${bar(def / Math.max(def, rd.str), 'c')}</div><div class="opt"><span>🗡️ Saqueadores</span><em>${rd.str}</em>${bar(rd.str / Math.max(def, rd.str), 'r')}</div><small>Digite <b>!defender</b> · Pix e Super Chat contratam mercenários</small></div>`;
     else h += `<div class="lh-box raid"><b>${rd.phase === 'fight' ? '⚔️ Batalha!' : rd.win ? '🛡️ Vitória da vila!' : '💥 Saque…'}</b><small>🛡️ ${def} contra 🗡️ ${rd.str}</small></div>`;
   }
   const rc = s.research.cur;
@@ -876,6 +917,14 @@ const DEF_STRUCT = { palicada: 10, muralha: 25, torre: 12, castelo: 60, delegaci
 const DIRS_NAME = [['norte', 0, -1], ['sul', 0, 1], ['leste', 1, 0], ['oeste', -1, 0]];
 PROF.saqueador = { label: 'Saqueador', labelF: 'Saqueadora', icon: '🗡️', shirt: '#4a1a1a', hat: 'helmet', hatC: '#5a5a5a' };
 let raiders = [];
+// Quem ataca muda com a época; piratas vêm sempre do mar (leste).
+function raiderKind() {
+  const era = L().era;
+  if (era >= 8) return { plural: 'Bandidos', hat: 'cap', hatC: '#1a1a1a', shirt: '#2f2f36' };
+  if (era === 7) return { plural: 'Piratas', hat: 'top', hatC: '#1a1a1a', shirt: '#8e1f1f', dir: 'leste' };
+  if (era >= 5) return { plural: 'Invasores', hat: 'helmet', hatC: '#3d3d44', shirt: '#2f4f2f' };
+  return { plural: 'Saqueadores', hat: 'helmet', hatC: '#5a5a5a', shirt: '#4a1a1a' };
+}
 
 function raidStructDefense() {
   let d = 0; for (const b of buildings) if (b.done && DEF_STRUCT[b.type]) d += DEF_STRUCT[b.type]; return d;
@@ -884,19 +933,20 @@ function raidUnitDefense() {
   const iron = buildings.some(b => b.done && b.type === 'ferraria') ? 1.5 : 1;
   return Math.round(countProf('guerreiro') * 8 * iron + countProf('policial') * 6 + countProf('cacador') * 3);
 }
-function raidDefense(r) { return raidStructDefense() + raidUnitDefense() + Math.round(r.chat) + Math.round(r.merc); }
+function raidDefense(r) { return raidStructDefense() + raidUnitDefense() + (L().defBonus || 0) + Math.round(r.chat) + Math.round(r.merc); }
 function raidPossible() { return L().era >= 1 && npcs.length >= 5 && !isNight() && hour() < 17.5; }
 
 function startRaid(manual) {
   const s = L();
   if (s.raid) return false;
   if (!manual && !raidPossible()) return false;
-  const [dn, dx, dy] = pick(DIRS_NAME);
+  const K = raiderKind();
+  const [dn, dx, dy] = K.dir ? DIRS_NAME.find(d => d[0] === K.dir) : pick(DIRS_NAME);
   const str = Math.round((12 + s.era * 14 + npcs.length * 1.2 + (s.raidsN || 0) * 4) * rnd(0.85, 1.15));
-  s.raid = { phase: 'warn', dir: dn, dx, dy, str, chat: 0, merc: 0, help: {}, ends: Date.now() + RAID_WARN };
+  s.raid = { phase: 'warn', kind: K.plural, dir: dn, dx, dy, str, chat: 0, merc: 0, help: {}, ends: Date.now() + RAID_WARN };
   s.raidsN = (s.raidsN || 0) + 1;
-  announce(`⚔️ SAQUEADORES AO ${dn.toUpperCase()}!`, 'Chegam em 90 s. Digite !defender para preparar a vila!');
-  feed(`⚔️ Saqueadores vistos ao ${dn}! Força ${str}. Digite !defender`);
+  announce(`⚔️ ${K.plural.toUpperCase()} AO ${dn.toUpperCase()}!`, 'Chegam em 90 s. Digite !defender para preparar a vila!');
+  feed(`⚔️ ${K.plural} vistos ao ${dn}! Força ${str}. Digite !defender`);
   sfx('siren');
   const tx = CX + dx * (clearR() + 2), ty = CY + dy * (clearR() + 2);
   camTo(tx * T + 8, ty * T + 8);
@@ -917,12 +967,13 @@ function raidMercs(amount, who) {
   const r = L().raid; if (!r || r.phase === 'done') return '';
   r.merc += Math.round(amount * 2);
   feed(`💰 ${who} contratou mercenários: +${Math.round(amount * 2)} de defesa`);
-  return 'mercenários contra os saqueadores';
+  return 'mercenários contra os ' + (r.kind || 'Saqueadores').toLowerCase();
 }
 
 function raidAttack() {
   const s = L(), r = s.raid; if (!r) return;
   r.phase = 'fight'; r.def = raidDefense(r); r.win = r.def >= r.str; r.t = 0;
+  const K = raiderKind(); Object.assign(PROF.saqueador, { hat: K.hat, hatC: K.hatC, shirt: K.shirt });
   const R = clearR(), mx = CX + r.dx * (R * 0.7), my = CY + r.dy * (R * 0.7);
   r.meet = { x: mx * T + 8, y: my * T + 12 };
   const k = clamp(Math.round(r.str / 8), 3, 10);
@@ -931,7 +982,7 @@ function raidAttack() {
     const off = (i - (k - 1) / 2) * 1.6;
     const sx = (CX + r.dx * (R + 12) + (r.dy ? off : 0)) * T + 8, sy = (CY + r.dy * (R + 12) + (r.dx ? off : 0)) * T + 12;
     raiders.push({ x: sx, y: sy, hx: sx, hy: sy, tx: r.meet.x + rnd(-14, 14), ty: r.meet.y + rnd(-10, 10), dir: 'down', moving: false, walkT: 0, anim: null, animT: 0,
-      sex: Math.random() < 0.3 ? 'f' : 'm', skin: pick(SKINS), hairC: '#141414', pants: '#2f2f36', shirt: '#4a1a1a', prof: 'saqueador', beard: Math.random() < 0.5, carry: null, a: 1 });
+      sex: Math.random() < 0.3 ? 'f' : 'm', skin: pick(SKINS), hairC: '#141414', pants: '#2f2f36', shirt: raiderKind().shirt, prof: 'saqueador', beard: Math.random() < 0.5, carry: null, a: 1 });
   }
   // Defensores correm para o ponto de encontro.
   const tile = { x: Math.round(mx), y: Math.round(my) };
@@ -978,8 +1029,8 @@ function raidResolve() {
     if (s.era >= 2) res.coins += loot; else res.wood += loot;
     for (const v of new Set(helpers.concat(owners))) addXp(v, 15);
     s.raidsWon = (s.raidsWon || 0) + 1;
-    announce('🛡️ VITÓRIA!', `Os saqueadores fugiram e deixaram ${loot} ${s.era >= 2 ? '🪙' : '🪵'} para trás`);
-    feed(`🛡️ A vila venceu os saqueadores (${r.def} contra ${r.str})! ${helpers.length} pessoa(s) do chat ajudaram`);
+    announce('🛡️ VITÓRIA!', `Os ${(r.kind || 'Saqueadores').toLowerCase()} fugiram e deixaram ${loot} ${s.era >= 2 ? '🪙' : '🪵'} para trás`);
+    feed(`🛡️ A vila venceu os ${(r.kind || 'Saqueadores').toLowerCase()} (${r.def} contra ${r.str})! ${helpers.length} pessoa(s) do chat ajudaram`);
     sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
     for (const z of raiders) { z.tx = z.hx; z.ty = z.hy; z.fade = true; }
   } else {
@@ -988,8 +1039,8 @@ function raidResolve() {
     for (const k of ['wood', 'stone', 'fish', 'crops', 'meals', 'coins']) { const q = Math.floor((res[k] || 0) * pct); if (q > 0) { res[k] -= q; lost[k] = q; } }
     for (const v of helpers) addXp(v, 5);
     const txt = Object.entries(lost).map(([k, q]) => `${q} ${RES_ICON[k]}`).join(' ') || 'quase nada';
-    announce('💥 Os saqueadores venceram…', `Levaram ${txt}. Construam defesas!`);
-    feed(`💥 Saqueadores levaram ${txt} (${r.def} contra ${r.str})`);
+    announce(`💥 Os ${(r.kind || 'Saqueadores').toLowerCase()} venceram…`, `Levaram ${txt}. Construam defesas!`);
+    feed(`💥 ${r.kind || 'Saqueadores'} levaram ${txt} (${r.def} contra ${r.str})`);
     for (const z of raiders) { z.tx = CRX * T + 8 + rnd(-10, 10); z.ty = CRY * T + 12 + rnd(-6, 6); }
     setTimeout(() => { for (const z of raiders) { z.carry = 'wood'; z.tx = z.hx; z.ty = z.hy; z.fade = true; } }, 6000);
     if (Math.random() < 0.35) setTimeout(() => startEvent('fire'), 3000);
