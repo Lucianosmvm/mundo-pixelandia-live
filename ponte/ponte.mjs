@@ -1,6 +1,9 @@
-// Ponte local da Pixelândia LIVE (Node 18+, sem dependências).
+// Servidor local da Pixelândia LIVE (Node 18+, sem dependências).
 //
-//   node ponte/ponte.mjs
+//   node ponte/ponte.mjs        (ou dê dois cliques em iniciar-live.bat)
+//
+// Serve o jogo em http://localhost:8787/ e funciona como ponte de eventos.
+// Sempre o mesmo endereço = sempre o mesmo salvamento no navegador.
 //
 // O jogo se conecta em GET /eventos (Server-Sent Events).
 // Qualquer serviço envia eventos com POST /evento (JSON):
@@ -12,6 +15,13 @@
 // Para receber webhooks da internet (ex.: LivePix), exponha a porta com um túnel
 // (cloudflared, ngrok) e adapte o corpo do webhook ao formato acima em adaptar().
 import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { extname, join, normalize, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 
 const PORT = Number(process.env.PONTE_PORT || 8787);
 const TOKEN = process.env.PONTE_TOKEN || '';
@@ -59,7 +69,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/saude') { res.writeHead(200); return res.end('ok'); }
+
+  if (req.method === 'GET') {
+    // Arquivos do jogo. Só a pasta do projeto, sem subir diretórios.
+    let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (path.endsWith('/')) path += 'index.html';
+    const file = normalize(join(ROOT, path));
+    const type = TYPES[extname(file).toLowerCase()];
+    if (!file.startsWith(ROOT.endsWith(sep) ? ROOT : ROOT + sep) || !type || file.includes(sep + '.')) { res.writeHead(404); return res.end('não encontrado'); }
+    readFile(file).then(data => { res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' }); res.end(data); })
+      .catch(() => { res.writeHead(404); res.end('não encontrado'); });
+    return;
+  }
+
   res.writeHead(404); res.end('Use GET /eventos ou POST /evento');
 });
 
-server.listen(PORT, () => console.log(`Ponte Pixelândia em http://localhost:${PORT} (jogo: /eventos, envio: POST /evento)`));
+server.on('error', e => {
+  console.error(e.code === 'EADDRINUSE' ? `A porta ${PORT} já está em uso: o servidor provavelmente já está aberto.` : e.message);
+  process.exit(1);
+});
+server.listen(PORT, '127.0.0.1', () => console.log(`Pixelândia LIVE em http://localhost:${PORT}/  ·  eventos: /eventos  ·  envio: POST /evento`));

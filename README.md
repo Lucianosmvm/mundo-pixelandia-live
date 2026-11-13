@@ -2,7 +2,21 @@
 
 Jogo de vila controlado pelo chat de uma live. O mundo começa vazio, numa clareira com uma fogueira. Quem assiste cria moradores, vota nas obras, decide dilemas e cumpre desafios. Super Chats, Pix e membros aceleram o crescimento.
 
-Abra `index.html` no navegador (ou sirva a pasta, por exemplo com `npx http-server -c-1 .`). O progresso fica salvo no navegador usado na transmissão. Use **Controles → Backup** para exportar o mundo em JSON. Antes de transmitir, esconda o painel com a tecla **H**. O overlay da live, no canto inferior esquerdo, continua visível.
+## Como abrir
+
+Dê dois cliques em **`iniciar-live.bat`**. Ele:
+
+1. liga o servidor local (`node ponte/ponte.mjs`) numa janela minimizada, que deve ficar aberta durante a live;
+2. abre o jogo em `http://localhost:8787/` numa janela própria do Chrome (ou do Edge, se não houver Chrome);
+3. usa um perfil de navegador só do jogo, em `%LOCALAPPDATA%\PixelandiaLive\navegador`.
+
+Sempre o mesmo endereço e o mesmo perfil: o mundo salvo continua de uma live para a outra, mesmo se você limpar o histórico do seu navegador do dia a dia. A ponte de eventos já conecta sozinha. Precisa do [Node.js](https://nodejs.org) instalado.
+
+Um mundo criado em outro endereço (abrindo o `index.html` direto, por exemplo) não aparece aqui: exporte em **Controles → Backup** lá e importe nesta janela. Faça backup de vez em quando.
+
+Antes de transmitir, esconda o painel com a tecla **H**. O overlay da live, no canto inferior esquerdo, continua visível. No OBS, capture a janela "Mundo Pixelândia LIVE".
+
+Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelados sem penalidade, e o ciclo recomeça com folga.
 
 ## Comandos do chat
 
@@ -12,7 +26,7 @@ Abra `index.html` no navegador (ou sirva a pasta, por exemplo com `npx http-serv
 | `1`, `2`, `3` (ou `!votar fonte`) | Vota na próxima obra. |
 | `A` / `B` | Escolhe a opção de um dilema. |
 | `!ajudar` | Conta no mutirão e dá ânimo ao seu morador. |
-| `!meu` | Mostra seu morador na tela, com nível e status. |
+| `!meu` | Entra na fila da câmera: seu morador aparece por 8 s, com nível e status. |
 | `!top` | Mostra o ranking de quem mais ajudou. |
 | `!era` | Mostra o que falta para a próxima era. |
 | `!ajuda` | Mostra os comandos na tela. |
@@ -79,11 +93,7 @@ Em **Conexões**, informe uma chave da YouTube Data API v3 e o link da live, e c
 
 ### Pix e outras fontes (ponte local)
 
-```bash
-node ponte/ponte.mjs
-```
-
-No painel, conecte a ponte em `http://localhost:8787/eventos`. Qualquer serviço pode enviar eventos com `POST http://localhost:8787/evento`:
+O `iniciar-live.bat` já liga a ponte e o jogo se conecta sozinho. Qualquer serviço pode enviar eventos com `POST http://localhost:8787/evento`:
 
 ```json
 { "type": "pix", "user": "id-unico", "name": "João", "amount": 10, "currency": "BRL", "text": "!festa" }
@@ -99,4 +109,5 @@ No console do navegador também dá para injetar eventos com `liveEvent({...})`.
 
 - `index.html`: simulação da vila.
 - `live-game.js`: motor da live (comandos, eras, votações, dilemas, desafios, doações, overlay e conexões).
-- `ponte/ponte.mjs`: ponte HTTP → SSE para Pix e outras integrações.
+- `ponte/ponte.mjs`: servidor local do jogo e ponte HTTP → SSE para Pix e outras integrações.
+- `iniciar-live.bat`: abre servidor e jogo sempre no mesmo endereço e perfil.

@@ -6,7 +6,7 @@
 const LIVE_CFG_KEY = 'pixelandia-live-config-v1';
 const LIVE_CFG = Object.assign({
   ytKey: '', ytVideo: '', bridgeUrl: 'http://localhost:8787/eventos',
-  auto: true, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
+  auto: true, vitrine: true, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
 }, (() => { try { return JSON.parse(localStorage.getItem(LIVE_CFG_KEY) || '{}'); } catch (e) { return {}; } })());
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
@@ -78,10 +78,10 @@ const TITLES = ['Forasteiro', 'Novato', 'Morador', 'Vizinho querido', 'Veterano'
 // liveState é salvo junto com o mundo (serialize/load do script principal).
 function L() {
   const s = liveState;
-  if (s.viewers) return s;
+  if (s.viewers) { if (!Array.isArray(s.arrivals)) s.arrivals = []; return s; }
   const old = Array.isArray(s.residents) ? s.residents : [];
   Object.assign(s, {
-    v: 2, era: 0, viewers: {}, vote: null, chal: null, feed: [], raised: 0, goal: 50, voteN: 0,
+    v: 2, era: 0, viewers: {}, arrivals: [], vote: null, chal: null, feed: [], raised: 0, goal: 50, voteN: 0,
     next: { obra: Date.now() + 30000, dilema: Date.now() + LIVE_CFG.dilemaMin * 60000, chal: Date.now() + 90000 },
   });
   for (const [uid, npcId] of old) s.viewers[uid] = newViewer(uid, npcId);
@@ -95,7 +95,9 @@ function level(v) { return Math.floor(Math.sqrt((v.xp || 0) / 25)) + 1; }
 function title(v) { return TITLES[Math.min(TITLES.length - 1, level(v) - 1)]; }
 function addXp(v, k) { const before = level(v); v.xp = (v.xp || 0) + k; const after = level(v); if (after > before) { feed(`⭐ ${v.name} subiu para nível ${after}: ${title(v)}!`); const n = npcOf(v); if (n) { say(n, `Nível ${after}! ⭐`); confetti(n.x, n.y - 10); } } }
 function feed(t) { const f = L().feed; f.push({ t, at: Date.now() }); if (f.length > 30) f.splice(0, f.length - 30); liveDirty = true; }
-let liveDirty = true, arrivals = [], lastArrival = 0, seenIds = new Set(), liveConn = { yt: 'desligado', bridge: 'desligado' };
+const ARRIVAL_GAP = 2600;
+let lastChatAt = Date.now(), lastUserCam = 0;
+let liveDirty = true, lastArrival = 0, saveDue = 0, lastSave = 0, seenIds = new Set(), liveConn = { yt: 'desligado', bridge: 'desligado' };
 
 // ================== ENTRADA DE EVENTOS ==================
 // Toda fonte (simulador, YouTube, ponte local) entrega o mesmo formato:
@@ -115,6 +117,7 @@ function liveEvent(e) {
 }
 
 function onChat(v, uid, text) {
+  lastChatAt = Date.now();
   if (!text) return '';
   const now = Date.now();
   v.msgs++;
@@ -145,6 +148,7 @@ function onChat(v, uid, text) {
 function requestArrival(v, uid, name, profText) {
   const mine = npcOf(v);
   if (mine) return `${v.name}, você já tem um morador: ${mine.name}. Use !meu.`;
+  const arrivals = L().arrivals;
   if (arrivals.some(a => a.uid === uid)) return 'Seu morador já está a caminho!';
   if (!/^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} ._'’-]{0,17}$/u.test(name) || badName(name)) return 'Nome inválido. Use até 18 letras: @Nome/profissão';
   if (badName(profText) || !/^[\p{L}\p{M} -]{2,24}$/u.test(profText)) return 'Profissão inválida. Exemplo: @Ana/pescadora';
@@ -153,13 +157,16 @@ function requestArrival(v, uid, name, profText) {
   let sex;
   if (prof) sex = norm(PROF[prof].labelF) === key && PROF[prof].labelF !== PROF[prof].label ? 'f' : norm(PROF[prof].label) === key ? 'm' : parseSex('', name);
   else sex = /a$/.test(key) ? 'f' : parseSex('', name);
-  arrivals.push({ uid, name, prof, profText, sex });
+  arrivals.push({ uid, name, prof, profText, sex, at: Date.now() });
+  saveDue = 1;
   return arrivals.length > 1 ? `${name} entrou na fila de chegada (${arrivals.length}º).` : `${name} está chegando!`;
 }
 function processArrival() {
-  if (!arrivals.length || Date.now() - lastArrival < 2600) return;
-  lastArrival = Date.now();
+  const arrivals = L().arrivals;
+  if (!arrivals.length || Date.now() - lastArrival < ARRIVAL_GAP || Date.now() < camQ.until) return;
+  lastArrival = Date.now(); camQ.lastWasSpot = false;
   const a = arrivals.shift(), v = L().viewers[a.uid];
+  saveDue = 1;
   if (!v || npcOf(v)) return;
   let prof = a.prof, custom = '', pend = null;
   const label = a.profText.replace(/\s+/g, ' ').replace(/^./u, c => c.toUpperCase()).slice(0, 20);
@@ -173,6 +180,7 @@ function processArrival() {
   if (pend) feed(`🎓 ${n.name} chegou como aprendiz: vira ${PROF[pend].label} na era ${ERAS[eraOfProf(pend)].name}`);
   else if (prof === 'custom') feed(`⭐ ${n.name} (${custom}) chegou e vai ajudar nas obras`);
   else feed(`👋 ${n.name} chegou como ${profLabel(n)} — trazido por ${v.name}`);
+  n.liveTag = '@' + v.name; n.liveLv = level(v);
   addHL(2, n.name + ' chegou à vila', n.x, n.y);
 }
 function liveGuest() {
@@ -342,14 +350,39 @@ function onGift(v, count) {
 
 // ---------- meu morador ----------
 let showTop = 0, showHelp = 0;
+// Fila de câmera: cada !meu ganha alguns segundos de destaque, um de cada vez.
+const SPOT_SEC = 8;
+const camQ = { cur: null, until: 0, queue: [], lastWasSpot: false };
 function showMine(v) {
   const n = npcOf(v);
   if (!n) return 'Você ainda não tem morador: digite @Nome/profissão';
+  if (camQ.cur && camQ.cur.npc === n.id && Date.now() < camQ.until) return 'Seu morador já está na tela!';
+  const pos = camQ.queue.findIndex(x => x.npc === n.id);
+  if (pos >= 0) return `Você já está na fila da câmera (${pos + 1}º).`;
+  if (camQ.queue.length >= 30) return 'Fila da câmera cheia, tente daqui a pouco.';
+  camQ.queue.push({ npc: n.id, uid: norm(v.name) });
+  liveDirty = true;
+  return camQ.queue.length > 1 || camQ.cur ? `Fila da câmera: ${camQ.queue.length}º.` : 'Seu morador vai aparecer!';
+}
+function processSpotlight() {
+  const now = Date.now();
+  if (now < camQ.until) return;
+  if (camQ.cur) { camQ.cur = null; liveDirty = true; }
+  if (!camQ.queue.length) return;
+  // Alterna com as chegadas: depois de um destaque, deixa um morador novo chegar.
+  if (L().arrivals.length && camQ.lastWasSpot) return;
+  if (now - lastArrival < ARRIVAL_GAP) return;
+  const item = camQ.queue.shift();
+  const n = npcs.find(m => m.id === item.npc);
+  const v = Object.values(L().viewers).find(x => x.npc === item.npc);
+  if (!n || !v) return;
   if (!n.active && !(n.abT > 0)) activate(n);
-  follow = n.id; pinnedFollow = false; followUntil = performance.now() + 14000;
-  const st = n.st || {}, work = Object.values(st).reduce((a, b) => a + b, 0);
-  announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `${title(v)} · ${n.status || 'Na vila'} · ${work} tarefas feitas`);
-  return '';
+  follow = n.id; pinnedFollow = false; followUntil = performance.now() + SPOT_SEC * 1000;
+  camQ.cur = { npc: n.id, name: n.name, who: v.name }; camQ.until = now + SPOT_SEC * 1000; camQ.lastWasSpot = true;
+  const work = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
+  announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'} · ${work} tarefas`);
+  say(n, pick(['Oi, chat! 👋', 'Tô aqui!', 'Olha eu! ✨', 'Trabalhando duro 💪']));
+  liveDirty = true;
 }
 
 // ================== ERA ==================
@@ -388,6 +421,9 @@ let liveSlow = 0;
 function liveTick() {
   const s = L(), now = Date.now();
   processArrival();
+  processSpotlight();
+  // Pedidos de chegada são salvos em lote: evita gravar o mundo a cada mensagem.
+  if (saveDue && now - lastSave > 3000) { saveDue = 0; lastSave = now; save(); }
   if (s.vote && now >= s.vote.ends) closeVote();
   const c = s.chal;
   if (c) {
@@ -403,6 +439,7 @@ function liveTick() {
     // A cada ~5s: o trabalho do morador vira XP do espectador.
     for (const v of Object.values(s.viewers)) {
       const n = npcOf(v); if (!n) continue;
+      n.liveTag = '@' + v.name; n.liveLv = level(v);
       const w = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
       if (w > (v.work || 0)) { addXp(v, w - (v.work || 0)); v.work = w; }
     }
@@ -430,13 +467,30 @@ function renderLiveHud() {
   }
   const c = s.chal;
   if (c) { const d = CHALLENGES[c.key]; h += `<div class="lh-box chal"><b>${d.icon} Desafio: ${esc(d.title(c.target))}</b> <span class="tm">⏱ ${secs(c.ends)}</span>${bar(c.prog / c.target, 'c')}<small>${fmt(Math.min(c.prog, c.target))}/${fmt(c.target)}${c.track === 'help' ? ' · digite <b>!ajudar</b>' : ''}</small></div>`; }
+  if (camQ.cur || camQ.queue.length) {
+    const next = camQ.queue.slice(0, 4).map(x => npcs.find(m => m.id === x.npc)?.name).filter(Boolean);
+    h += `<div class="lh-box cam"><b>📍 Na câmera: ${camQ.cur ? esc(camQ.cur.name) + ` <small style="display:inline">(@${esc(camQ.cur.who)})</small>` : '—'}</b>` +
+      (camQ.cur ? ` <span class="tm">${secs(camQ.until)}</span>` : '') +
+      (next.length ? `<small>Próximos: ${next.map(esc).join(', ')}${camQ.queue.length > 4 ? ` +${camQ.queue.length - 4}` : ''} · digite <b>!meu</b></small>` : '<small>Digite <b>!meu</b> para aparecer</small>') + `</div>`;
+  }
+  const q = s.arrivals;
+  if (q.length) {
+    const wait = Math.ceil(q.length * ARRIVAL_GAP / 1000);
+    const newest = q[q.length - 1];
+    h += `<div class="lh-box queue"><b>🚶 Chegando à vila (${q.length})</b> <span class="tm">~${wait >= 60 ? Math.ceil(wait / 60) + ' min' : wait + 's'}</span>` +
+      `<small>${q.slice(0, 5).map((a, i) => `${i + 1}. ${esc(a.name)} · ${esc(a.profText)}`).join('<br>')}` +
+      (q.length > 5 ? `<br>… e mais ${q.length - 5} · último a entrar: <b>${esc(newest.name)}</b> (${q.length}º)` : '') + `</small></div>`;
+  }
   if (s.goal > 0) h += `<div class="lh-goal">💛 Meta da live: R$ ${fmt(Math.round(s.raised))} / ${fmt(s.goal)}${bar(s.raised / s.goal, 'g')}</div>`;
   if (Date.now() < showTop) h += `<div class="lh-box"><b>🏆 Quem mais ajudou</b>${topViewers(5).map((v, i) => `<div class="opt"><span>${i + 1}. ${esc(v.name)}${npcOf(v) ? ' · ' + esc(npcOf(v).name) : ''}</span><em>nv ${level(v)}</em></div>`).join('') || '<small>Ninguém ainda</small>'}</div>`;
   if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
   const recent = s.feed.filter(f => Date.now() - f.at < 25000).slice(-4);
   if (recent.length) h += `<div class="lh-feed">${recent.map(f => `<div>${esc(f.t)}</div>`).join('')}</div>`;
-  const tips = ['💬 Chegue na vila: <b>@Nome/profissão</b>', '⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador'];
-  h += `<div class="lh-tip">${tips[Math.floor(Date.now() / 8000) % tips.length]}</div>`;
+  const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos'];
+  if (npcs.length) {
+    h += `<div class="lh-tip">${tips[Math.floor(Date.now() / 8000) % tips.length]}</div>`;
+    h += `<div class="lh-join">💬 Entre na vila: <b>@SeuNome/profissão</b></div>`;
+  }
   if (h !== lastHud) { lastHud = h; $('liveHud').innerHTML = h; }
   if (liveDirty || liveSlow % 2 === 0) { liveDirty = false; renderLivePanelStatus(); }
 }
@@ -533,6 +587,7 @@ $('livePanel').innerHTML = `
 <section class="card"><h3>🎮 Controle da partida</h3>
   <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
+  <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
   <p class="tip" id="lvStatus"></p>
 </section>
@@ -549,7 +604,7 @@ $('livePanel').innerHTML = `
 
 function renderLivePanelStatus() {
   const s = L(), v = s.vote, c = s.chal;
-  $('lvStatus').innerHTML = `Era ${s.era + 1} · ${Object.keys(s.viewers).length} espectador(es) · fila de chegada: ${arrivals.length}<br>` +
+  $('lvStatus').innerHTML = `Era ${s.era + 1} · ${Object.keys(s.viewers).length} espectador(es) · fila de chegada: ${s.arrivals.length}<br>` +
     (v ? `Votação: ${esc(v.title)} (${Object.keys(v.ballots).length} votos)` : `Próxima obra em ${secs(s.next.obra)} · dilema em ${secs(s.next.dilema)}`) +
     (c ? `<br>Desafio: ${c.prog}/${c.target}` : `<br>Próximo desafio em ${secs(s.next.chal)}`);
   $('lvYtSt').textContent = 'YouTube: ' + liveConn.yt;
@@ -561,6 +616,7 @@ function bindCfg(id, key, num) {
 }
 bindCfg('lvYtKey', 'ytKey'); bindCfg('lvYtVid', 'ytVideo'); bindCfg('lvBrUrl', 'bridgeUrl');
 bindCfg('lvVoteMin', 'voteMin', true); bindCfg('lvDilMin', 'dilemaMin', true); bindCfg('lvChalMin', 'chalMin', true);
+$('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
 
@@ -590,6 +646,85 @@ $('lvBrOff').onclick = bridgeStop;
 
 // Exposto para testes e integrações externas (ex.: window.liveEvent({...}) no console).
 window.liveEvent = liveEvent;
+
+// ================== MODO VITRINE ==================
+// Live aberta sem ninguém: o mundo não pode parecer congelado.
+// Vazio → câmera passeia pela clareira e o cartão de entrada mostra exemplos.
+// Com moradores e chat parado há 3 min → câmera visita obras e moradores e mostra o resumo da vila.
+const VIT_IDLE = 3 * 60000, VIT_SHOT = 12000, VIT_SUMMARY = 60000;
+const vit = { target: null, shotAt: 0, summaryAt: 0, on: false };
+function vitrineActive() {
+  if (!LIVE_CFG.vitrine || TOUR || REC) return false;
+  if (Date.now() - lastUserCam < 60000) return false;
+  if (follow != null || Date.now() < camQ.until || L().arrivals.length) return false;
+  return !npcs.length || Date.now() - lastChatAt > VIT_IDLE;
+}
+function vitrinePick() {
+  const z = isMobile() ? 2.2 : 2.6;
+  if (!npcs.length) {
+    // Câmera um pouco abaixo da fogueira: ela fica no alto da tela, acima do cartão de entrada.
+    const a = Math.random() * Math.PI * 2, r = Math.random() * 4;
+    return { x: (CX + Math.cos(a) * r) * T + 8, y: (CY + 3.5 + Math.sin(a) * 1.5) * T + 8, z: z + Math.random() * 0.5 };
+  }
+  const done = buildings.filter(b => b.done), active = npcs.filter(n => n.active && !n.inside && !n.sleeping);
+  const roll = Math.random();
+  if (active.length && roll < 0.45) {
+    const n = pick(active);
+    follow = n.id; pinnedFollow = false; followUntil = performance.now() + VIT_SHOT;
+    if (n.liveTag) say(n, pick(['Vem morar aqui! 🏡', 'Digita @SeuNome/profissão!', 'Falta gente na vila!', 'Oi, chat! 👋']), 0.6);
+    return null;
+  }
+  if (done.length && roll < 0.8) { const b = pick(done); return { x: (b.x + b.w / 2) * T, y: (b.y + b.h / 2) * T, z: z + 0.4 }; }
+  return { x: CX * T + 8, y: CY * T + 8, z: Math.max(zMin(), z - 1) };
+}
+function vitrineSummary() {
+  const s = L(), e = ERAS[s.era], built = buildings.filter(b => b.done).length;
+  const top = topViewers(3).map(v => v.name).join(', ');
+  announce(`${e.icon} ${villageName}`, `${fmt(npcs.length)} morador${npcs.length === 1 ? '' : 'es'} · ${built} obra${built === 1 ? '' : 's'} · Era ${e.name}${top ? ' · Fundadores: ' + top : ''}`);
+  showTop = Date.now() + 15000;
+}
+const EMPTY_EX = ['@Ana/lenhadora', '@Leo/pedreiro', '@Bia/fazendeira', '@Rafa/minerador', '@Duda/pedreira', '@Caio/lenhador'];
+let vitLast = performance.now();
+function vitrineFrame(now) {
+  const dt = Math.min(0.1, (now - vitLast) / 1000); vitLast = now;
+  const on = vitrineActive();
+  if (on !== vit.on) { vit.on = on; vit.target = null; vit.shotAt = 0; }
+  if (on) {
+    const t = Date.now();
+    if (!vit.target || t - vit.shotAt > VIT_SHOT) { vit.shotAt = t; vit.target = vitrinePick(); }
+    if (vit.target) {
+      const k = Math.min(1, dt * 0.35);
+      cam.x += (vit.target.x - cam.x) * k; cam.y += (vit.target.y - cam.y) * k; cam.z += (vit.target.z - cam.z) * k;
+    }
+    if (npcs.length && t - vit.summaryAt > VIT_SUMMARY) { vit.summaryAt = t; vitrineSummary(); }
+  }
+  requestAnimationFrame(vitrineFrame);
+}
+requestAnimationFrame(vitrineFrame);
+// Mexer na câmera com o mouse pausa a vitrine por 1 minuto.
+for (const ev of ['pointerdown', 'wheel']) $('c').addEventListener(ev, () => { lastUserCam = Date.now(); vit.target = null; }, { passive: true });
+setInterval(() => {
+  if (!npcs.length) $('emptyEx').textContent = 'ex.: ' + EMPTY_EX[Math.floor(Date.now() / 5000) % EMPTY_EX.length] + ' · ' + EMPTY_EX[(Math.floor(Date.now() / 5000) + 3) % EMPTY_EX.length];
+}, 1000);
+
+// Retomada: o que venceu com o jogo fechado (fim da live) é cancelado sem penalidade,
+// e o ciclo recomeça com folga para o chat chegar.
+(function liveResume() {
+  const s = L(), now = Date.now();
+  let changed = false;
+  if (s.vote && now >= s.vote.ends) { s.vote = null; changed = true; }
+  if (s.chal && now >= s.chal.ends) { s.chal = null; changed = true; }
+  if (s.vote) s.vote.ends = Math.max(s.vote.ends, now + 30000);
+  if (s.chal) s.chal.ends = Math.max(s.chal.ends, now + 60000);
+  s.next.obra = Math.max(s.next.obra, now + 60000);
+  s.next.dilema = Math.max(s.next.dilema, now + LIVE_CFG.dilemaMin * 60000);
+  s.next.chal = Math.max(s.next.chal, now + 120000);
+  for (const v of Object.values(s.viewers)) { const n = npcOf(v); if (n) { n.liveTag = '@' + v.name; n.liveLv = level(v); } }
+  if (changed) save();
+})();
+
+// Jogo aberto pelo servidor local (iniciar-live.bat): a ponte já conecta sozinha.
+try { if (new URL(LIVE_CFG.bridgeUrl, location.href).origin === location.origin) bridgeConnect(); } catch (e) {}
 
 // Relógio próprio: votações e desafios fecham mesmo se a aba ficar em segundo plano.
 setInterval(() => { try { liveTick(); } catch (e) { console.error('live:', e); } }, 500);
