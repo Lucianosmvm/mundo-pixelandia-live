@@ -85,6 +85,17 @@ Quando a vila termina (normalmente depois do foguete), o streamer clica em **�
 
 O hall da fama e os veteranos ficam salvos dentro do mundo, então vão junto no backup. O overlay mostra a temporada e o mundo no topo (ex.: `T2 🪙 · 🪨 Era da Pedra`). O modo vitrine alterna entre o ranking atual e o hall da fama, e o botão **🏛️ Hall** mostra o hall na tela.
 
+## Estatísticas
+
+O botão **📊 Estatísticas** (em **Controle da partida**) mostra os números da live atual e das anteriores, para ajustar o ritmo do jogo com dados reais. O painel também mostra um resumo: duração da live, pessoas e mensagens por minuto.
+
+- **Live atual:** duração, pessoas que participaram, mensagens por minuto e pico, moradores novos, votações e votos, pesquisas, eras alcançadas, ataques e desafios, doações e membros.
+- **Tempo de live em cada era:** conta só o tempo com o jogo aberto. Se uma era leva muito mais que as outras, os requisitos dela estão altos (tabela `ERAS` no início do `live-game.js`).
+- **Últimas lives:** histórico das sessões, guardado junto com o mundo e mantido entre temporadas. O tempo por era de cada temporada vai para o hall da fama.
+- **Exportar:** JSON completo ou planilha CSV (abre no Excel ou Google Planilhas).
+
+Cada vez que o jogo fica aberto conta como uma live. Fechar e reabrir em até 20 minutos continua a mesma.
+
 ## Saqueadores
 
 A partir da **Era Agrícola**, com pelo menos 5 moradores, saqueadores atacam de dia, a cada 15 min em média.

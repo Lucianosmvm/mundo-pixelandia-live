@@ -252,7 +252,7 @@ function onChat(v, uid, text) {
   lastChatAt = Date.now();
   if (!text) return '';
   const now = Date.now();
-  v.msgs++;
+  v.msgs++; statMsg(uid);
   if (L().chal && L().chal.track === 'msg') chalAdd(uid, 1);
   if (now - v.last > 15000) { v.last = now; addXp(v, 1); researchAdd(3); const n = npcOf(v); if (n) n.boost = Math.max(n.boost || 0, 45); }
 
@@ -310,7 +310,7 @@ function processArrival() {
   const n = addNPC(a.name, prof, a.sex, custom);
   v.npc = n.id; v.pend = pend; v.work = 0;
   if (v.member) { n.fan = true; setVip(n, true); }
-  addXp(v, 5);
+  addXp(v, 5); stat('arrivals'); statViewer(a.uid);
   if (L().chal && L().chal.track === 'arrive') chalAdd(a.uid, 1);
   if (pend) feed(`🎓 ${n.name} chegou como aprendiz: vira ${PROF[pend].label} na ${ERAS[eraOfProf(pend)].name}`);
   else if (prof === 'custom') feed(`⭐ ${n.name} (${custom}) chegou e vai ajudar nas obras`);
@@ -375,7 +375,7 @@ function researchAdd(v) {
 function finishResearch() {
   const s = L(), c = s.research.cur; if (!c) return;
   const r = RESEARCH[c.k];
-  s.research.cur = null; if (!s.research.done.includes(c.k)) s.research.done.push(c.k); s.next.pesq = Date.now() + 45000;
+  s.research.cur = null; stat('research'); if (!s.research.done.includes(c.k)) s.research.done.push(c.k); s.next.pesq = Date.now() + 45000;
   const msg = r.fx ? r.fx() : '';
   announce(`💡 DESCOBERTA: ${r.label}!`, msg);
   feed(`💡 ${r.icon} ${r.label} descoberta! ${msg}`);
@@ -402,13 +402,13 @@ function castVote(v, uid, raw) {
   let w = 1 + Math.min(2, Math.floor((level(v) - 1) / 3));
   if (v.turbo > 0 && first) { v.turbo--; w += 4; feed(`⚡ Voto turbinado de ${v.name} (+4)`); }
   vote.ballots[uid] = [i, first ? w : vote.ballots[uid][1]];
-  if (first) { v.votes++; addXp(v, 3); }
+  if (first) { v.votes++; addXp(v, 3); stat('ballots'); statViewer(uid); }
   return `Voto em ${vote.opts[i].label}.`;
 }
 function tally(vote) { const t = vote.opts.map(() => 0); for (const [i, w] of Object.values(vote.ballots)) t[i] += w; return t; }
 function closeVote() {
   const s = L(), vote = s.vote; if (!vote) return;
-  s.vote = null;
+  s.vote = null; stat('votes');
   const t = tally(vote), max = Math.max(...t), tops = t.map((x, i) => x === max ? i : -1).filter(i => i >= 0);
   const win = vote.opts[pick(tops)], voters = Object.keys(vote.ballots).length;
   if (vote.kind === 'mundo') {
@@ -460,6 +460,7 @@ function help(v, uid) {
 }
 function endChallenge(win) {
   const s = L(), c = s.chal; if (!c) return;
+  stat(win ? 'chalWon' : 'chalLost');
   s.chal = null; s.next.chal = Date.now() + LIVE_CFG.chalMin * 60000;
   const def = CHALLENGES[c.key];
   const helpers = Object.keys(c.contrib);
@@ -484,7 +485,7 @@ function endChallenge(win) {
 function onDonation(v, uid, amount, text, src) {
   if (!(amount > 0)) return 'Valor inválido.';
   const s = L(), n = npcOf(v);
-  v.don = (v.don || 0) + amount; s.raised = (s.raised || 0) + amount;
+  v.don = (v.don || 0) + amount; stat('donations'); stat('donated', amount); statViewer(uid); s.raised = (s.raised || 0) + amount;
   addXp(v, Math.round(amount * 10));
   const wood = Math.round(amount * 8), stone = Math.round(amount * 4);
   res.wood += wood; res.stone += stone;
@@ -523,7 +524,7 @@ function liveGoalReached() {
   s.goal *= 2;
 }
 function onMember(v) {
-  v.member = true; addXp(v, 50);
+  v.member = true; stat('members'); addXp(v, 50);
   const n = npcOf(v);
   if (n && !n.vip) { n.fan = true; setVip(n, true); }
   else announce('👑 NOVO MEMBRO!', `${v.name} ganha mansão quando trouxer seu morador`);
@@ -606,7 +607,7 @@ function launchFinale() {
 function eraNeedText() { const p = eraProgress(); return p ? 'Próxima era: ' + p.items.map(i => (i.ok ? '✅ ' : '') + i.t).join(' · ') : ''; }
 function eraUp() {
   const s = L(); if (s.era >= ERAS.length - 1) return;
-  s.era++;
+  s.era++; statEra(s.era);
   const e = ERAS[s.era];
   applyEraNames(); restyleHouses();
   announce(`${e.icon} NOVA ERA: ${e.name.toUpperCase()}!`, 'Novas obras, profissões e descobertas');
@@ -658,6 +659,7 @@ function liveTick() {
   const s = L(), now = Date.now();
   processArrival();
   processSpotlight();
+  statTick();
   // Pedidos de chegada são salvos em lote: evita gravar o mundo a cada mensagem.
   if (saveDue && now - lastSave > 3000) { saveDue = 0; lastSave = now; save(); }
   if (s.vote && now >= s.vote.ends) closeVote();
@@ -836,7 +838,7 @@ $('livePanel').innerHTML = `
   <label for="lvGoal">Meta da live (R$)</label><input class="in" id="lvGoal" type="number" min="0" step="10">
 </section>
 <section class="card"><h3>🎮 Controle da partida</h3>
-  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm" id="lvRaid">⚔️ Ataque</button><button class="btn sm" id="lvSeason">🌱 Nova temporada</button><button class="btn sm" id="lvHall">🏛️ Hall</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
+  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm" id="lvRaid">⚔️ Ataque</button><button class="btn sm" id="lvSeason">🌱 Nova temporada</button><button class="btn sm" id="lvHall">🏛️ Hall</button><button class="btn sm" id="lvStats">📊 Estatísticas</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
@@ -862,6 +864,7 @@ function renderLivePanelStatus() {
     (v ? `Votação: ${esc(v.title)} (${Object.keys(v.ballots).length} votos)` : `Próxima obra em ${secs(s.next.obra)} · dilema em ${secs(s.next.dilema)}`) +
     (c ? `<br>Desafio: ${c.prog}/${c.target}` : `<br>Próximo desafio em ${secs(s.next.chal)}`);
   $('lvYtSt').textContent = 'YouTube: ' + liveConn.yt;
+  $('lvStatus').innerHTML += '<br>' + esc(statsLine());
   $('lvBrSt').textContent = 'Ponte: ' + liveConn.bridge;
 }
 function bindCfg(id, key, num) {
@@ -873,6 +876,7 @@ bindCfg('lvVoteMin', 'voteMin', true); bindCfg('lvDilMin', 'dilemaMin', true); b
 $('lvRaids').checked = LIVE_CFG.raids; $('lvRaids').onchange = e => { LIVE_CFG.raids = e.target.checked; liveSaveCfg(); };
 $('lvRaid').onclick = () => { if (!npcs.length) { $('lvFeedback').textContent = 'A vila ainda não tem moradores.'; return; } $('lvFeedback').textContent = startRaid(true) ? 'Ataque anunciado!' : 'Já há um ataque em andamento.'; };
 $('lvSeason').onclick = () => { if (startNewSeason()) $('lvFeedback').textContent = 'Nova temporada iniciada. O backup da anterior foi baixado.'; };
+$('lvStats').onclick = openStats;
 $('lvHall').onclick = () => { showHall = Date.now() + 20000; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
@@ -1042,6 +1046,7 @@ function raidResolve() {
   s.next.raid = Date.now() + LIVE_CFG.raidMin * 60000 * (mod() === 'hostil' ? 0.6 : 1);
   const helpers = Object.keys(r.help).map(uid => s.viewers[uid]).filter(Boolean);
   const owners = Object.values(s.viewers).filter(v => { const n = npcOf(v); return n && ['guerreiro', 'policial', 'cacador'].includes(n.prof); });
+  stat(r.win ? 'raidsWon' : 'raidsLost');
   if (r.win) {
     const loot = Math.round(r.str * 1.5 * (mod() === 'hostil' ? 2 : 1));
     if (s.era >= 2) res.coins += loot; else res.wood += loot;
@@ -1097,6 +1102,7 @@ function hallEntry() {
   return {
     n: s.season, village: villageName, end: Date.now(), era: s.era, eraName: ERAS[s.era].name, finale: !!s.finale,
     pop: npcs.length, built: buildings.filter(b => b.done).length, raidsWon: s.raidsWon || 0, mod: mod(),
+    eraTimes: Object.assign({}, ST().eraActive),
     top: topViewers(5).map(v => [v.name, Math.round(v.xp), level(v)]),
   };
 }
@@ -1122,7 +1128,7 @@ function startNewSeason() {
     const old = vets[uid] || { name: v.name, seasons: 0, xp: 0 };
     vets[uid] = { name: v.name, seasons: old.seasons + 1, xp: old.xp + Math.round(v.xp || 0) };
   }
-  const carry = { season: s.season + 1, hall, vets };
+  const carry = { season: s.season + 1, hall, vets, stats: { sessions: ST().sessions, eraActive: {}, eraReached: { 0: Date.now() } } };
   newWorld();
   Object.assign(liveState, carry); L();
   arrivals_reset();
@@ -1167,6 +1173,88 @@ function hallBox() {
     `<div class="opt"><span>T${e.n} · ${esc(e.village)} ${e.finale ? '🚀' : ''}</span><em>${esc(e.eraName)}</em></div><small>${e.top.slice(0, 3).map((t, i) => `${i + 1}º ${esc(t[0])}`).join(' · ') || 'sem fundadores'}</small>`).join('') + '</div>';
 }
 function viewerTag(v) { return '@' + v.name + (v.vet ? ` ⭐${v.vet}` : ''); }
+
+// ================== ESTATÍSTICAS ==================
+// Cada vez que o jogo fica aberto conta como uma "live" (sessão). Reabrir em até 20 min continua a mesma.
+// Serve para balancear: quanto tempo de live cada era levou, quanta gente participou, ritmo do chat.
+const SESSION_GAP = 20 * 60000, MAX_SESSIONS = 40;
+function ST() {
+  const s = L();
+  if (!s.stats) s.stats = { sessions: [], eraActive: {}, eraReached: { 0: Date.now() } };
+  if (!s.stats.eraActive) s.stats.eraActive = {};
+  if (!s.stats.eraReached) s.stats.eraReached = {};
+  return s.stats;
+}
+function newSession() {
+  const s = L();
+  return { start: Date.now(), end: Date.now(), activeMs: 0, season: s.season, eraStart: s.era, eraEnd: s.era, popStart: npcs.length, popEnd: npcs.length,
+    viewers: {}, msgs: 0, arrivals: 0, ballots: 0, votes: 0, research: 0, raidsWon: 0, raidsLost: 0, chalWon: 0, chalLost: 0,
+    donations: 0, donated: 0, members: 0, eras: [], perMin: [] };
+}
+function SES() {
+  const st = ST(), last = st.sessions[st.sessions.length - 1];
+  if (last && Date.now() - last.end < SESSION_GAP) return last;
+  const n = newSession(); st.sessions.push(n);
+  if (st.sessions.length > MAX_SESSIONS) st.sessions.splice(0, st.sessions.length - MAX_SESSIONS);
+  return n;
+}
+function stat(k, n = 1) { const x = SES(); x[k] = (x[k] || 0) + n; }
+function statViewer(uid) { const x = SES(); x.viewers[uid] = (x.viewers[uid] || 0) + 1; }
+function statMsg(uid) {
+  const x = SES(); x.msgs++; statViewer(uid);
+  const m = Math.floor((Date.now() - x.start) / 60000);
+  while (x.perMin.length <= m && x.perMin.length < 1440) x.perMin.push(0);
+  if (m < 1440) x.perMin[m]++;
+}
+function statEra(era) { const st = ST(); st.eraReached[era] = Date.now(); SES().eras.push([era, Date.now()]); }
+let statLast = Date.now();
+function statTick() {
+  const now = Date.now(), dt = Math.min(5000, now - statLast); statLast = now;
+  const st = ST(), x = SES(), s = L();
+  x.end = now; x.activeMs += dt; x.eraEnd = s.era; x.popEnd = npcs.length;
+  st.eraActive[s.era] = (st.eraActive[s.era] || 0) + dt;
+}
+function dur(ms) { const m = Math.round(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`; }
+function sessionSummary(x) {
+  const mins = Math.max(1, x.activeMs / 60000), people = Object.keys(x.viewers).length;
+  const peak = x.perMin.length ? Math.max(...x.perMin) : 0;
+  return { mins, people, rate: x.msgs / mins, peak };
+}
+function statsLine() {
+  const x = SES(), m = sessionSummary(x);
+  return `Live atual: ${dur(x.activeMs)} · ${m.people} pessoa(s) · ${m.rate.toFixed(1).replace('.', ',')} msg/min`;
+}
+function openStats() {
+  const st = ST(), s = L(), cur = SES(), m = sessionSummary(cur);
+  const row = (a, b) => `<tr><td>${a}</td><td style="text-align:right"><b>${b}</b></td></tr>`;
+  let h = `<h3><span>📊 Estatísticas da live</span><button class="btn sm" id="stX">✕</button></h3>`;
+  h += `<p style="font-size:13px;margin:0 0 8px">Temporada ${s.season} · ${ERAS[s.era].icon} ${esc(ERAS[s.era].name)}. Use para ajustar o ritmo: se uma era demora demais, os requisitos dela estão altos.</p>`;
+  h += `<table style="width:100%;font-size:14px;border-collapse:collapse">`;
+  h += row('Duração desta live', dur(cur.activeMs)) + row('Pessoas que participaram', m.people) + row('Mensagens', `${fmt(cur.msgs)} (${m.rate.toFixed(1).replace('.', ',')}/min, pico ${m.peak}/min)`);
+  h += row('Moradores novos', `${cur.arrivals} (de ${cur.popStart} para ${cur.popEnd})`) + row('Votações / votos', `${cur.votes} / ${cur.ballots}`) + row('Pesquisas concluídas', cur.research);
+  h += row('Eras', cur.eraStart === cur.eraEnd ? ERAS[cur.eraEnd].name : `${ERAS[cur.eraStart].name} → ${ERAS[cur.eraEnd].name}`);
+  h += row('Ataques vencidos / perdidos', `${cur.raidsWon} / ${cur.raidsLost}`) + row('Desafios cumpridos / perdidos', `${cur.chalWon} / ${cur.chalLost}`);
+  h += row('Doações', `${cur.donations} · R$ ${cur.donated.toFixed(2).replace('.', ',')}`) + row('Membros novos', cur.members) + `</table>`;
+  h += `<div class="bgrp">⏳ Tempo de live em cada era</div><table style="width:100%;font-size:14px;border-collapse:collapse">`;
+  for (let i = 0; i <= s.era; i++) h += row(`${ERAS[i].icon} ${esc(ERAS[i].name)}${i === s.era ? ' (atual)' : ''}`, dur(st.eraActive[i] || 0));
+  h += `</table>`;
+  const past = st.sessions.slice(-8).reverse();
+  h += `<div class="bgrp">🗓️ Últimas lives</div><table style="width:100%;font-size:13px;border-collapse:collapse"><tr><th style="text-align:left">Data</th><th>Duração</th><th>Pessoas</th><th>Msg/min</th><th>Eras</th></tr>`;
+  for (const x of past) { const k = sessionSummary(x); h += `<tr><td>${new Date(x.start).toLocaleDateString('pt-BR')} ${new Date(x.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td><td style="text-align:center">${dur(x.activeMs)}</td><td style="text-align:center">${k.people}</td><td style="text-align:center">${k.rate.toFixed(1).replace('.', ',')}</td><td style="text-align:center">${x.eraStart + 1}→${x.eraEnd + 1}</td></tr>`; }
+  h += `</table><div class="row" style="margin-top:12px"><button class="btn" id="stJson">⬇️ Exportar JSON</button><button class="btn" id="stCsv">⬇️ Exportar planilha (CSV)</button><button class="btn" id="stClose">Fechar</button></div>`;
+  modal(h);
+  $('stX').onclick = closeModal; $('stClose').onclick = closeModal;
+  $('stJson').onclick = () => downloadText(`pixelandia-estatisticas-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ season: s.season, era: s.era, ...st }, null, 2), 'application/json');
+  $('stCsv').onclick = () => {
+    const head = 'inicio;duracao_min;temporada;era_inicio;era_fim;pessoas;mensagens;msg_por_min;pico_msg_min;chegadas;votacoes;votos;pesquisas;ataques_vencidos;ataques_perdidos;desafios_cumpridos;desafios_perdidos;doacoes;valor_doado;membros';
+    const lines = st.sessions.map(x => { const k = sessionSummary(x); return [new Date(x.start).toISOString(), Math.round(x.activeMs / 60000), x.season, x.eraStart + 1, x.eraEnd + 1, k.people, x.msgs, k.rate.toFixed(2).replace('.', ','), k.peak, x.arrivals, x.votes, x.ballots, x.research, x.raidsWon, x.raidsLost, x.chalWon, x.chalLost, x.donations, x.donated.toFixed(2).replace('.', ','), x.members].join(';'); });
+    downloadText(`pixelandia-lives-${new Date().toISOString().slice(0, 10)}.csv`, '﻿' + [head, ...lines].join('\r\n'), 'text/csv');
+  };
+}
+function downloadText(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type })), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
 
 // ================== MODO VITRINE ==================
 // Live aberta sem ninguém: o mundo não pode parecer congelado.
