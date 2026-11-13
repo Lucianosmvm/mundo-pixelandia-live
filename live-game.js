@@ -62,16 +62,25 @@ const DILEMAS = [
     b: ['Preservar a natureza', () => { res.coins += 8; for (const n of npcs) n.boost = Math.max(n.boost || 0, 40); return 'Turistas vieram ver: +8 🪙 e ânimo geral'; }] },
 ];
 
+// Moradores dormem à noite: desafio de coleta só se ainda houver dia pela frente.
+function dayLeft() { return !isNight() && hour() < 15.5; }
 const CHALLENGES = {
-  madeira: { icon: '🪵', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 },
-  pedra: { icon: '🪨', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => hasProf('minerador') || hasProf('pedreiro') },
+  madeira: { icon: '🪵', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 && dayLeft() },
+  pedra: { icon: '🪨', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => (hasProf('minerador') || hasProf('pedreiro')) && dayLeft() },
   mutirao: { icon: '💪', min: 2, title: n => `Mutirão: ${n}× !ajudar no chat`, target: () => 10 + Math.min(40, Object.keys(L().viewers).length), track: 'help', ok: () => true },
   boasvindas: { icon: '👋', min: 5, title: n => `Receber ${n} novos moradores`, target: () => 3, track: 'arrive', ok: () => true },
   hype: { icon: '💬', min: 3, title: n => `${n} mensagens no chat`, target: () => 25 + Math.min(75, Object.keys(L().viewers).length * 2), track: 'msg', ok: () => true },
 };
 
 const DONATION_EVENTS = { festa: 'party', chuva: 'rain', neve: 'snow', galinhas: 'chickens', ovni: 'ufo' };
-const RATES = { BRL: 1, USD: 5.5, EUR: 6, GBP: 7, ARS: 0.006, MXN: 0.3, CLP: 0.006, COP: 0.0014, PEN: 1.5, UYU: 0.14, JPY: 0.036, CAD: 4, AUD: 3.6 };
+const RATES = { BRL: 1, USD: 5.5, EUR: 6, GBP: 7, ARS: 0.006, MXN: 0.3, CLP: 0.006, COP: 0.0014, PEN: 1.5, UYU: 0.14, BOB: 0.8, PYG: 0.0007,
+  JPY: 0.036, CAD: 4, AUD: 3.6, NZD: 3.3, CHF: 6.2, SEK: 0.52, NOK: 0.5, DKK: 0.8, PLN: 1.4, CZK: 0.24, HUF: 0.015, TRY: 0.17, RUB: 0.06,
+  INR: 0.065, KRW: 0.004, PHP: 0.1, IDR: 0.00035, THB: 0.16, HKD: 0.7, TWD: 0.17, SGD: 4.1, MYR: 1.2, ZAR: 0.3, ILS: 1.5, SAR: 1.5, AED: 1.5, VND: 0.0002, EGP: 0.11, NGN: 0.0035, KES: 0.042 };
+// Moeda fora da tabela: conta no máximo R$ 2 (só agradecimento), para nunca liberar prêmios grandes por engano.
+function toBRL(amount, currency) {
+  const v = Number(amount) || 0, rate = RATES[String(currency || 'BRL').toUpperCase()];
+  return rate == null ? Math.min(2, v) : v * rate;
+}
 const TITLES = ['Forasteiro', 'Novato', 'Morador', 'Vizinho querido', 'Veterano', 'Cidadão ilustre', 'Herói da vila', 'Lenda de Pixelândia'];
 
 // ================== ESTADO ==================
@@ -107,6 +116,7 @@ function liveEvent(e) {
   const uid = norm(e.user || e.name || '').replace(/^@/, '');
   if (!uid) return 'Usuário inválido.';
   const v = viewerOf(uid, String(e.name || e.user).replace(/^@/, '').slice(0, 30));
+  if (v.banned) return 'Usuário bloqueado.';
   let r;
   if (e.kind === 'donation') r = onDonation(v, uid, Number(e.amount) || 0, e.text || '', e.src);
   else if (e.kind === 'member') r = onMember(v);
@@ -528,10 +538,11 @@ async function ytPoll(run, key, first) {
     run.token = j.nextPageToken;
     wait = Math.max(6000, j.pollingIntervalMillis || 6000);
     // Na primeira leitura, ignora mensagens antigas para não reprocessar o histórico.
-    if (!first) for (const it of j.items || []) { const e = ytMap(it); if (e) liveEvent(e); }
+    if (!first) for (const it of j.items || []) { try { const e = ytMap(it); if (e) liveEvent(e); } catch (e) { console.error('mensagem do YouTube:', e, it); } }
+    first = false;
     liveConn.yt = `conectado ✅ · ${new Date().toLocaleTimeString('pt-BR')}`; liveDirty = true;
   } catch (err) { liveConn.yt = 'erro: ' + err.message + ' (tentando de novo)'; liveDirty = true; wait = 20000; }
-  run.timer = setTimeout(() => ytPoll(run, key, false), wait);
+  run.timer = setTimeout(() => ytPoll(run, key, first), wait);
 }
 function ytStop() { if (yt) { yt.stop = true; clearTimeout(yt.timer); yt = null; } liveConn.yt = 'desligado'; liveDirty = true; }
 function ytMap(it) {
@@ -540,7 +551,7 @@ function ytMap(it) {
   if (sn.type === 'textMessageEvent') return { ...base, kind: 'chat', text: sn.displayMessage || sn.textMessageDetails?.messageText || '' };
   if (sn.type === 'superChatEvent' || sn.type === 'superStickerEvent') {
     const d = sn.superChatDetails || sn.superStickerDetails || {};
-    return { ...base, kind: 'donation', amount: (Number(d.amountMicros) || 0) / 1e6 * (RATES[d.currency] ?? 1), text: d.userComment || '' };
+    return { ...base, kind: 'donation', amount: toBRL((Number(d.amountMicros) || 0) / 1e6, d.currency), text: d.userComment || '' };
   }
   if (sn.type === 'newSponsorEvent' || sn.type === 'memberMilestoneChatEvent') return { ...base, kind: 'member' };
   if (sn.type === 'membershipGiftingEvent') return { ...base, kind: 'gift', count: sn.membershipGiftingDetails?.giftMembershipsCount || 1 };
@@ -561,7 +572,7 @@ function bridgeConnect() {
       try {
         const d = JSON.parse(m.data);
         const kind = d.type === 'donation' || d.type === 'pix' ? 'donation' : d.type === 'member' ? 'member' : d.type === 'gift' ? 'gift' : 'chat';
-        liveEvent({ id: d.id ? 'br:' + d.id : null, src: d.source || (d.type === 'pix' ? 'pix' : 'bridge'), user: (d.source || 'br') + ':' + (d.user || d.name), name: d.name || d.user, kind, text: d.text || d.message || '', amount: (Number(d.amount) || 0) * (RATES[d.currency || 'BRL'] ?? 1), count: d.count });
+        liveEvent({ id: d.id ? 'br:' + d.id : null, src: d.source || (d.type === 'pix' ? 'pix' : 'bridge'), user: (d.source || 'br') + ':' + (d.user || d.name), name: d.name || d.user, kind, text: d.text || d.message || '', amount: toBRL(d.amount, d.currency || 'BRL'), count: d.count });
       } catch (e) { console.warn('ponte:', e); }
     };
   } catch (e) { liveConn.bridge = 'erro: ' + e.message; }
@@ -590,6 +601,8 @@ $('livePanel').innerHTML = `
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
   <p class="tip" id="lvStatus"></p>
+  <label for="lvBanName">Bloquear espectador (remove o morador e ignora as mensagens)</label>
+  <div class="row" style="flex-wrap:nowrap"><input class="in" id="lvBanName" placeholder="nome no chat ou do morador" maxlength="40"><button class="btn sm red" id="lvBan">🚫 Bloquear</button><button class="btn sm" id="lvUnban">Desbloquear</button></div>
 </section>
 <section class="card"><h3>📡 Conexões</h3>
   <label for="lvYtKey">YouTube · chave da API</label><input class="in" id="lvYtKey" type="password" autocomplete="off" placeholder="AIza…">
@@ -641,6 +654,27 @@ $('lvChal').onclick = () => { if (L().chal) endChallenge(false); startChallenge(
 $('lvClose').onclick = () => { if (L().vote) closeVote(); };
 $('lvYtOn').onclick = () => { LIVE_CFG.ytKey = $('lvYtKey').value.trim(); LIVE_CFG.ytVideo = $('lvYtVid').value.trim(); liveSaveCfg(); ytConnect(); };
 $('lvYtOff').onclick = ytStop;
+function findViewers(q) {
+  q = norm(q).replace(/^@/, ''); if (!q) return [];
+  return Object.values(L().viewers).filter(v => norm(v.name) === q || norm(npcOf(v)?.name || '') === q);
+}
+$('lvBan').onclick = () => {
+  const list = findViewers($('lvBanName').value);
+  if (!list.length) { $('lvFeedback').textContent = 'Ninguém encontrado com esse nome.'; return; }
+  for (const v of list) {
+    v.banned = true;
+    const n = npcOf(v); if (n) removeNPC(n.id);
+    v.npc = null;
+    for (const s of [L().arrivals, camQ.queue]) for (let i = s.length - 1; i >= 0; i--) if (s[i].npc === n?.id || L().viewers[s[i].uid] === v) s.splice(i, 1);
+  }
+  save(); refreshPanel(true); $('lvFeedback').textContent = `Bloqueado(s): ${list.map(v => v.name).join(', ')}`;
+};
+$('lvUnban').onclick = () => {
+  const q = norm($('lvBanName').value).replace(/^@/, '');
+  const list = Object.values(L().viewers).filter(v => v.banned && norm(v.name) === q);
+  for (const v of list) v.banned = false;
+  save(); $('lvFeedback').textContent = list.length ? `Desbloqueado(s): ${list.map(v => v.name).join(', ')}` : 'Nenhum bloqueado com esse nome.';
+};
 $('lvBrOn').onclick = () => { LIVE_CFG.bridgeUrl = $('lvBrUrl').value.trim(); liveSaveCfg(); bridgeConnect(); };
 $('lvBrOff').onclick = bridgeStop;
 
@@ -725,6 +759,17 @@ setInterval(() => {
 
 // Jogo aberto pelo servidor local (iniciar-live.bat): a ponte já conecta sozinha.
 try { if (new URL(LIVE_CFG.bridgeUrl, location.href).origin === location.origin) bridgeConnect(); } catch (e) {}
+
+// Vigia: um erro inesperado no loop de desenho congelaria a tela da live. Religa uma vez por erro.
+let frameErrAt = 0;
+addEventListener('error', e => { frameErrAt = Date.now(); console.error('erro no jogo:', e.message, e.filename, e.lineno); });
+let staleChecks = 0;
+setInterval(() => {
+  // Só religa se o loop estiver parado em duas checagens seguidas depois de um erro (evita loop duplicado).
+  const stale = frameErrAt && performance.now() - last > 2000 && document.visibilityState === 'visible';
+  staleChecks = stale ? staleChecks + 1 : 0;
+  if (staleChecks >= 2) { staleChecks = 0; frameErrAt = 0; last = performance.now(); requestAnimationFrame(frame); console.warn('loop do jogo religado'); }
+}, 2000);
 
 // Relógio próprio: votações e desafios fecham mesmo se a aba ficar em segundo plano.
 setInterval(() => { try { liveTick(); } catch (e) { console.error('live:', e); } }, 500);

@@ -198,7 +198,7 @@ body.pxCinema #pxQuick{opacity:.65}body.pxCinema #pxQuick:hover{opacity:1}
       <span class="lbl">👁️ Moradores andando na tela ao mesmo tempo</span>
       <button class="btn sm" data-act="100">100</button><button class="btn sm on" data-act="200">200</button><button class="btn sm" data-act="400">400</button>
       <span class="lbl">🕐 Quanto dura um dia</span>
-      <button class="btn sm" data-day="fast">5 min</button><button class="btn sm" data-day="normal">30 min</button><button class="btn sm on" data-day="ep">📺 Episódio</button>
+      <button class="btn sm" data-day="fast">5 min</button><button class="btn sm" data-day="normal">30 min</button><button class="btn sm" data-day="ep">📺 Episódio</button><button class="btn sm on" data-day="live">🔴 Live</button>
       <span class="lbl">📺 No modo Episódio, a manhã até o fim da tarde leva</span>
       <button class="btn sm" data-ep="15">15 min</button><button class="btn sm on" data-ep="20">20 min</button><button class="btn sm" data-ep="30">30 min</button><button class="btn sm" data-ep="40">40 min</button>
       <span class="lbl">🍃 Estação do ano (muda quando você quiser)</span>
@@ -892,7 +892,7 @@ function removeNPC(id){
 // ================== MUNDO TICK ==================
 let tickAcc=0,slowAcc=0;
 // --- relógio: o modo Episódio para no fim da tarde até você encerrar o dia ---
-let dayMode='ep',FF=null,epMin=20;
+let dayMode='live',FF=null,epMin=20;
 function timeStep(dt){
   const recap=REC?.dayRecap;
   if(FF){
@@ -901,6 +901,8 @@ function timeStep(dt){
     return;
   }
   if(recap&&!REC.stopping&&!recap.nightStarted)return;
+  // Live: dia de epMin minutos reais e noite curta; nunca congela.
+  if(dayMode==='live'){const h=hour();if(h>=20.5||h<6){mins+=dt*36;return}mins+=dt*870/(epMin*60);return}
   if(dayMode==='ep'){const h=hour();if(h>=20.5||h<6){mins+=dt*36;return}if(h>=16)return;mins+=dt*570/(epMin*60);return}
   mins+=dt*1440/(dayMode==='normal'?1800:300);
 }
@@ -4046,7 +4048,7 @@ function load(s){
   restoreNPCs();/* Respeita a fila salva: obras removidas pelo jogador não devem ser recriadas ao abrir. */particles=[];reserved.clear();follow=null;npcVer++;DUCKS=[];WILD=[];FLYERS=[];
   SEASON=SEASONS[s.season]?s.season:'verao';if(TREESETS)treeImgs=TREESETS[SEASON];document.querySelectorAll('[data-season]').forEach(x=>x.classList.toggle('on',x.dataset.season===SEASON));
   redrawAllGround();recount();assignHomes();if(!s.goalIdx){goalIdx=0;checkGoals(true)}
-  DIST=s.dist||{};DAYLOG=s.daylog||[];distTick(true);dayMode=s.dayMode||'ep';epMin=s.epMin||20;document.querySelectorAll('[data-ep]').forEach(x=>x.classList.toggle('on',+x.dataset.ep===epMin));FF=null;document.querySelectorAll('[data-day]').forEach(x=>x.classList.toggle('on',x.dataset.day===dayMode));
+  DIST=s.dist||{};DAYLOG=s.daylog||[];distTick(true);dayMode=s.dayMode||'live';document.querySelectorAll('[data-day]').forEach(x=>x.classList.toggle('on',x.dataset.day===dayMode));epMin=s.epMin||20;document.querySelectorAll('[data-ep]').forEach(x=>x.classList.toggle('on',+x.dataset.ep===epMin));FF=null;document.querySelectorAll('[data-day]').forEach(x=>x.classList.toggle('on',x.dataset.day===dayMode));
 }
 function stopEventsQuiet(){EV.rain=0;EV.snow=0;EV.party=0;EV.fire=null;EV.chickens=[];EV.chickCount=null;EV.ufo=null;EV.launch=null}
 // Vilas da versão antiga (mapa 80×60) são encaixadas no centro do mapa novo.
@@ -4061,7 +4063,10 @@ function migrateV1(s){
   npcs=(s.npcs||[]).map(n=>({id:n.id,name:n.name,prof:n.prof,sex:n.sex,custom:n.custom||'',home:n.home,si:si(n.skin),hi:hi(n.hairC),pi:pi(n.pants),ci:Math.max(0,CSHIRT.indexOf(n.shirt)),beard:!!n.beard,fed:n.fed!==false}));
   nextId=s.nextId;nextBid=s.nextBid;
 }
-function save(){try{localStorage.setItem(SAVE_KEY,serialize())}catch(e){}}
+let saveFailAt=0;
+function save(){try{localStorage.setItem(SAVE_KEY,serialize());saveFailAt=0}catch(e){console.error('Falha ao salvar:',e);
+  // Avisa no máximo a cada 5 min: sem salvar, o progresso some ao fechar.
+  if(!saveFailAt||Date.now()-saveFailAt>300000){saveFailAt=Date.now();logEv('⚠️ Não consegui salvar o mundo! Faça um Backup agora.')}}}
 
 
 function newLiveState(){return {v:2}}

@@ -58,6 +58,12 @@ Com o ciclo ligado (**Controle da partida**), o jogo alterna estas rodadas:
 
 Os intervalos podem ser ajustados no painel. Os botões **Votar obra**, **Dilema**, **Desafio** e **Apurar agora** disparam cada rodada na hora.
 
+Desafios de coleta (madeira e pedra) só aparecem de dia, porque os moradores dormem à noite.
+
+O relógio usa o modo **🔴 Live** (Controles → duração do dia): o dia dura o tempo escolhido em minutos reais e a noite passa em poucos segundos. O modo **📺 Episódio** congela às 16h e serve para gravar vídeos, não para live.
+
+Para tirar um troll, use **Bloquear espectador** em **Controle da partida**: o morador dele é removido e as mensagens passam a ser ignoradas.
+
 ## Nível do espectador
 
 O XP vem de mensagens (1 a cada 15 s), votos, `!ajudar`, desafios vencidos e doações. O **trabalho do seu morador também conta**: cada árvore cortada ou martelada numa obra rende XP. Os títulos vão de Forasteiro até Lenda de Pixelândia.

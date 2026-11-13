@@ -45,5 +45,7 @@ if not defined NAV (
 
 rem Perfil proprio: o salvamento fica separado do seu navegador do dia a dia
 rem e nao some se voce limpar o historico dele.
-start "" "%NAV%" --user-data-dir="%PERFIL%" --app="%URL%" --window-size=1920,1080 --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required
+rem As opcoes "disable-..." impedem o Chrome de pausar o jogo quando a janela
+rem fica atras de outra (o OBS mostraria a imagem congelada).
+start "" "%NAV%" --user-data-dir="%PERFIL%" --app="%URL%" --window-size=1920,1080 --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling --disable-features=CalculateNativeWinOcclusion
 exit /b 0
