@@ -124,6 +124,22 @@ body.pxCinema #pxQuick{opacity:.65}body.pxCinema #pxQuick:hover{opacity:1}
 @media(orientation:landscape) and (max-height:500px){#hud{max-width:45vw}#panel{top:5px;bottom:65px;left:auto;right:5px;width:min(310px,45vw);max-height:none}#pxDrawer{max-height:calc(100dvh - 80px)}#pxQuick{left:50%}}
 
 .studio-selected{background:#bce79a!important;border-color:#3e7a25!important;box-shadow:inset 0 0 0 2px #5a9a43}.studio-grid{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.studio-fields{background:#fff4d6;border:2px solid #d5ac70;padding:10px;border-radius:6px}.studio-checks{display:grid;gap:5px;margin-top:10px}.studio-checks label{font-size:14px;margin:0;cursor:pointer}.studio-checks input{accent-color:#5b993a}#stStart{flex:1;min-width:170px}@media(max-width:700px){.studio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-grid .bopt{padding:7px}.studio-grid .bc{font-size:11px}}
+/* Overlay da live */
+#liveHud{position:fixed;left:12px;bottom:12px;z-index:5;width:min(340px,calc(100vw - 24px));display:flex;flex-direction:column;gap:6px;pointer-events:none;font-size:14px}
+#liveHud>div{background:rgba(40,25,10,.86);color:#fff3d4;border:2px solid #8b4a1f;border-radius:6px;padding:6px 9px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+#liveHud b{color:#ffe08a}#liveHud small{display:block;font-size:12px;opacity:.9;margin-top:3px}
+#liveHud .ok{color:#9be37a}#liveHud .tm{float:right;font-weight:700;color:#ffb36b}
+#liveHud .lh-box.vote{border-color:#f6c344}#liveHud .lh-box.chal{border-color:#7cc04a}
+#liveHud .opt{display:grid;grid-template-columns:1fr auto;gap:0 6px;margin-top:4px}#liveHud .opt .lbar{grid-column:1/3}
+#liveHud .opt em{font-style:normal;font-weight:700}
+#liveHud kbd{display:inline-block;min-width:18px;text-align:center;background:#f6c344;color:#3b2412;border-radius:3px;font:inherit;font-weight:700;padding:0 3px}
+.lbar{height:7px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;margin-top:3px}.lbar i{display:block;height:100%;background:linear-gradient(90deg,#7cc04a,#f6c344);transition:width .4s}
+.lbar.v i{background:#f6c344}.lbar.c i{background:#7cc04a}.lbar.g i{background:linear-gradient(90deg,#ff9ad5,#ffe066)}
+#liveHud .lh-feed div{padding:1px 0;animation:lhIn .5s ease}
+@keyframes lhIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+#liveHud .lh-tip{font-size:13px;text-align:center}
+#log{left:364px}
+@media (max-width:700px){#liveHud{bottom:70px;font-size:12px;width:min(300px,calc(100vw - 16px));left:8px}#log{left:8px}}
 </style>
 </head>
 <body>
@@ -133,26 +149,13 @@ body.pxCinema #pxQuick{opacity:.65}body.pxCinema #pxQuick:hover{opacity:1}
   <div class="top"><span id="clock">Dia 1 · 07:00</span><span class="vn" id="vnHud"></span></div>
   <div id="res"></div>
   <div id="goal"></div>
-  <div class="tip" id="liveOverlay"></div>
 </div>
+<div id="liveHud" aria-live="polite"></div>
 
 <div id="panel" class="box">
   <div class="ph"><input id="villageName" value="Mundo Pixelândia" maxlength="28" title="Nome da vila"><button class="btn sm" id="hideBtn" title="Esconder painel (H)">✕</button></div>
 
-  <section class="card">
-    <h3>Chat simulado da live</h3>
-    <form id="liveChatForm">
-      <label for="liveViewer">Usuário do chat</label>
-      <input class="in" id="liveViewer" placeholder="@nico" maxlength="40" required>
-      <label for="liveMessage">Mensagem</label>
-      <input class="in" id="liveMessage" placeholder="!morador Nico | lenhador" maxlength="120" required>
-      <button class="btn big">Enviar ao jogo</button>
-    </form>
-    <p class="tip" id="liveFeedback" role="status"></p>
-    <p class="tip">Use <b>!morador Nome | profissão</b>. Escolha entre lenhador, pedreiro, fazendeiro e minerador. Use <b>!meu</b> para localizar seu personagem.</p>
-    <p class="tip" id="liveBallot"></p>
-    <button class="btn sm" id="liveCloseVote" hidden>Encerrar votação</button>
-  </section>
+  <div id="livePanel"></div>
   <section class="card">
     <h3>➕ Novo morador</h3>
     <label for="fName">Nome</label>
@@ -661,11 +664,8 @@ function findSpot(w,h){
   return null;
 }
 function tryStartSite(){
-  if(liveState.deadline&&!liveState.winner)return {};
-  const firstProject=queue.find(project=>project.founding);
   let lack=null,noSpace=false,rW=0,rS=0;const tried=new Set();
   for(let qi=0;qi<queue.length;qi++){const q=queue[qi];
-    if(firstProject&&q!==firstProject)continue;
     const d=BT[q.type],cw2=q.free?0:d.wood,cs2=q.free?0:d.stone;
     const hold=()=>{if(q.manual){rW+=cw2;rS+=cs2}};
     if(res.wood<cw2+rW){lack=lack||'wood';hold();continue}
@@ -677,7 +677,6 @@ function tryStartSite(){
     const result=constructionVotes.find(v=>v.id===q.voteId);
     if(result)result.buildingId=b.id;
     placeBuilding(b);buildings.push(b);bById.set(b.id,b);
-    if(firstProject)liveState.firstBuildingId=b.id;
     logEv('🏗️ Obra iniciada: '+d.icon+' '+bName(b));
     return{started:b};
   }
@@ -733,6 +732,7 @@ function think(n){
   if(!hasProf('pedreiro')&&n===npcs[0]&&(queue.length||buildings.some(b=>!b.done))&&aiBuilder(n))return;
   const P=PROF[n.prof];let ok=false;
   if(P&&P.ai)ok=P.ai(n);
+  else if(n.prof==='custom')ok=aiBuilder(n)||aiLumber(n);
   if(!ok||!n.plan.length)aiWander(n);
 }
 function planRetire(n){
@@ -756,7 +756,7 @@ function planSleep(n){
   else{n.status='Dormindo ao relento 💤';n.plan=[goNear(CX,CY,4),fn(m=>{m.sleeping=true})]}
 }
 function updateNPC(n,dt){
-  n.lifeT+=dt;
+  n.lifeT+=dt;if(n.boost>0)n.boost-=dt;
   if(n.kids&&n.kids.length){if(!n.kid){const kd=n.kids[0];n.kid={x:n.x,y:n.y,walkT:0,dir:'down',moving:false,skin:n.skin,hairC:n.hairC,pants:PANTS[(n.id+1)%PANTS.length],shirt:CSHIRT[(n.id+kd.name.length)%CSHIRT.length],sex:kd.sex,prof:'kid'}}
     const k=n.kid,tx=n.x+(n.dir==='left'?10:n.dir==='right'?-10:9),ty=n.y+(n.dir==='up'?6:n.dir==='down'?-2:2),dx=tx-k.x,dy=ty-k.y,d=Math.hypot(dx,dy);
     if(d>2){const sp=Math.min(d,SPEED*1.25*dt);k.x+=dx/d*sp;k.y+=dy/d*sp;k.moving=true;k.walkT+=dt;k.dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')}else{k.moving=false;k.dir='down'}}
@@ -789,7 +789,7 @@ function updateNPC(n,dt){
     n.walkT+=travelled/8;
   }else if(s.t==='work'){
     if(!s.init){s.init=true;if(s.face){faceTo(n,s.face[0],s.face[1]);n.faceT=s.face}else n.faceT=null}
-    n.anim=s.anim;n.animT+=dt;s.dur-=dt*workSpeed();workFx(n,s,dt);
+    n.anim=s.anim;n.animT+=dt;s.dur-=dt*workSpeed()*(n.boost>0?1.6:1);workFx(n,s,dt);
     if(s.dur<=0){n.anim=null;n.step=null;if(s.done)s.done(n)}
   }else if(s.t==='wait'){s.dur-=dt;if(s.dur<=0)n.step=null}
   else if(s.t==='fn'){n.step=null;if(s.f(n)===false)abort(n)}
@@ -1828,8 +1828,6 @@ function frame(now){
   if(follow!=null&&followUntil&&now>followUntil&&!pinnedFollow){follow=null;followUntil=0}
   clampCam();render();recFrame(now);
   uiAcc+=dt;if(uiAcc>0.5){uiAcc=0;refreshHud();refreshPanel(false);
-    if(liveState.deadline&&!liveState.winner&&Date.now()>=liveState.deadline)closeLiveBallot();
-    refreshLiveBallot();
   }
   saveAcc+=dt;if(saveAcc>20){saveAcc=0;if(!ARRIVAL_PREVIEW)save()}
   requestAnimationFrame(frame);
@@ -4057,109 +4055,7 @@ function migrateV1(s){
 function save(){try{localStorage.setItem(SAVE_KEY,serialize())}catch(e){}}
 
 
-const FOUNDING_PROFESSIONS = new Set(['lenhador', 'pedreiro', 'fazendeiro', 'minerador']);
-const FIRST_PROJECTS = { casa: 'primeira casa', serraria: 'primeira serraria' };
-
-function newLiveState(){
-  return { residents: [], ballots: [], deadline: 0, winner: null, firstBuildingId: null };
-}
-
-function refreshLiveBallot(){
-  const open = liveState.deadline > 0 && !liveState.winner;
-  $('liveCloseVote').hidden = !open;
-  if(open){
-    const seconds = Math.max(0, Math.ceil((liveState.deadline - Date.now()) / 1000));
-    const houses = liveState.ballots.filter(([, choice]) => choice === 'casa').length;
-    $('liveBallot').textContent = `Primeira obra · ${seconds}s · !votar casa (${houses}) ou !votar serraria (${liveState.ballots.length - houses})`;
-  }else if(liveState.winner){
-    const project = buildings.find(b => b.id === liveState.firstBuildingId);
-    const progress = project ? (project.done ? 'concluída' : 'em construção') :
-      queue.some(job => job.founding) ? 'aguardando materiais e terreno' : 'removida da fila';
-    $('liveBallot').textContent = `O chat escolheu a ${FIRST_PROJECTS[liveState.winner]} · ${progress}.`;
-  }else{
-    $('liveBallot').textContent = 'A primeira chegada abre a votação da obra inicial.';
-  }
-  $('liveOverlay').textContent = open ? $('liveBallot').textContent :
-    (liveState.winner ? $('liveBallot').textContent + ' · ' : '') + '!morador Nome | profissão';
-}
-
-function closeLiveBallot(){
-  if(!liveState.deadline || liveState.winner)return;
-  const houses = liveState.ballots.filter(([, choice]) => choice === 'casa').length;
-  const winner = houses * 2 >= liveState.ballots.length ? 'casa' : 'serraria';
-  liveState.winner = winner;
-  const index = queue.findIndex(project => project.type === winner && project.owner == null);
-  if(index >= 0)queue.splice(index, 1);
-  queue.unshift({type:winner, manual:true, founding:true});
-  lastTry = -99;
-  announce('O chat decidiu!', 'A vila vai construir a ' + FIRST_PROJECTS[winner]);
-  logEv('🗳️ O chat escolheu a ' + FIRST_PROJECTS[winner]);
-  save();
-  refreshPanel(true);
-  refreshLiveBallot();
-}
-
-function handleLiveChat(viewer, message){
-  const id = norm(viewer).replace(/^@/, '');
-  if(!id)return 'Informe o usuário do chat.';
-  if(liveState.deadline && Date.now() >= liveState.deadline)closeLiveBallot();
-  const registration = liveState.residents.find(([user]) => user === id);
-  const resident = registration && npcs.find(n => n.id === registration[1]);
-  const [command, ...words] = message.trim().split(/\s+/);
-  const args = words.join(' ');
-
-  if(command.toLowerCase() === '!morador'){
-    if(resident)return `Você já tem um morador: ${resident.name}.`;
-    const fields = args.split('|').map(value => value.trim());
-    const [name, profession = ''] = fields;
-    if(fields.length !== 2 || !/^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} ._'’-]{0,17}$/u.test(name) || badName(name)){
-      return 'Use !morador Nome | profissão. Escolha um nome válido de até 18 caracteres.';
-    }
-    const key = norm(profession);
-    const prof = key === 'carpinteiro' || key === 'carpinteira' ? 'pedreiro' : PROF_ALIAS[key];
-    if(!FOUNDING_PROFESSIONS.has(prof))return 'Escolha lenhador, pedreiro, fazendeiro ou minerador.';
-    const sex = norm(PROF[prof].labelF) === key || key === 'carpinteira' ? 'f' : 'm';
-    const n = addNPC(name, prof, sex, '');
-    liveState.residents = liveState.residents.filter(([user]) => user !== id);
-    liveState.residents.push([id, n.id]);
-    if(!liveState.deadline && !liveState.winner)liveState.deadline = Date.now() + 60000;
-    addHL(2, n.name + ' chegou à vila', n.x, n.y);
-    save();
-    return `${n.name} chegou à fogueira como ${profLabel(n)}.`;
-  }
-  if(command.toLowerCase() === '!votar'){
-    if(!liveState.deadline || liveState.winner)return 'A votação da primeira obra está fechada.';
-    const choice = norm(args);
-    if(!Object.hasOwn(FIRST_PROJECTS, choice))return 'Use !votar casa ou !votar serraria.';
-    liveState.ballots = liveState.ballots.filter(([user]) => user !== id);
-    liveState.ballots.push([id, choice]);
-    save();
-    return `Seu voto foi registrado para ${FIRST_PROJECTS[choice]}.`;
-  }
-  if(command.toLowerCase() === '!meu'){
-    if(!resident)return 'Crie seu morador com !morador Nome | profissão.';
-    if(!resident.active && !resident.abT)activate(resident);
-    follow = resident.id;
-    pinnedFollow = false;
-    followUntil = performance.now() + 14000;
-    const contributions = resident.st || {};
-    announce(resident.name, profLabel(resident) + ' · ' + resident.status);
-    return `${resident.name} · ${resident.status} · ${contributions.t || 0} árvores cortadas · ${contributions.o || 0} turnos de construção.`;
-  }
-  return 'Comandos disponíveis: !morador, !votar e !meu.';
-}
-
-$('liveChatForm').addEventListener('submit', event => {
-  event.preventDefault();
-  const input = $('liveMessage');
-  $('liveFeedback').textContent = handleLiveChat($('liveViewer').value, input.value);
-  refreshLiveBallot();
-  if(!$('panel').classList.contains('hidden')){
-    input.select();
-    input.focus();
-  }
-});
-$('liveCloseVote').onclick = closeLiveBallot;
+function newLiveState(){return {v:2}}
 
 // ================== INÍCIO ==================
 resize();addEventListener('resize',resize);
@@ -4169,7 +4065,6 @@ try{const a=+localStorage.getItem(SAVE_KEY+'_act');if(a){activeMax=a;document.qu
 let loaded=false;
 try{const s=localStorage.getItem(SAVE_KEY);if(s){load(JSON.parse(s));loaded=true;centerCam()}}catch(e){console.warn(e);loaded=false}
 if(!loaded){newWorld();save()}else tlLoad();
-refreshLiveBallot();
 refreshHud();refreshPanel(true);
 if(innerWidth<700&&npcs.length)togglePanel();
 requestAnimationFrame(frame);
@@ -4177,6 +4072,7 @@ addEventListener('beforeunload',save);
 window.__vila={addNPC,get npcs(){return npcs},get res(){return res},get buildings(){return buildings},get queue(){return queue},setMins:m=>{mins=m},cam,
   sim:s=>{for(let t=0;t<s;t+=0.05){worldTick(0.05);for(const n of npcs)if(n.active)updateNPC(n,0.05)}},stats:()=>({active:activeCount,homeless,R:clearR(),happiness,goalIdx,tl:TL&&TL.frames.length}),startEvent,EV,openCard,wedding,openTL,get TL(){return TL}};
 </script>
+<script src="./live-game.js"></script>
 <script>
 
 (function(){'use strict';
