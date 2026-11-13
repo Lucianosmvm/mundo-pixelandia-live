@@ -30,6 +30,8 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 | `!meu` | Entra na fila da câmera: seu morador aparece por 8 s, com nível e status. |
 | `!top` | Mostra o ranking de quem mais ajudou. |
 | `!era` | Mostra o que falta para a próxima era. |
+| `!hall` | Mostra o hall da fama das temporadas passadas. |
+| `!temporada` | Mostra a temporada atual e como é o mundo dela. |
 | `!ajuda` | Mostra os comandos na tela. |
 | Qualquer outra mensagem | Seu morador fala o texto num balão e ganha ânimo (trabalha 60% mais rápido por 45 s). |
 
@@ -65,6 +67,23 @@ As eras 5 a 10 também pedem produção total de ouro, ferro, pedra ou energia (
 - **O mundo muda de cara:** as casas passam de palha e tronco para barro, pedra, tijolo e, na era final, concreto. Alguns nomes acompanham a era: Cabana → Casa de barro → Casa; Guarda → Policial; Curandeiro → Médico.
 - **Profissão do futuro:** quem pede uma profissão de era posterior chega como aprendiz e se forma quando a vila chega lá.
 - **Metas de população** dão de presente uma obra da era atual, nunca um prédio do futuro.
+
+## Temporadas
+
+Quando a vila termina (normalmente depois do foguete), o streamer clica em **🌱 Nova temporada** em **Controle da partida**. O botão pede confirmação, porque o mundo recomeça do zero.
+
+1. O mundo atual é **baixado como backup** (`pixelandia-temporada-N-data.json`) e entra no **hall da fama**: vila, era alcançada, se o foguete decolou, população, obras, ataques vencidos e os 5 maiores fundadores.
+2. Um mundo novo começa na Era da Pedra, com um **memorial** dos fundadores ao lado da fogueira.
+3. O chat **vota como será o novo mundo** (`1`, `2`, `3`):
+   - 🌍 **Mundo clássico:** sem surpresas.
+   - ❄️ **Inverno eterno:** neve o tempo todo e plantações lentas.
+   - 🌱 **Terra fértil:** comida em dobro.
+   - ⚔️ **Terras hostis:** ataques desde a Pedra, mais fortes, mais frequentes e com saque dobrado.
+   - 🪙 **Corrida do ouro:** minas rendem o dobro.
+   - 📚 **Povo sábio:** pesquisas 50% mais rápidas.
+4. **Veteranos:** quem jogou temporadas anteriores ganha ⭐ com o número de temporadas na etiqueta do morador, +10 XP ao voltar e um aviso no overlay. Nível e XP recomeçam a cada temporada, para todos disputarem de igual.
+
+O hall da fama e os veteranos ficam salvos dentro do mundo, então vão junto no backup. O overlay mostra a temporada e o mundo no topo (ex.: `T2 🪙 · 🪨 Era da Pedra`). O modo vitrine alterna entre o ranking atual e o hall da fama, e o botão **🏛️ Hall** mostra o hall na tela.
 
 ## Saqueadores
 

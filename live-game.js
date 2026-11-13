@@ -201,6 +201,7 @@ function L() {
     if (!s.prod) s.prod = { wood: 0, stone: 0, food: 0, gold: 0, iron: 0 };
     if (s.next.pesq == null) s.next.pesq = Date.now() + 20000;
     s.era = Math.min(s.era || 0, ERAS.length - 1);
+    seasonDefaults(s);
     return s;
   }
   const old = Array.isArray(s.residents) ? s.residents : [];
@@ -210,10 +211,16 @@ function L() {
   });
   for (const [uid, npcId] of old) s.viewers[uid] = newViewer(uid, npcId);
   delete s.residents; delete s.ballots; delete s.deadline; delete s.winner; delete s.firstBuildingId;
+  seasonDefaults(s);
   return s;
 }
+function seasonDefaults(s) { if (!s.season) s.season = 1; if (!Array.isArray(s.hall)) s.hall = []; if (!s.vets) s.vets = {}; if (!s.mod) s.mod = 'normal'; }
 function newViewer(name, npcId = null) { return { name, npc: npcId, xp: 0, msgs: 0, votes: 0, don: 0, work: 0, turbo: 0, last: 0, said: 0, pend: null, member: false }; }
-function viewerOf(uid, name) { const v = L().viewers[uid] || (L().viewers[uid] = newViewer(name || uid)); if (name) v.name = name; return v; }
+function viewerOf(uid, name) {
+  let v = L().viewers[uid];
+  if (!v) { v = L().viewers[uid] = newViewer(name || uid); v.vet = L().vets?.[uid]?.seasons || 0; }
+  if (name) v.name = name; return v;
+}
 function npcOf(v) { return v && v.npc != null ? npcs.find(n => n.id === v.npc) || null : null; }
 function level(v) { return Math.floor(Math.sqrt((v.xp || 0) / 25)) + 1; }
 function title(v) { return TITLES[Math.min(TITLES.length - 1, level(v) - 1)]; }
@@ -260,6 +267,8 @@ function onChat(v, uid, text) {
   if (/^!ajudar\b/.test(lower)) return help(v, uid);
   if (/^!meu\b/.test(lower)) return showMine(v);
   if (/^!top\b/.test(lower)) { showTop = Date.now() + 15000; return 'Ranking na tela.'; }
+  if (/^!(hall|fama)\b/.test(lower)) { showHall = Date.now() + 15000; return 'Hall da fama na tela.'; }
+  if (/^!temporada\b/.test(lower)) { const m = MODS[mod()]; announce(`🌱 Temporada ${L().season}`, `${m.icon} ${m.label}: ${m.desc}`); return ''; }
   if (/^!era\b/.test(lower)) { const e = ERAS[L().era]; announce(`${e.icon} ${e.name}`, eraNeedText() || 'Última era!'); return ''; }
   if (/^!(ajuda|comandos)\b/.test(lower)) { showHelp = Date.now() + 15000; return 'Comandos na tela.'; }
   if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !defender, !meu, !top, !era.';
@@ -306,7 +315,8 @@ function processArrival() {
   if (pend) feed(`🎓 ${n.name} chegou como aprendiz: vira ${PROF[pend].label} na ${ERAS[eraOfProf(pend)].name}`);
   else if (prof === 'custom') feed(`⭐ ${n.name} (${custom}) chegou e vai ajudar nas obras`);
   else feed(`👋 ${n.name} chegou como ${profLabel(n)} — trazido por ${v.name}`);
-  n.liveTag = '@' + v.name; n.liveLv = level(v);
+  n.liveTag = viewerTag(v); n.liveLv = level(v);
+  if (v.vet) { addXp(v, 10); feed(`⭐ ${v.name} voltou! Veterano(a) de ${v.vet} temporada(s)`); }
   addHL(2, n.name + ' chegou à vila', n.x, n.y);
 }
 function liveGuest() {
@@ -356,7 +366,7 @@ function startResearch(k) {
 }
 function researchMult() {
   const count = t => buildings.filter(b => b.done && b.type === t).length;
-  return 1 + 0.25 * count('universidade') + 0.5 * count('centrotec') + Math.min(0.5, countProf('cientista') * 0.05);
+  return (1 + 0.25 * count('universidade') + 0.5 * count('centrotec') + Math.min(0.5, countProf('cientista') * 0.05)) * (mod() === 'sabio' ? 1.5 : 1);
 }
 function researchAdd(v) {
   const c = L().research.cur; if (!c) return;
@@ -386,7 +396,7 @@ function castVote(v, uid, raw) {
   let i = -1;
   if (vote.kind === 'dilema') i = raw === 'a' ? 0 : raw === 'b' ? 1 : -1;
   else if (/^[1-4]$/.test(raw)) i = +raw - 1;
-  else i = vote.opts.findIndex(o => norm(vote.kind === 'pesquisa' ? RESEARCH[o.k].label : BT[o.k].label).startsWith(raw) || o.k === raw);
+  else i = vote.opts.findIndex(o => norm(vote.kind === 'pesquisa' ? RESEARCH[o.k].label : vote.kind === 'mundo' ? MODS[o.k].label : BT[o.k].label).startsWith(raw) || o.k === raw);
   if (i < 0 || i >= vote.opts.length) return 'Opção inválida.';
   const first = !vote.ballots[uid];
   let w = 1 + Math.min(2, Math.floor((level(v) - 1) / 3));
@@ -401,7 +411,9 @@ function closeVote() {
   s.vote = null;
   const t = tally(vote), max = Math.max(...t), tops = t.map((x, i) => x === max ? i : -1).filter(i => i >= 0);
   const win = vote.opts[pick(tops)], voters = Object.keys(vote.ballots).length;
-  if (vote.kind === 'pesquisa') {
+  if (vote.kind === 'mundo') {
+    applyWorldMod(win.k);
+  } else if (vote.kind === 'pesquisa') {
     startResearch(win.k);
   } else if (vote.kind === 'obra') {
     s.next.obra = Date.now() + LIVE_CFG.voteMin * 60000;
@@ -564,7 +576,7 @@ function processSpotlight() {
 const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
 function eraProgress() {
   const s = L(), e = ERAS[s.era], n = e.need || (!s.finale && e.finale); if (!n) return null;
-  const done = buildings.filter(b => b.done);
+  const done = buildings.filter(b => b.done && b.type !== 'monumento'); // memorial e presente de população não contam
   const items = [
     { t: `👥 ${npcs.length}/${n.pop}`, ok: npcs.length >= n.pop, f: Math.min(1, npcs.length / n.pop) },
     { t: `🏗️ ${done.length}/${n.built}`, ok: done.length >= n.built, f: Math.min(1, done.length / n.built) },
@@ -626,12 +638,15 @@ function trackProduction() {
 function buildingProduction() {
   const era = L().era, count = t => buildings.filter(b => b.done && b.type === t).length;
   const of = count('oficina'); if (of && res.tools < toolCap()) res.tools += of;
-  const mo = count('moinho'); if (mo) res.crops += mo * (hasProf('fazendeiro') ? 3 : 1);
+  const food = mod() === 'fertil' ? 2 : 1;
+  if (food > 1) res.crops += countProf('fazendeiro') + countProf('pescador') + countProf('cacador');
+  const mo = count('moinho'); if (mo) res.crops += mo * (hasProf('fazendeiro') ? 3 : 1) * food;
   const mi = count('mina');
-  if (mi && era >= 2) res.coins += mi * (hasProf('minerador') ? 2 : 1);
+  const gold = mod() === 'ouro' ? 2 : 1;
+  if (mi && era >= 2) res.coins += mi * (hasProf('minerador') ? 2 : 1) * gold;
   if (mi && era >= 3) res.iron = (res.iron || 0) + mi * (hasProf('ferreiro') || hasProf('minerador') ? 2 : 1);
   const fe = count('ferraria'); if (fe && era >= 3) res.iron = (res.iron || 0) + fe;
-  const aq = count('aqueduto'); if (aq) res.crops += aq * 2;
+  const aq = count('aqueduto'); if (aq) res.crops += aq * 2 * food;
   const fa = count('fabrica'); if (fa && era >= 8) { const k = hasProf('operario') ? 2 : 1; res.coins += fa * 3 * k; if (res.tools < toolCap()) res.tools += fa; }
   const us = count('usina'); if (us && era >= 8) res.energy = (res.energy || 0) + us * 3 * (hasProf('engenheiro') ? 2 : 1);
   const ct = count('centrotec'); if (ct && era >= 9) res.energy = (res.energy || 0) + ct;
@@ -664,7 +679,7 @@ function liveTick() {
     // A cada ~5s: o trabalho do morador vira XP do espectador.
     for (const v of Object.values(s.viewers)) {
       const n = npcOf(v); if (!n) continue;
-      n.liveTag = '@' + v.name; n.liveLv = level(v);
+      n.liveTag = viewerTag(v); n.liveLv = level(v);
       const w = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
       if (w > (v.work || 0)) { addXp(v, w - (v.work || 0)); v.work = w; }
     }
@@ -680,7 +695,7 @@ function secs(t) { const s = Math.max(0, Math.ceil((t - Date.now()) / 1000)); re
 let lastHud = '';
 function renderLiveHud() {
   const s = L(), e = ERAS[s.era], p = eraProgress();
-  let h = `<div class="lh-era"><b>${e.icon} ${esc(e.name)}${!e.need && !s.finale ? ' · rumo ao espaço' : ''}</b> <span class="tm">${s.era + 1}/${ERAS.length}</span>`;
+  let h = `<div class="lh-era"><b>T${s.season} ${MODS[mod()].icon} · ${e.icon} ${esc(e.name)}${!e.need && !s.finale ? ' · rumo ao espaço' : ''}</b> <span class="tm">${s.era + 1}/${ERAS.length}</span>`;
   if (p) h += bar(p.f) + `<small>${p.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${esc(i.t)}</span>`).join(' ')}</small>`;
   else h += s.finale ? '<small>🏆 Vila completa: o foguete decolou!</small>' : '<small>Era final</small>';
   h += '</div>';
@@ -717,7 +732,8 @@ function renderLiveHud() {
   }
   if (s.goal > 0) h += `<div class="lh-goal">💛 Meta da live: R$ ${fmt(Math.round(s.raised))} / ${fmt(s.goal)}${bar(s.raised / s.goal, 'g')}</div>`;
   if (Date.now() < showTop) h += `<div class="lh-box"><b>🏆 Quem mais ajudou</b>${topViewers(5).map((v, i) => `<div class="opt"><span>${i + 1}. ${esc(v.name)}${npcOf(v) ? ' · ' + esc(npcOf(v).name) : ''}</span><em>nv ${level(v)}</em></div>`).join('') || '<small>Ninguém ainda</small>'}</div>`;
-  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
+  if (Date.now() < showHall) h += hallBox();
+  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br><b>!hall</b> temporadas passadas · <b>!temporada</b> o mundo atual<br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
   const recent = s.feed.filter(f => Date.now() - f.at < 25000).slice(-4);
   if (recent.length) h += `<div class="lh-feed">${recent.map(f => `<div>${esc(f.t)}</div>`).join('')}</div>`;
   const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos'];
@@ -820,7 +836,7 @@ $('livePanel').innerHTML = `
   <label for="lvGoal">Meta da live (R$)</label><input class="in" id="lvGoal" type="number" min="0" step="10">
 </section>
 <section class="card"><h3>🎮 Controle da partida</h3>
-  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm" id="lvRaid">⚔️ Ataque</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
+  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm" id="lvRaid">⚔️ Ataque</button><button class="btn sm" id="lvSeason">🌱 Nova temporada</button><button class="btn sm" id="lvHall">🏛️ Hall</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
@@ -856,6 +872,8 @@ bindCfg('lvYtKey', 'ytKey'); bindCfg('lvYtVid', 'ytVideo'); bindCfg('lvBrUrl', '
 bindCfg('lvVoteMin', 'voteMin', true); bindCfg('lvDilMin', 'dilemaMin', true); bindCfg('lvChalMin', 'chalMin', true);
 $('lvRaids').checked = LIVE_CFG.raids; $('lvRaids').onchange = e => { LIVE_CFG.raids = e.target.checked; liveSaveCfg(); };
 $('lvRaid').onclick = () => { if (!npcs.length) { $('lvFeedback').textContent = 'A vila ainda não tem moradores.'; return; } $('lvFeedback').textContent = startRaid(true) ? 'Ataque anunciado!' : 'Já há um ataque em andamento.'; };
+$('lvSeason').onclick = () => { if (startNewSeason()) $('lvFeedback').textContent = 'Nova temporada iniciada. O backup da anterior foi baixado.'; };
+$('lvHall').onclick = () => { showHall = Date.now() + 20000; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
@@ -934,7 +952,7 @@ function raidUnitDefense() {
   return Math.round(countProf('guerreiro') * 8 * iron + countProf('policial') * 6 + countProf('cacador') * 3);
 }
 function raidDefense(r) { return raidStructDefense() + raidUnitDefense() + (L().defBonus || 0) + Math.round(r.chat) + Math.round(r.merc); }
-function raidPossible() { return L().era >= 1 && npcs.length >= 5 && !isNight() && hour() < 17.5; }
+function raidPossible() { const h = mod() === 'hostil'; return L().era >= (h ? 0 : 1) && npcs.length >= (h ? 4 : 5) && !isNight() && hour() < 17.5; }
 
 function startRaid(manual) {
   const s = L();
@@ -942,7 +960,7 @@ function startRaid(manual) {
   if (!manual && !raidPossible()) return false;
   const K = raiderKind();
   const [dn, dx, dy] = K.dir ? DIRS_NAME.find(d => d[0] === K.dir) : pick(DIRS_NAME);
-  const str = Math.round((12 + s.era * 14 + npcs.length * 1.2 + (s.raidsN || 0) * 4) * rnd(0.85, 1.15));
+  const str = Math.round((12 + s.era * 14 + npcs.length * 1.2 + (s.raidsN || 0) * 4) * rnd(0.85, 1.15) * (mod() === 'hostil' ? 1.25 : 1));
   s.raid = { phase: 'warn', kind: K.plural, dir: dn, dx, dy, str, chat: 0, merc: 0, help: {}, ends: Date.now() + RAID_WARN };
   s.raidsN = (s.raidsN || 0) + 1;
   announce(`⚔️ ${K.plural.toUpperCase()} AO ${dn.toUpperCase()}!`, 'Chegam em 90 s. Digite !defender para preparar a vila!');
@@ -1021,11 +1039,11 @@ function raidFrame(dt) {
 function raidResolve() {
   const s = L(), r = s.raid; if (!r || r.phase !== 'fight') return;
   r.phase = 'flee';
-  s.next.raid = Date.now() + LIVE_CFG.raidMin * 60000;
+  s.next.raid = Date.now() + LIVE_CFG.raidMin * 60000 * (mod() === 'hostil' ? 0.6 : 1);
   const helpers = Object.keys(r.help).map(uid => s.viewers[uid]).filter(Boolean);
   const owners = Object.values(s.viewers).filter(v => { const n = npcOf(v); return n && ['guerreiro', 'policial', 'cacador'].includes(n.prof); });
   if (r.win) {
-    const loot = Math.round(r.str * 1.5);
+    const loot = Math.round(r.str * 1.5 * (mod() === 'hostil' ? 2 : 1));
     if (s.era >= 2) res.coins += loot; else res.wood += loot;
     for (const v of new Set(helpers.concat(owners))) addXp(v, 15);
     s.raidsWon = (s.raidsWon || 0) + 1;
@@ -1059,6 +1077,96 @@ function raidTick(now) {
   }
 }
 function liveWorldEntities() { return raiders.map(z => ({ y: z.y, k: 'live', draw: () => { ctx.save(); ctx.globalAlpha = clamp(z.a, 0, 1); drawNPC(z); ctx.restore(); } })); }
+
+// ================== TEMPORADAS ==================
+// Ao fim de uma temporada (normalmente depois do foguete), o streamer começa um mundo novo.
+// O hall da fama e os veteranos ficam salvos dentro do próprio mundo (vão junto no backup).
+const MODS = {
+  normal: { icon: '🌍', label: 'Mundo clássico', desc: 'Sem surpresas' },
+  inverno: { icon: '❄️', label: 'Inverno eterno', desc: 'Neve o tempo todo e plantações lentas' },
+  fertil: { icon: '🌱', label: 'Terra fértil', desc: 'Comida em dobro' },
+  hostil: { icon: '⚔️', label: 'Terras hostis', desc: 'Ataques desde a Pedra, mais fortes e com saque dobrado' },
+  ouro: { icon: '🪙', label: 'Corrida do ouro', desc: 'Minas rendem o dobro' },
+  sabio: { icon: '📚', label: 'Povo sábio', desc: 'Pesquisas 50% mais rápidas' },
+};
+function mod() { return L().mod || 'normal'; }
+let showHall = 0;
+
+function hallEntry() {
+  const s = L();
+  return {
+    n: s.season, village: villageName, end: Date.now(), era: s.era, eraName: ERAS[s.era].name, finale: !!s.finale,
+    pop: npcs.length, built: buildings.filter(b => b.done).length, raidsWon: s.raidsWon || 0, mod: mod(),
+    top: topViewers(5).map(v => [v.name, Math.round(v.xp), level(v)]),
+  };
+}
+function downloadSeasonBackup(n) {
+  try {
+    const blob = new Blob([JSON.stringify(JSON.parse(serialize()), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = `pixelandia-temporada-${n}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
+  } catch (e) { console.error('backup da temporada:', e); return false; }
+}
+function startNewSeason() {
+  const s = L();
+  const msg = `Encerrar a temporada ${s.season} e começar um mundo novo?\n\nO mundo atual será baixado como backup e entra no hall da fama. Moradores, obras e eras recomeçam do zero.`;
+  if (!confirm(msg)) return false;
+  downloadSeasonBackup(s.season);
+  const hall = (s.hall || []).concat([hallEntry()]);
+  const vets = Object.assign({}, s.vets);
+  for (const [uid, v] of Object.entries(s.viewers)) {
+    if (!(v.xp > 0) && v.npc == null) continue;
+    const old = vets[uid] || { name: v.name, seasons: 0, xp: 0 };
+    vets[uid] = { name: v.name, seasons: old.seasons + 1, xp: old.xp + Math.round(v.xp || 0) };
+  }
+  const carry = { season: s.season + 1, hall, vets };
+  newWorld();
+  Object.assign(liveState, carry); L();
+  arrivals_reset();
+  setSeason('verao', true);
+  placeMemorial();
+  announce(`🌱 TEMPORADA ${carry.season}!`, 'Um mundo novo começa. Vote em como ele será!');
+  feed(`🌱 Começou a temporada ${carry.season}. ${hall.length} temporada(s) no hall da fama`);
+  openWorldVote();
+  save(); refreshPanel(true); refreshHud();
+  return true;
+}
+function arrivals_reset() {
+  camQ.queue.length = 0; camQ.cur = null; camQ.until = 0;
+  raiders = []; prodLast = null;
+  applyEraNames(); restyleHouses();
+}
+// Memorial dos fundadores da temporada anterior, ao lado da fogueira.
+function placeMemorial() {
+  if (!L().hall.length) return;
+  const d = BT.monumento, x = CX - 1, y = CY - 7;
+  for (let yy = y; yy < y + d.h; yy++) for (let xx = x; xx < x + d.w; xx++) { const i = idx(xx, yy); if (bld[i] >= 0) return; obj[i] = 0; ground[i] = G_GRASS; }
+  const b = { id: nextBid++, type: 'monumento', x, y, w: d.w, h: d.h, done: true, progress: d.time, need: d.time, manual: false, owner: null, startedAt: 0, memorial: L().season - 1 };
+  placeBuilding(b); buildings.push(b); bById.set(b.id, b); redrawAllGround();
+}
+function openWorldVote() {
+  const s = L();
+  const keys = Object.keys(MODS).sort(() => Math.random() - 0.5).slice(0, 3);
+  s.vote = { kind: 'mundo', id: ++s.voteN, title: '🌍 Como será o novo mundo?', opts: keys.map(k => ({ k, label: MODS[k].icon + ' ' + MODS[k].label })), ballots: {}, ends: Date.now() + LIVE_CFG.voteSec * 1000 };
+  liveDirty = true;
+}
+function applyWorldMod(k) {
+  const s = L(); s.mod = MODS[k] ? k : 'normal';
+  if (s.mod === 'inverno') setSeason('inverno', true);
+  const m = MODS[s.mod];
+  announce(`${m.icon} Mundo: ${m.label}`, m.desc);
+  feed(`${m.icon} O chat escolheu o mundo: ${m.label} (${m.desc})`);
+}
+function hallBox() {
+  const h = L().hall || [];
+  if (!h.length) return '<div class="lh-box"><b>🏛️ Hall da fama</b><small>Nenhuma temporada encerrada ainda</small></div>';
+  return '<div class="lh-box"><b>🏛️ Hall da fama</b>' + h.slice(-3).reverse().map(e =>
+    `<div class="opt"><span>T${e.n} · ${esc(e.village)} ${e.finale ? '🚀' : ''}</span><em>${esc(e.eraName)}</em></div><small>${e.top.slice(0, 3).map((t, i) => `${i + 1}º ${esc(t[0])}`).join(' · ') || 'sem fundadores'}</small>`).join('') + '</div>';
+}
+function viewerTag(v) { return '@' + v.name + (v.vet ? ` ⭐${v.vet}` : ''); }
 
 // ================== MODO VITRINE ==================
 // Live aberta sem ninguém: o mundo não pode parecer congelado.
@@ -1094,8 +1202,9 @@ function vitrineSummary() {
   const s = L(), e = ERAS[s.era], built = buildings.filter(b => b.done).length;
   const top = topViewers(3).map(v => v.name).join(', ');
   announce(`${e.icon} ${villageName}`, `${fmt(npcs.length)} morador${npcs.length === 1 ? '' : 'es'} · ${built} obra${built === 1 ? '' : 's'} · ${e.name}${top ? ' · Fundadores: ' + top : ''}`);
-  showTop = Date.now() + 15000;
+  if (L().hall.length && (vitSummaryN++ % 2)) showHall = Date.now() + 15000; else showTop = Date.now() + 15000;
 }
+let vitSummaryN = 0;
 const EMPTY_EX = ['@Ana/lenhadora', '@Leo/pedreiro', '@Bia/pescadora', '@Rafa/minerador', '@Duda/pedreira', '@Caio/caçador'];
 let vitLast = performance.now();
 function vitrineFrame(now) {
@@ -1118,6 +1227,7 @@ requestAnimationFrame(vitrineFrame);
 // Mexer na câmera com o mouse pausa a vitrine por 1 minuto.
 for (const ev of ['pointerdown', 'wheel']) $('c').addEventListener(ev, () => { lastUserCam = Date.now(); vit.target = null; }, { passive: true });
 setInterval(() => {
+  if (!npcs.length) { const s = L(), m = MODS[mod()]; $('emptySeason').textContent = s.season > 1 || s.vote?.kind === 'mundo' ? `Temporada ${s.season} · ${s.vote?.kind === 'mundo' ? 'vote no mundo: digite 1, 2 ou 3' : m.icon + ' ' + m.label}` : ''; }
   if (!npcs.length) $('emptyEx').textContent = 'ex.: ' + EMPTY_EX[Math.floor(Date.now() / 5000) % EMPTY_EX.length] + ' · ' + EMPTY_EX[(Math.floor(Date.now() / 5000) + 3) % EMPTY_EX.length];
 }, 1000);
 
@@ -1135,7 +1245,7 @@ setInterval(() => {
   s.next.obra = Math.max(s.next.obra, now + 60000);
   s.next.dilema = Math.max(s.next.dilema, now + LIVE_CFG.dilemaMin * 60000);
   s.next.chal = Math.max(s.next.chal, now + 120000);
-  for (const v of Object.values(s.viewers)) { const n = npcOf(v); if (n) { n.liveTag = '@' + v.name; n.liveLv = level(v); } }
+  for (const v of Object.values(s.viewers)) { const n = npcOf(v); if (n) { n.liveTag = viewerTag(v); n.liveLv = level(v); } }
   applyEraNames(); restyleHouses();
   if (changed) save();
 })();
