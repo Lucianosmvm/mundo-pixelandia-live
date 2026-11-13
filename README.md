@@ -26,6 +26,7 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 | `1`, `2`, `3` (ou `!votar fonte`) | Vota na próxima obra ou na próxima pesquisa. |
 | `A` / `B` | Escolhe a opção de um dilema. |
 | `!ajudar` | Acelera a pesquisa, conta no mutirão e dá ânimo ao seu morador. |
+| `!defender` | Durante um ataque de saqueadores, prepara a defesa da vila (até 3 vezes por pessoa). |
 | `!meu` | Entra na fila da câmera: seu morador aparece por 8 s, com nível e status. |
 | `!top` | Mostra o ranking de quem mais ajudou. |
 | `!era` | Mostra o que falta para a próxima era. |
@@ -44,7 +45,7 @@ A vila começa na **Era da Pedra** e avança até a **Era Moderna**. Para sair d
 
 | # | Era | Profissões novas | Obras novas | Para avançar |
 |---|---|---|---|---|
-| 1 | 🪨 Pedra | lenhador, pedreiro, minerador, caçador, pescador | cabana, pátio da lenha, pesqueiro, depósito, oficina, totem | 4 moradores, 4 obras, depósito, Agricultura, 150 🪵, 40 🍖 |
+| 1 | 🪨 Pedra | lenhador, pedreiro, minerador, caçador, pescador, guerreiro | cabana, pátio da lenha, pesqueiro, depósito, oficina, totem | 4 moradores, 4 obras, depósito, Agricultura, 150 🪵, 40 🍖 |
 | 2 | 🌾 Agrícola | fazendeiro, pecuarista, cozinheiro | celeiro, curral, poço, moinho, paliçada, cozinha comunitária | 7 moradores, 9 obras, moinho e paliçada, Metalurgia, 250 🍖, 400 🪵, 120 🪨 |
 | 3 | 🥉 Bronze | comerciante, músico, padeiro, líder | mercado, mina, templo, muralha, palácio, taverna, fonte, estátua, padaria | 10 moradores, 15 obras, templo e mina, Fundição de ferro, 120 🪙, 350 🪨 |
 | 4 | ⚔️ Ferro | ferreiro, guarda | ferraria, torre de vigia, estábulo, posto da guarda, sobrado | 14 moradores, 22 obras, ferraria e torre, Engenharia, 100 ⚙️, 300 🪙 |
@@ -62,6 +63,28 @@ As eras 5 a 10 também pedem produção total de ouro, ferro ou pedra (o overlay
 - **O mundo muda de cara:** as casas passam de palha e tronco para barro, pedra, tijolo e, na era final, concreto. Alguns nomes acompanham a era: Cabana → Casa de barro → Casa; Guarda → Policial; Curandeiro → Médico.
 - **Profissão do futuro:** quem pede uma profissão de era posterior chega como aprendiz e se forma quando a vila chega lá.
 - **Metas de população** dão de presente uma obra da era atual, nunca um prédio do futuro.
+
+## Saqueadores
+
+A partir da **Era Agrícola**, com pelo menos 5 moradores, saqueadores atacam de dia, a cada 15 min em média.
+
+1. **Aviso (90 s):** o overlay mostra de onde vêm e compara 🛡️ Defesa com 🗡️ força dos saqueadores. O chat digita `!defender`, e Pix e Super Chat contratam mercenários (+2 de defesa por real).
+2. **Batalha:** os saqueadores saem da floresta e os defensores correm para encontrá-los.
+3. **Resultado:**
+   - **Vitória:** os saqueadores fogem e deixam ouro (ou madeira, antes do Bronze). Quem ajudou e os donos de guerreiros, guardas e caçadores ganham XP.
+   - **Derrota:** levam de 15% a 30% dos estoques, e às vezes um prédio pega fogo.
+
+A defesa soma:
+- **Estruturas:** paliçada 10, muralha 25, torre de vigia 12, castelo 60, posto da guarda 8, estábulo 5.
+- **Moradores:** guerreiro 8 (12 com ferraria), guarda 6, caçador 3.
+- **Chat:** `!defender` vale +2, até 3 vezes por pessoa.
+- **Mercenários:** doações durante o ataque.
+
+A força dos saqueadores cresce com a era, a população e o número de ataques.
+
+**Guerreiro** é profissão da Era da Pedra (também aceita soldado, lanceiro, cavaleiro, vigia, espadachim). Fora dos ataques, patrulha as defesas.
+
+Em **Controle da partida**, o botão **⚔️ Ataque** anuncia um ataque na hora, e a opção **Ataques de saqueadores** liga ou desliga os automáticos. Um ataque interrompido ao fechar o jogo é cancelado sem penalidade.
 
 ## Ciclo automático
 

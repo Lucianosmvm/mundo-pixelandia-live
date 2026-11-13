@@ -6,7 +6,7 @@
 const LIVE_CFG_KEY = 'pixelandia-live-config-v1';
 const LIVE_CFG = Object.assign({
   ytKey: '', ytVideo: '', bridgeUrl: 'http://localhost:8787/eventos',
-  auto: true, vitrine: true, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
+  auto: true, vitrine: true, raids: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
 }, (() => { try { return JSON.parse(localStorage.getItem(LIVE_CFG_KEY) || '{}'); } catch (e) { return {}; } })());
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
@@ -16,7 +16,7 @@ function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify
 // e produção TOTAL (o que a vila já produziu, não o que tem guardado: construir não atrasa a era).
 const ERAS = [
   { name: 'Era da Pedra', icon: '🪨',
-    profs: ['lenhador', 'pedreiro', 'minerador', 'cacador', 'pescador'],
+    profs: ['lenhador', 'pedreiro', 'minerador', 'cacador', 'pescador', 'guerreiro'],
     blds: ['casa', 'cabana', 'serraria', 'peixaria', 'deposito', 'oficina', 'totem'],
     need: { pop: 4, built: 4, has: ['deposito'], research: 'agricultura', prod: { wood: 150, food: 40 } } },
   { name: 'Era Agrícola', icon: '🌾',
@@ -102,7 +102,7 @@ function applyEraNames() {
 // Apelidos de profissão das primeiras eras.
 for (const [a, p] of [['guarda', 'policial'], ['curandeiro', 'medico'], ['curandeira', 'medico'], ['mensageiro', 'carteiro'], ['mensageira', 'carteiro'],
   ['lider', 'prefeito'], ['chefe', 'prefeito'], ['construtor', 'pedreiro'], ['construtora', 'pedreiro'], ['coletor', 'fazendeiro'], ['coletora', 'fazendeiro'],
-  ['agricultor', 'fazendeiro'], ['agricultora', 'fazendeiro'], ['pastor', 'pecuarista'], ['pastora', 'pecuarista'], ['ferreira', 'ferreiro']]) PROF_ALIAS[norm(a)] = p;
+  ['agricultor', 'fazendeiro'], ['guerreiro', 'guerreiro'], ['guerreira', 'guerreiro'], ['soldado', 'guerreiro'], ['soldada', 'guerreiro'], ['lanceiro', 'guerreiro'], ['lanceira', 'guerreiro'], ['cavaleiro', 'guerreiro'], ['cavaleira', 'guerreiro'], ['defensor', 'guerreiro'], ['defensora', 'guerreiro'], ['vigia', 'guerreiro'], ['legionario', 'guerreiro'], ['espadachim', 'guerreiro'], ['agricultora', 'fazendeiro'], ['pastor', 'pecuarista'], ['pastora', 'pecuarista'], ['ferreira', 'ferreiro']]) PROF_ALIAS[norm(a)] = p;
 
 function eraUnlocked(kind) { const out = []; for (let i = 0; i <= L().era; i++) out.push(...ERAS[i][kind]); return out; }
 function eraOfProf(p) { return ERAS.findIndex(e => e.profs.includes(p)); }
@@ -240,12 +240,13 @@ function onChat(v, uid, text) {
   const vote = L().vote;
   const m = lower.match(/^!?votar\s+(.+)$/) || lower.match(/^!?([1-4]|[ab])$/);
   if (m && vote) return castVote(v, uid, m[1]);
+  if (/^!(defender|defesa)\b/.test(lower)) return defend(v, uid);
   if (/^!ajudar\b/.test(lower)) return help(v, uid);
   if (/^!meu\b/.test(lower)) return showMine(v);
   if (/^!top\b/.test(lower)) { showTop = Date.now() + 15000; return 'Ranking na tela.'; }
   if (/^!era\b/.test(lower)) { const e = ERAS[L().era]; announce(`${e.icon} ${e.name}`, eraNeedText() || 'Última era!'); return ''; }
   if (/^!(ajuda|comandos)\b/.test(lower)) { showHelp = Date.now() + 15000; return 'Comandos na tela.'; }
-  if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !meu, !top, !era.';
+  if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !defender, !meu, !top, !era.';
 
   // Mensagem comum: o morador do espectador fala no mundo.
   const n = npcOf(v);
@@ -460,6 +461,7 @@ function onDonation(v, uid, amount, text, src) {
   const perks = [`+${wood} 🪵 +${stone} 🪨`];
   if (amount >= 5) { v.turbo += 3; perks.push('3 votos turbinados'); }
   const lower = norm(text);
+  const merc = raidMercs(amount, v.name); if (merc) perks.push(merc);
   if (amount >= 10) {
     const site = buildings.find(b => !b.done);
     if (site) { site.startedAt = (site.startedAt ?? gtime) - 90; addProgress(site, site.need * 0.4); perks.push(`obra relâmpago em ${BT[site.type].label}`); }
@@ -609,6 +611,7 @@ function liveTick() {
     if (s.chal && now >= s.chal.ends) endChallenge(false);
   }
   trackProduction();
+  raidTick(now);
   if (s.research.cur) researchAdd(0.5);
   if (LIVE_CFG.auto && npcs.length) {
     if (!s.vote && !s.research.cur && now >= s.next.pesq && now - (s.lastClose || 0) > 20000 && availableResearch().length) { if (openResearchVote()) s.lastClose = now; }
@@ -640,6 +643,12 @@ function renderLiveHud() {
   if (p) h += bar(p.f) + `<small>${p.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${esc(i.t)}</span>`).join(' ')}</small>`;
   else h += '<small>Era final: a vila chegou ao futuro!</small>';
   h += '</div>';
+  const rd = s.raid;
+  if (rd) {
+    const def = rd.phase === 'warn' ? raidDefense(rd) : rd.def;
+    if (rd.phase === 'warn') h += `<div class="lh-box raid"><b>⚔️ Saqueadores ao ${esc(rd.dir)}!</b> <span class="tm">⏱ ${secs(rd.ends)}</span><div class="opt"><span>🛡️ Defesa</span><em>${def}</em>${bar(def / Math.max(def, rd.str), 'c')}</div><div class="opt"><span>🗡️ Saqueadores</span><em>${rd.str}</em>${bar(rd.str / Math.max(def, rd.str), 'r')}</div><small>Digite <b>!defender</b> · Pix e Super Chat contratam mercenários</small></div>`;
+    else h += `<div class="lh-box raid"><b>${rd.phase === 'fight' ? '⚔️ Batalha!' : rd.win ? '🛡️ Vitória da vila!' : '💥 Saque…'}</b><small>🛡️ ${def} contra 🗡️ ${rd.str}</small></div>`;
+  }
   const rc = s.research.cur;
   if (rc) { const r = RESEARCH[rc.k]; h += `<div class="lh-box chal"><b>🔬 ${r.icon} ${esc(r.label)}</b> <span class="tm">${Math.floor(Math.min(1, rc.prog / rc.need) * 100)}%</span>${bar(rc.prog / rc.need, 'c')}<small>Conversar no chat e <b>!ajudar</b> aceleram</small></div>`; }
   const vote = s.vote;
@@ -770,8 +779,9 @@ $('livePanel').innerHTML = `
   <label for="lvGoal">Meta da live (R$)</label><input class="in" id="lvGoal" type="number" min="0" step="10">
 </section>
 <section class="card"><h3>🎮 Controle da partida</h3>
-  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
+  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm" id="lvRaid">⚔️ Ataque</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
+  <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
   <p class="tip" id="lvStatus"></p>
@@ -803,6 +813,8 @@ function bindCfg(id, key, num) {
 }
 bindCfg('lvYtKey', 'ytKey'); bindCfg('lvYtVid', 'ytVideo'); bindCfg('lvBrUrl', 'bridgeUrl');
 bindCfg('lvVoteMin', 'voteMin', true); bindCfg('lvDilMin', 'dilemaMin', true); bindCfg('lvChalMin', 'chalMin', true);
+$('lvRaids').checked = LIVE_CFG.raids; $('lvRaids').onchange = e => { LIVE_CFG.raids = e.target.checked; liveSaveCfg(); };
+$('lvRaid').onclick = () => { if (!npcs.length) { $('lvFeedback').textContent = 'A vila ainda não tem moradores.'; return; } $('lvFeedback').textContent = startRaid(true) ? 'Ataque anunciado!' : 'Já há um ataque em andamento.'; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
@@ -856,6 +868,147 @@ $('lvBrOff').onclick = bridgeStop;
 // Exposto para testes e integrações externas (ex.: window.liveEvent({...}) no console).
 window.liveEvent = liveEvent;
 
+// ================== SAQUEADORES ==================
+// Ciclo: aviso (90 s, o chat se prepara) → batalha na tela → resultado.
+// Defesa = estruturas + guerreiros/guardas/caçadores + chat (!defender) + doações (mercenários).
+const RAID_WARN = 90000, RAID_FIGHT = 9;
+const DEF_STRUCT = { palicada: 10, muralha: 25, torre: 12, castelo: 60, delegacia: 8, estabulo: 5 };
+const DIRS_NAME = [['norte', 0, -1], ['sul', 0, 1], ['leste', 1, 0], ['oeste', -1, 0]];
+PROF.saqueador = { label: 'Saqueador', labelF: 'Saqueadora', icon: '🗡️', shirt: '#4a1a1a', hat: 'helmet', hatC: '#5a5a5a' };
+let raiders = [];
+
+function raidStructDefense() {
+  let d = 0; for (const b of buildings) if (b.done && DEF_STRUCT[b.type]) d += DEF_STRUCT[b.type]; return d;
+}
+function raidUnitDefense() {
+  const iron = buildings.some(b => b.done && b.type === 'ferraria') ? 1.5 : 1;
+  return Math.round(countProf('guerreiro') * 8 * iron + countProf('policial') * 6 + countProf('cacador') * 3);
+}
+function raidDefense(r) { return raidStructDefense() + raidUnitDefense() + Math.round(r.chat) + Math.round(r.merc); }
+function raidPossible() { return L().era >= 1 && npcs.length >= 5 && !isNight() && hour() < 17.5; }
+
+function startRaid(manual) {
+  const s = L();
+  if (s.raid) return false;
+  if (!manual && !raidPossible()) return false;
+  const [dn, dx, dy] = pick(DIRS_NAME);
+  const str = Math.round((12 + s.era * 14 + npcs.length * 1.2 + (s.raidsN || 0) * 4) * rnd(0.85, 1.15));
+  s.raid = { phase: 'warn', dir: dn, dx, dy, str, chat: 0, merc: 0, help: {}, ends: Date.now() + RAID_WARN };
+  s.raidsN = (s.raidsN || 0) + 1;
+  announce(`⚔️ SAQUEADORES AO ${dn.toUpperCase()}!`, 'Chegam em 90 s. Digite !defender para preparar a vila!');
+  feed(`⚔️ Saqueadores vistos ao ${dn}! Força ${str}. Digite !defender`);
+  sfx('siren');
+  const tx = CX + dx * (clearR() + 2), ty = CY + dy * (clearR() + 2);
+  camTo(tx * T + 8, ty * T + 8);
+  for (const n of npcs) if (n.active && ['guerreiro', 'policial'].includes(n.prof)) { n.plan = [goNear(tx, ty, 4), work(4, 'hammer', null)]; n.step = null; n.status = 'Preparando a defesa ⚔️'; say(n, pick(['Às armas! ⚔️', 'Todos aos postos!', 'Eles não passam!'])); }
+  liveDirty = true; save();
+  return true;
+}
+function defend(v, uid) {
+  const r = L().raid;
+  if (!r || r.phase !== 'warn') return 'Sem ataque agora.';
+  const k = r.help[uid] || 0;
+  if (k >= 3 || Date.now() - (v.def || 0) < 6000) return '';
+  v.def = Date.now(); r.help[uid] = k + 1; r.chat += 2; addXp(v, 2);
+  const n = npcOf(v); if (n) { n.boost = Math.max(n.boost || 0, 60); say(n, pick(['Pronto pra lutar! 🛡️', 'Afiando a lança!', 'Reforçando a cerca!'])); }
+  liveDirty = true; return '';
+}
+function raidMercs(amount, who) {
+  const r = L().raid; if (!r || r.phase === 'done') return '';
+  r.merc += Math.round(amount * 2);
+  feed(`💰 ${who} contratou mercenários: +${Math.round(amount * 2)} de defesa`);
+  return 'mercenários contra os saqueadores';
+}
+
+function raidAttack() {
+  const s = L(), r = s.raid; if (!r) return;
+  r.phase = 'fight'; r.def = raidDefense(r); r.win = r.def >= r.str; r.t = 0;
+  const R = clearR(), mx = CX + r.dx * (R * 0.7), my = CY + r.dy * (R * 0.7);
+  r.meet = { x: mx * T + 8, y: my * T + 12 };
+  const k = clamp(Math.round(r.str / 8), 3, 10);
+  raiders = [];
+  for (let i = 0; i < k; i++) {
+    const off = (i - (k - 1) / 2) * 1.6;
+    const sx = (CX + r.dx * (R + 12) + (r.dy ? off : 0)) * T + 8, sy = (CY + r.dy * (R + 12) + (r.dx ? off : 0)) * T + 12;
+    raiders.push({ x: sx, y: sy, hx: sx, hy: sy, tx: r.meet.x + rnd(-14, 14), ty: r.meet.y + rnd(-10, 10), dir: 'down', moving: false, walkT: 0, anim: null, animT: 0,
+      sex: Math.random() < 0.3 ? 'f' : 'm', skin: pick(SKINS), hairC: '#141414', pants: '#2f2f36', shirt: '#4a1a1a', prof: 'saqueador', beard: Math.random() < 0.5, carry: null, a: 1 });
+  }
+  // Defensores correm para o ponto de encontro.
+  const tile = { x: Math.round(mx), y: Math.round(my) };
+  const fighters = npcs.filter(n => n.active && !n.inside && ['guerreiro', 'policial', 'cacador'].includes(n.prof));
+  const extra = npcs.filter(n => n.active && !n.inside && !fighters.includes(n)).slice(0, Math.min(8, Object.keys(r.help).length * 2));
+  for (const n of fighters.concat(extra)) { n.plan = [goNear(tile.x, tile.y, 3), work(RAID_FIGHT + 4, 'hammer', null)]; n.step = null; n.sleeping = false; n.status = 'Defendendo a vila ⚔️'; }
+  announce('⚔️ ATAQUE!', `🛡️ Defesa ${r.def} contra 🗡️ ${r.str}`);
+  sfx('thunder'); camTo(r.meet.x, r.meet.y); follow = null;
+  liveDirty = true;
+}
+function raidFrame(dt) {
+  const r = L().raid;
+  if (!raiders.length) return;
+  const sp = SPEED * 0.85 * dt;
+  for (const z of raiders) {
+    const dx = z.tx - z.x, dy = z.ty - z.y, d = Math.hypot(dx, dy);
+    z.moving = d > 1;
+    if (z.moving) { const m = Math.min(d, sp); z.x += dx / d * m; z.y += dy / d * m; z.walkT += m / 8; z.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); z.anim = null; }
+    else if (r && r.phase === 'fight') { z.anim = 'hammer'; z.animT += dt; }
+    if (z.fade) z.a -= dt * 0.5;
+  }
+  raiders = raiders.filter(z => z.a > 0);
+  if (!r) { if (!raiders.length) raiders = []; return; }
+  if (r.phase === 'fight') {
+    const arrived = raiders.every(z => !z.moving);
+    if (arrived || r.t > 0) {
+      r.t += dt;
+      if (Math.random() < dt * 6) { const z = pick(raiders); burst(z.x + rnd(-8, 8), z.y - 6, pick(['#d9a36a', '#cfd6de', '#ffe066']), 4); }
+      if (Math.random() < dt * 2) floatTxt(r.meet.x + rnd(-20, 20), r.meet.y - 20, '⚔️');
+      if (r.t >= RAID_FIGHT) raidResolve();
+    }
+  } else if (r.phase === 'flee' && !raiders.length) {
+    L().raid = null; liveDirty = true;
+  }
+}
+function raidResolve() {
+  const s = L(), r = s.raid; if (!r || r.phase !== 'fight') return;
+  r.phase = 'flee';
+  s.next.raid = Date.now() + LIVE_CFG.raidMin * 60000;
+  const helpers = Object.keys(r.help).map(uid => s.viewers[uid]).filter(Boolean);
+  const owners = Object.values(s.viewers).filter(v => { const n = npcOf(v); return n && ['guerreiro', 'policial', 'cacador'].includes(n.prof); });
+  if (r.win) {
+    const loot = Math.round(r.str * 1.5);
+    if (s.era >= 2) res.coins += loot; else res.wood += loot;
+    for (const v of new Set(helpers.concat(owners))) addXp(v, 15);
+    s.raidsWon = (s.raidsWon || 0) + 1;
+    announce('🛡️ VITÓRIA!', `Os saqueadores fugiram e deixaram ${loot} ${s.era >= 2 ? '🪙' : '🪵'} para trás`);
+    feed(`🛡️ A vila venceu os saqueadores (${r.def} contra ${r.str})! ${helpers.length} pessoa(s) do chat ajudaram`);
+    sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
+    for (const z of raiders) { z.tx = z.hx; z.ty = z.hy; z.fade = true; }
+  } else {
+    const pct = clamp(0.15 + (r.str - r.def) / r.str * 0.15, 0.15, 0.3);
+    const lost = {};
+    for (const k of ['wood', 'stone', 'fish', 'crops', 'meals', 'coins']) { const q = Math.floor((res[k] || 0) * pct); if (q > 0) { res[k] -= q; lost[k] = q; } }
+    for (const v of helpers) addXp(v, 5);
+    const txt = Object.entries(lost).map(([k, q]) => `${q} ${RES_ICON[k]}`).join(' ') || 'quase nada';
+    announce('💥 Os saqueadores venceram…', `Levaram ${txt}. Construam defesas!`);
+    feed(`💥 Saqueadores levaram ${txt} (${r.def} contra ${r.str})`);
+    for (const z of raiders) { z.tx = CRX * T + 8 + rnd(-10, 10); z.ty = CRY * T + 12 + rnd(-6, 6); }
+    setTimeout(() => { for (const z of raiders) { z.carry = 'wood'; z.tx = z.hx; z.ty = z.hy; z.fade = true; } }, 6000);
+    if (Math.random() < 0.35) setTimeout(() => startEvent('fire'), 3000);
+  }
+  for (const n of npcs) if (n.status === 'Defendendo a vila ⚔️') { n.plan = []; n.step = null; n.anim = null; say(n, r.win ? pick(['Vitória! 🎉', 'Corram, saqueadores!', 'Ninguém mexe na nossa vila!']) : pick(['Eles levaram tudo…', 'Precisamos de muralhas!']), 0.6); }
+  save(); liveDirty = true;
+}
+function raidTick(now) {
+  const s = L(), r = s.raid;
+  if (r && r.phase === 'warn' && now >= r.ends) raidAttack();
+  // Segurança: se a batalha não andar (aba parada), resolve sem esperar a animação.
+  if (r && r.phase === 'fight' && now - r.ends > 60000) { raidResolve(); raiders = []; s.raid = null; }
+  if (r && r.phase === 'flee' && now - r.ends > 90000) { raiders = []; s.raid = null; }
+  if (!r && LIVE_CFG.auto && LIVE_CFG.raids && now >= (s.next.raid || 0) && raidPossible()) {
+    if (!s.next.raid) s.next.raid = now + 5 * 60000; else startRaid(false);
+  }
+}
+function liveWorldEntities() { return raiders.map(z => ({ y: z.y, k: 'live', draw: () => { ctx.save(); ctx.globalAlpha = clamp(z.a, 0, 1); drawNPC(z); ctx.restore(); } })); }
+
 // ================== MODO VITRINE ==================
 // Live aberta sem ninguém: o mundo não pode parecer congelado.
 // Vazio → câmera passeia pela clareira e o cartão de entrada mostra exemplos.
@@ -865,7 +1018,7 @@ const vit = { target: null, shotAt: 0, summaryAt: 0, on: false };
 function vitrineActive() {
   if (!LIVE_CFG.vitrine || TOUR || REC) return false;
   if (Date.now() - lastUserCam < 60000) return false;
-  if (follow != null || Date.now() < camQ.until || L().arrivals.length) return false;
+  if (follow != null || Date.now() < camQ.until || L().arrivals.length || L().raid) return false;
   return !npcs.length || Date.now() - lastChatAt > VIT_IDLE;
 }
 function vitrinePick() {
@@ -897,6 +1050,7 @@ let vitLast = performance.now();
 function vitrineFrame(now) {
   const dt = Math.min(0.1, (now - vitLast) / 1000); vitLast = now;
   const on = vitrineActive();
+  try { raidFrame(dt); } catch (e) { console.error('saqueadores:', e); }
   if (on !== vit.on) { vit.on = on; vit.target = null; vit.shotAt = 0; }
   if (on) {
     const t = Date.now();
@@ -923,6 +1077,8 @@ setInterval(() => {
   let changed = false;
   if (s.vote && now >= s.vote.ends) { s.vote = null; changed = true; }
   if (s.chal && now >= s.chal.ends) { s.chal = null; changed = true; }
+  if (s.raid) { s.raid = null; changed = true; }
+  s.next.raid = Math.max(s.next.raid || 0, now + 5 * 60000);
   if (s.vote) s.vote.ends = Math.max(s.vote.ends, now + 30000);
   if (s.chal) s.chal.ends = Math.max(s.chal.ends, now + 60000);
   s.next.obra = Math.max(s.next.obra, now + 60000);
