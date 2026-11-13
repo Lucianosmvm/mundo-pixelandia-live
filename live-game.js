@@ -11,31 +11,123 @@ const LIVE_CFG = Object.assign({
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
 // ================== ERAS ==================
-// Cada era libera profissões e obras. O chat precisa cumprir os requisitos para avançar.
+// 10 eras. Cada uma libera profissões e obras; pesquisas votadas pelo chat liberam o resto.
+// need = requisitos para SAIR da era: população, obras prontas, prédios, pesquisa-chave
+// e produção TOTAL (o que a vila já produziu, não o que tem guardado: construir não atrasa a era).
 const ERAS = [
-  { name: 'Acampamento', icon: '🔥',
-    profs: ['lenhador', 'pedreiro', 'fazendeiro', 'minerador'],
-    blds: ['casa', 'serraria', 'celeiro', 'poco'],
-    need: { pop: 5, built: 3, has: ['serraria'] } },
-  { name: 'Aldeia', icon: '🛖',
-    profs: ['pescador', 'cacador', 'cozinheiro', 'pecuarista', 'jardineiro', 'musico'],
-    blds: ['peixaria', 'cabana', 'restaurante', 'curral', 'parque', 'fonte', 'taverna'],
-    need: { pop: 12, built: 9, has: ['restaurante'] } },
-  { name: 'Vila', icon: '🏘️',
-    profs: ['padeiro', 'ferreiro', 'comerciante', 'carteiro', 'policial', 'medico', 'professor', 'prefeito'],
-    blds: ['padaria', 'ferraria', 'mercado', 'correio', 'delegacia', 'clinica', 'escola', 'prefeitura', 'sobrado', 'capela', 'biblioteca', 'estatua'],
-    need: { pop: 25, built: 20, has: ['prefeitura', 'escola'] } },
-  { name: 'Cidade', icon: '🏙️',
-    profs: ['bombeiro', 'enfermeiro', 'marinheiro', 'maquinista'],
-    blds: ['quartel', 'hospital', 'banco', 'hotel', 'teatro', 'cais', 'estacao', 'predio', 'farol', 'rodagigante'],
-    need: { pop: 50, built: 35, has: ['hospital', 'estacao'] } },
-  { name: 'Metrópole', icon: '🚀',
-    profs: ['piloto', 'polissonografista'],
-    blds: ['estadio', 'castelo', 'aeroporto', 'foguete'],
+  { name: 'Era da Pedra', icon: '🪨',
+    profs: ['lenhador', 'pedreiro', 'minerador', 'cacador', 'pescador'],
+    blds: ['casa', 'cabana', 'serraria', 'peixaria', 'deposito', 'oficina', 'totem'],
+    need: { pop: 4, built: 4, has: ['deposito'], research: 'agricultura', prod: { wood: 150, food: 40 } } },
+  { name: 'Era Agrícola', icon: '🌾',
+    profs: ['fazendeiro', 'pecuarista', 'cozinheiro'],
+    blds: ['celeiro', 'curral', 'poco', 'moinho', 'palicada', 'restaurante'],
+    need: { pop: 7, built: 9, has: ['moinho', 'palicada'], research: 'metalurgia', prod: { food: 250, wood: 400, stone: 120 } } },
+  { name: 'Era do Bronze', icon: '🥉',
+    profs: ['comerciante', 'musico', 'padeiro', 'prefeito'],
+    blds: ['mercado', 'mina', 'templo', 'muralha', 'prefeitura', 'taverna', 'fonte', 'estatua', 'padaria'],
+    need: { pop: 10, built: 15, has: ['templo', 'mina'], research: 'ferro', prod: { gold: 120, stone: 350 } } },
+  { name: 'Era do Ferro', icon: '⚔️',
+    profs: ['ferreiro', 'policial'],
+    blds: ['ferraria', 'torre', 'estabulo', 'delegacia', 'sobrado'],
+    need: { pop: 14, built: 22, has: ['ferraria', 'torre'], research: 'engenharia', prod: { iron: 100, gold: 300 } } },
+  { name: 'Era Clássica', icon: '🏛️',
+    profs: ['professor', 'marinheiro', 'medico'],
+    blds: ['escola', 'cais', 'teatro', 'parque', 'clinica'],
+    need: { pop: 19, built: 29, has: ['escola', 'teatro'], research: 'filosofia', prod: { gold: 600, iron: 250 } } },
+  { name: 'Medieval', icon: '🏰',
+    profs: ['carteiro'],
+    blds: ['capela', 'castelo', 'hotel', 'correio'],
+    need: { pop: 24, built: 36, has: ['castelo'], research: 'feudalismo', prod: { stone: 1500, gold: 900 } } },
+  { name: 'Baixa Idade Média', icon: '📜',
+    profs: ['jardineiro'],
+    blds: ['biblioteca', 'farol'],
+    need: { pop: 30, built: 43, has: ['biblioteca'], research: 'universidades', prod: { gold: 1300, iron: 500 } } },
+  { name: 'Renascença', icon: '🎨',
+    profs: ['bombeiro'],
+    blds: ['banco', 'quartel'],
+    need: { pop: 36, built: 50, has: ['banco'], research: 'navegacao', prod: { gold: 1800 } } },
+  { name: 'Era Industrial', icon: '🏭',
+    profs: ['maquinista', 'enfermeiro', 'polissonografista'],
+    blds: ['estacao', 'hospital', 'predio', 'rodagigante'],
+    need: { pop: 45, built: 60, has: ['estacao', 'hospital'], research: 'eletricidade', prod: { iron: 1500, gold: 2500 } } },
+  { name: 'Era Moderna', icon: '🚀',
+    profs: ['piloto'],
+    blds: ['aeroporto', 'estadio', 'foguete'],
     need: null },
 ];
+// Pesquisas: o chat vota qual estudar. "key" é a que abre caminho para a próxima era.
+const RESEARCH = {
+  ferramentas: { era: 0, icon: '🪓', label: 'Ferramentas de pedra', unlock: ['oficina'], fx: () => { res.tools += 6; return '+6 🔧 e a oficina liberada'; } },
+  cestaria: { era: 0, icon: '🧺', label: 'Cestaria', unlock: ['deposito'], fx: () => { res.crops += 15; return 'Cestos para guardar comida: depósito liberado'; } },
+  rituais: { era: 0, icon: '🪶', label: 'Rituais da tribo', unlock: ['totem'], fx: () => 'Totem liberado: a vila fica mais feliz' },
+  agricultura: { era: 0, icon: '🌾', label: 'Agricultura', key: true, fx: () => 'Plantar em vez de só coletar!' },
+  domesticacao: { era: 1, icon: '🐄', label: 'Domesticação', unlock: ['curral'], fx: () => 'Curral liberado' },
+  moagem: { era: 1, icon: '🌀', label: 'Moagem', unlock: ['moinho'], fx: () => 'Moinho liberado: mais comida' },
+  metalurgia: { era: 1, icon: '🔥', label: 'Metalurgia do bronze', key: true, fx: () => 'O fogo agora derrete metal' },
+  comercio: { era: 2, icon: '⚖️', label: 'Comércio', unlock: ['mercado'], fx: () => { res.coins += 20; return 'Mercado liberado e +20 🪙'; } },
+  mineracao: { era: 2, icon: '⛏️', label: 'Mineração profunda', unlock: ['mina'], fx: () => 'Mina liberada: ouro!' },
+  ferro: { era: 2, icon: '⚙️', label: 'Fundição de ferro', key: true, fx: () => 'Ferro: mais forte que o bronze' },
+  forja: { era: 3, icon: '⚒️', label: 'Forja', unlock: ['ferraria'], fx: () => { res.tools += 10; return 'Ferraria liberada e +10 🔧'; } },
+  equitacao: { era: 3, icon: '🐎', label: 'Equitação', unlock: ['estabulo'], fx: () => 'Estábulo liberado' },
+  engenharia: { era: 3, icon: '📐', label: 'Engenharia', key: true, fx: () => 'Pontes, estradas e aquedutos' },
+  filosofia: { era: 4, icon: '🦉', label: 'Filosofia', key: true, fx: () => 'A vila começa a pensar grande' },
+  feudalismo: { era: 5, icon: '🛡️', label: 'Feudalismo', key: true, fx: () => 'Castelos e senhores' },
+  universidades: { era: 6, icon: '🎓', label: 'Universidades', key: true, fx: () => 'O conhecimento se espalha' },
+  navegacao: { era: 7, icon: '🧭', label: 'Navegação oceânica', key: true, fx: () => 'Mares abertos' },
+  eletricidade: { era: 8, icon: '⚡', label: 'Eletricidade', key: true, fx: () => 'Luz em todas as casas' },
+};
+function researchNeed(k) { return 150 + RESEARCH[k].era * 50; }
+// Nomes das obras e profissões mudam com a era (ex.: Cabana → Casa de barro → Casa).
+const ERA_NAMES = {
+  casa: [[0, 'Cabana'], [2, 'Casa de barro'], [4, 'Casa']], serraria: [[0, 'Pátio da lenha'], [3, 'Serraria']],
+  peixaria: [[0, 'Pesqueiro'], [6, 'Peixaria']], restaurante: [[0, 'Cozinha comunitária'], [7, 'Restaurante']],
+  prefeitura: [[0, 'Palácio'], [7, 'Prefeitura']], delegacia: [[0, 'Posto da guarda'], [8, 'Delegacia']],
+  escola: [[0, 'Academia'], [7, 'Escola']], teatro: [[0, 'Anfiteatro'], [6, 'Teatro']], capela: [[0, 'Mosteiro'], [7, 'Capela']],
+  hotel: [[0, 'Estalagem'], [8, 'Hotel']], cais: [[0, 'Porto'], [8, 'Cais do Porto']], clinica: [[0, 'Casa de cura'], [8, 'Clínica']],
+  correio: [[0, 'Casa dos mensageiros'], [7, 'Correio']],
+};
+const PROF_NAMES = {
+  policial: [[0, 'Guarda', 'Guarda'], [8, 'Policial', 'Policial']], prefeito: [[0, 'Líder', 'Líder'], [7, 'Prefeito', 'Prefeita']],
+  medico: [[0, 'Curandeiro', 'Curandeira'], [7, 'Médico', 'Médica']], carteiro: [[0, 'Mensageiro', 'Mensageira'], [7, 'Carteiro', 'Carteira']],
+};
+const ORIG = { bt: {}, prof: {} };
+for (const k in ERA_NAMES) ORIG.bt[k] = BT[k].label;
+for (const k in PROF_NAMES) ORIG.prof[k] = [PROF[k].label, PROF[k].labelF];
+function applyEraNames() {
+  const era = L().era;
+  for (const k in ERA_NAMES) { let l = ORIG.bt[k]; for (const [e, n] of ERA_NAMES[k]) if (era >= e) l = n; BT[k].label = l; }
+  for (const k in PROF_NAMES) { let l = ORIG.prof[k]; for (const [e, m, f] of PROF_NAMES[k]) if (era >= e) l = [m, f]; PROF[k].label = l[0]; PROF[k].labelF = l[1]; }
+}
+// Apelidos de profissão das primeiras eras.
+for (const [a, p] of [['guarda', 'policial'], ['curandeiro', 'medico'], ['curandeira', 'medico'], ['mensageiro', 'carteiro'], ['mensageira', 'carteiro'],
+  ['lider', 'prefeito'], ['chefe', 'prefeito'], ['construtor', 'pedreiro'], ['construtora', 'pedreiro'], ['coletor', 'fazendeiro'], ['coletora', 'fazendeiro'],
+  ['agricultor', 'fazendeiro'], ['agricultora', 'fazendeiro'], ['pastor', 'pecuarista'], ['pastora', 'pecuarista'], ['ferreira', 'ferreiro']]) PROF_ALIAS[norm(a)] = p;
+
 function eraUnlocked(kind) { const out = []; for (let i = 0; i <= L().era; i++) out.push(...ERAS[i][kind]); return out; }
 function eraOfProf(p) { return ERAS.findIndex(e => e.profs.includes(p)); }
+// Obra liberada = da era atual ou anterior e sem pesquisa pendente.
+function liveBldOk(t) {
+  if (t === 'mansao' || t === 'monumento') return true;
+  if (!eraUnlocked('blds').includes(t)) return false;
+  const r = Object.keys(RESEARCH).find(k => (RESEARCH[k].unlock || []).includes(t));
+  return !r || L().research.done.includes(r);
+}
+function availableBlds() { return eraUnlocked('blds').filter(liveBldOk); }
+// Meta de população dá de presente uma obra da era (nunca um prédio do futuro).
+function liveGoalGift(t) {
+  if (t === 'LAUNCH' || t === 'festa' || liveBldOk(t)) return t;
+  return availableBlds().find(k => BT[k].grp === 'c' && !isHouse(k) && !buildings.some(b => b.type === k) && !queue.some(q => q.type === k)) || 'festa';
+}
+// Casas mudam de material conforme a era.
+const HOUSE_BY_ERA = [
+  [0, [{ wall: 'log', roof: 'thatch' }, { wall: 'plank', roof: 'thatch' }]],
+  [2, [{ wall: 'stone', roof: 'thatch' }, { wall: 'plaster', roof: 'thatch' }, { wall: 'log', roof: 'gable' }]],
+  [4, [{ wall: 'stone', roof: 'hip' }, { wall: 'timber', roof: 'steep' }, { wall: 'plaster', roof: 'gable' }, { wall: 'brick', roof: 'gable' }]],
+  [7, [{ wall: 'brick', roof: 'gable' }, { wall: 'plaster', roof: 'hip' }, { wall: 'timber', roof: 'steep' }, { wall: 'plank', roof: 'gable' }]],
+];
+function liveHouseStyles() { const era = liveState.era ?? 9; if (era >= 9) return HOUSE; let st = HOUSE_BY_ERA[0][1]; for (const [e, l] of HOUSE_BY_ERA) if (era >= e) st = l; return st; }
+function restyleHouses() { for (const b of buildings) if (b.type === 'casa') { b._st = null; b._cache = null; } }
 
 // ================== DILEMAS E DESAFIOS ==================
 const DILEMAS = [
@@ -87,11 +179,18 @@ const TITLES = ['Forasteiro', 'Novato', 'Morador', 'Vizinho querido', 'Veterano'
 // liveState é salvo junto com o mundo (serialize/load do script principal).
 function L() {
   const s = liveState;
-  if (s.viewers) { if (!Array.isArray(s.arrivals)) s.arrivals = []; return s; }
+  if (s.viewers) {
+    if (!Array.isArray(s.arrivals)) s.arrivals = [];
+    if (!s.research) s.research = { done: [], cur: null };
+    if (!s.prod) s.prod = { wood: 0, stone: 0, food: 0, gold: 0, iron: 0 };
+    if (s.next.pesq == null) s.next.pesq = Date.now() + 20000;
+    s.era = Math.min(s.era || 0, ERAS.length - 1);
+    return s;
+  }
   const old = Array.isArray(s.residents) ? s.residents : [];
   Object.assign(s, {
-    v: 2, era: 0, viewers: {}, arrivals: [], vote: null, chal: null, feed: [], raised: 0, goal: 50, voteN: 0,
-    next: { obra: Date.now() + 30000, dilema: Date.now() + LIVE_CFG.dilemaMin * 60000, chal: Date.now() + 90000 },
+    v: 2, era: 0, viewers: {}, arrivals: [], research: { done: [], cur: null }, prod: { wood: 0, stone: 0, food: 0, gold: 0, iron: 0 }, vote: null, chal: null, feed: [], raised: 0, goal: 50, voteN: 0,
+    next: { pesq: Date.now() + 20000, obra: Date.now() + 60000, dilema: Date.now() + LIVE_CFG.dilemaMin * 60000, chal: Date.now() + 90000 },
   });
   for (const [uid, npcId] of old) s.viewers[uid] = newViewer(uid, npcId);
   delete s.residents; delete s.ballots; delete s.deadline; delete s.winner; delete s.firstBuildingId;
@@ -132,7 +231,7 @@ function onChat(v, uid, text) {
   const now = Date.now();
   v.msgs++;
   if (L().chal && L().chal.track === 'msg') chalAdd(uid, 1);
-  if (now - v.last > 15000) { v.last = now; addXp(v, 1); const n = npcOf(v); if (n) n.boost = Math.max(n.boost || 0, 45); }
+  if (now - v.last > 15000) { v.last = now; addXp(v, 1); researchAdd(3); const n = npcOf(v); if (n) n.boost = Math.max(n.boost || 0, 45); }
 
   const arrive = text.match(/^@\s*([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/u) || text.match(/^!morador\s+([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/iu);
   if (arrive) return requestArrival(v, uid, arrive[1].trim(), arrive[2].trim());
@@ -144,7 +243,7 @@ function onChat(v, uid, text) {
   if (/^!ajudar\b/.test(lower)) return help(v, uid);
   if (/^!meu\b/.test(lower)) return showMine(v);
   if (/^!top\b/.test(lower)) { showTop = Date.now() + 15000; return 'Ranking na tela.'; }
-  if (/^!era\b/.test(lower)) { const e = ERAS[L().era]; announce(`${e.icon} Era: ${e.name}`, eraNeedText() || 'Última era!'); return ''; }
+  if (/^!era\b/.test(lower)) { const e = ERAS[L().era]; announce(`${e.icon} ${e.name}`, eraNeedText() || 'Última era!'); return ''; }
   if (/^!(ajuda|comandos)\b/.test(lower)) { showHelp = Date.now() + 15000; return 'Comandos na tela.'; }
   if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !meu, !top, !era.';
 
@@ -187,7 +286,7 @@ function processArrival() {
   if (v.member) { n.fan = true; setVip(n, true); }
   addXp(v, 5);
   if (L().chal && L().chal.track === 'arrive') chalAdd(a.uid, 1);
-  if (pend) feed(`🎓 ${n.name} chegou como aprendiz: vira ${PROF[pend].label} na era ${ERAS[eraOfProf(pend)].name}`);
+  if (pend) feed(`🎓 ${n.name} chegou como aprendiz: vira ${PROF[pend].label} na ${ERAS[eraOfProf(pend)].name}`);
   else if (prof === 'custom') feed(`⭐ ${n.name} (${custom}) chegou e vai ajudar nas obras`);
   else feed(`👋 ${n.name} chegou como ${profLabel(n)} — trazido por ${v.name}`);
   n.liveTag = '@' + v.name; n.liveLv = level(v);
@@ -203,8 +302,10 @@ function openObraVote() {
   const s = L();
   const busy = new Set(queue.filter(q => q.manual).map(q => q.type).concat(buildings.filter(b => !b.done).map(b => b.type)));
   const built = t => buildings.filter(b => b.type === t && b.done).length;
-  let pool = eraUnlocked('blds').filter(t => BT[t] && !busy.has(t) && (t === 'casa' || t === 'sobrado' || built(t) < 1));
-  pool.sort((a, b) => (ERAS.findIndex(e => e.blds.includes(b)) - ERAS.findIndex(e => e.blds.includes(a))) || Math.random() - 0.5);
+  let pool = availableBlds().filter(t => BT[t] && !busy.has(t) && (t === 'casa' || t === 'sobrado' || built(t) < 1));
+  // Obras que a era exige vêm primeiro; depois as mais novas.
+  const needed = ERAS[L().era].need?.has || [];
+  pool.sort((a, b) => (needed.includes(b) - needed.includes(a)) || (ERAS.findIndex(e => e.blds.includes(b)) - ERAS.findIndex(e => e.blds.includes(a))) || Math.random() - 0.5);
   let opts = pool.filter(t => !isHouse(t)).slice(0, 4).sort(() => Math.random() - 0.5).slice(0, 2);
   const house = (homeless > 0 || !buildings.some(b => isHouse(b.type))) && pool.includes('casa') ? 'casa' : null;
   if (house) opts.unshift(house); else { const extra = pool.find(t => !opts.includes(t)); if (extra) opts.push(extra); }
@@ -214,6 +315,44 @@ function openObraVote() {
   announce('🗳️ VOTAÇÃO ABERTA!', 'Digite ' + opts.map((t, i) => `${i + 1} = ${BT[t].label}`).join(' · '));
   sfx('chime'); liveDirty = true; return true;
 }
+function availableResearch() {
+  const s = L();
+  return Object.keys(RESEARCH).filter(k => RESEARCH[k].era <= s.era && !s.research.done.includes(k));
+}
+function openResearchVote() {
+  const s = L(), list = availableResearch();
+  if (!list.length || s.research.cur) return false;
+  // A pesquisa-chave da era sempre entra entre as opções.
+  const key = list.find(k => RESEARCH[k].key && RESEARCH[k].era === s.era);
+  const opts = (key ? [key] : []).concat(list.filter(k => k !== key).sort(() => Math.random() - 0.5)).slice(0, 3).sort(() => Math.random() - 0.5);
+  if (opts.length === 1) { startResearch(opts[0]); return true; }
+  s.vote = { kind: 'pesquisa', id: ++s.voteN, title: '🔬 O que a vila vai descobrir?', opts: opts.map(k => ({ k, label: RESEARCH[k].icon + ' ' + RESEARCH[k].label })), ballots: {}, ends: Date.now() + LIVE_CFG.voteSec * 1000 };
+  announce('🔬 PESQUISA!', 'Digite ' + opts.map((k, i) => `${i + 1} = ${RESEARCH[k].label}`).join(' · '));
+  sfx('chime'); liveDirty = true; return true;
+}
+function startResearch(k) {
+  const s = L();
+  s.research.cur = { k, prog: 0, need: researchNeed(k) };
+  announce(`🔬 Pesquisando: ${RESEARCH[k].label}`, 'Conversar no chat e !ajudar aceleram a descoberta');
+  feed(`🔬 A vila começou a pesquisar ${RESEARCH[k].icon} ${RESEARCH[k].label}`);
+  liveDirty = true; save();
+}
+function researchAdd(v) {
+  const c = L().research.cur; if (!c) return;
+  c.prog += v; if (c.prog >= c.need) finishResearch();
+}
+function finishResearch() {
+  const s = L(), c = s.research.cur; if (!c) return;
+  const r = RESEARCH[c.k];
+  s.research.cur = null; if (!s.research.done.includes(c.k)) s.research.done.push(c.k); s.next.pesq = Date.now() + 45000;
+  const msg = r.fx ? r.fx() : '';
+  announce(`💡 DESCOBERTA: ${r.label}!`, msg);
+  feed(`💡 ${r.icon} ${r.label} descoberta! ${msg}`);
+  logEv(`💡 Descoberta: ${r.label}`);
+  sfx('fanfare'); for (let i = 0; i < 5; i++) firework();
+  queueUnlockedProfBuildings(); lastTry = -99; save(); liveDirty = true;
+}
+function queueUnlockedProfBuildings() { for (const p in profCount) if (profCount[p] > 0) queueProfBuilding(p); }
 function openDilema(i) {
   const s = L();
   const d = DILEMAS[i ?? ((Math.random() * DILEMAS.length) | 0)];
@@ -226,7 +365,7 @@ function castVote(v, uid, raw) {
   let i = -1;
   if (vote.kind === 'dilema') i = raw === 'a' ? 0 : raw === 'b' ? 1 : -1;
   else if (/^[1-4]$/.test(raw)) i = +raw - 1;
-  else i = vote.opts.findIndex(o => norm(BT[o.k].label).startsWith(raw) || o.k === raw);
+  else i = vote.opts.findIndex(o => norm(vote.kind === 'pesquisa' ? RESEARCH[o.k].label : BT[o.k].label).startsWith(raw) || o.k === raw);
   if (i < 0 || i >= vote.opts.length) return 'Opção inválida.';
   const first = !vote.ballots[uid];
   let w = 1 + Math.min(2, Math.floor((level(v) - 1) / 3));
@@ -241,7 +380,9 @@ function closeVote() {
   s.vote = null;
   const t = tally(vote), max = Math.max(...t), tops = t.map((x, i) => x === max ? i : -1).filter(i => i >= 0);
   const win = vote.opts[pick(tops)], voters = Object.keys(vote.ballots).length;
-  if (vote.kind === 'obra') {
+  if (vote.kind === 'pesquisa') {
+    startResearch(win.k);
+  } else if (vote.kind === 'obra') {
     s.next.obra = Date.now() + LIVE_CFG.voteMin * 60000;
     const d = BT[win.k];
     const result = { id: (constructionVotes.at(-1)?.id || 0) + 1, type: win.k, day: day() };
@@ -278,9 +419,11 @@ function chalAdd(uid, k) { const c = L().chal; if (!c) return; c.prog += k; if (
 function help(v, uid) {
   const c = L().chal;
   const n = npcOf(v); if (n) { n.boost = Math.max(n.boost || 0, 60); say(n, pick(['Bora! 💪', 'Tô ajudando!', 'Mutirão!'])); }
-  if (!c || c.track !== 'help') return n ? 'Seu morador ganhou ânimo!' : 'Sem mutirão agora.';
   if (Date.now() - (v.help || 0) < 8000) return '';
-  v.help = Date.now(); addXp(v, 2); chalAdd(uid, 1); return '';
+  v.help = Date.now();
+  if (L().research.cur) { researchAdd(5); addXp(v, 2); }
+  if (!c || c.track !== 'help') return n ? 'Seu morador ganhou ânimo!' : 'Sem mutirão agora.';
+  addXp(v, 2); chalAdd(uid, 1); return '';
 }
 function endChallenge(win) {
   const s = L(), c = s.chal; if (!c) return;
@@ -326,7 +469,7 @@ function onDonation(v, uid, amount, text, src) {
   if (amount >= 25) {
     const m = lower.match(/!obra\s+([a-z -]+)/);
     const want = m ? m[1].trim() : '';
-    const type = want && eraUnlocked('blds').find(t => { const l = norm(BT[t].label); return want.startsWith(l) || l.startsWith(want.split(' ')[0]); });
+    const type = want && availableBlds().find(t => { const l = norm(BT[t].label); return want.startsWith(l) || l.startsWith(want.split(' ')[0]); });
     if (type) { let at = 0; while (at < queue.length && queue[at].manual) at++; queue.splice(at, 0, { type, manual: true, free: true }); lastTry = -99; perks.push(`${BT[type].label} de presente`); }
   }
   if (amount >= 50 && n && !n.vip) { n.fan = true; setVip(n, true); perks.push('mansão VIP'); }
@@ -396,34 +539,59 @@ function processSpotlight() {
 }
 
 // ================== ERA ==================
+const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'] };
 function eraProgress() {
-  const e = ERAS[L().era]; if (!e.need) return null;
-  const done = buildings.filter(b => b.done);
+  const s = L(), e = ERAS[s.era]; if (!e.need) return null;
+  const done = buildings.filter(b => b.done), n = e.need;
   const items = [
-    { t: `👥 ${npcs.length}/${e.need.pop}`, ok: npcs.length >= e.need.pop, f: Math.min(1, npcs.length / e.need.pop) },
-    { t: `🏗️ ${done.length}/${e.need.built}`, ok: done.length >= e.need.built, f: Math.min(1, done.length / e.need.built) },
-    ...e.need.has.map(k => { const ok = done.some(b => b.type === k); return { t: `${BT[k].icon} ${BT[k].label}`, ok, f: ok ? 1 : 0 }; }),
+    { t: `👥 ${npcs.length}/${n.pop}`, ok: npcs.length >= n.pop, f: Math.min(1, npcs.length / n.pop) },
+    { t: `🏗️ ${done.length}/${n.built}`, ok: done.length >= n.built, f: Math.min(1, done.length / n.built) },
+    ...n.has.map(k => { const ok = done.some(b => b.type === k); return { t: `${BT[k].icon} ${BT[k].label}`, ok, f: ok ? 1 : 0 }; }),
+    ...Object.entries(n.prod || {}).map(([k, v]) => { const have = Math.floor(s.prod[k] || 0); return { t: `${PROD_L[k][0]} ${fmt(Math.min(have, v))}/${fmt(v)}`, ok: have >= v, f: Math.min(1, have / v) }; }),
   ];
+  if (n.research) { const ok = s.research.done.includes(n.research), r = RESEARCH[n.research]; items.push({ t: `${r.icon} ${r.label}`, ok, f: ok ? 1 : 0 }); }
   return { items, f: items.reduce((a, i) => a + i.f, 0) / items.length, ok: items.every(i => i.ok) };
 }
 function eraNeedText() { const p = eraProgress(); return p ? 'Próxima era: ' + p.items.map(i => (i.ok ? '✅ ' : '') + i.t).join(' · ') : ''; }
 function eraUp() {
-  const s = L(); s.era++;
+  const s = L(); if (s.era >= ERAS.length - 1) return;
+  s.era++;
   const e = ERAS[s.era];
-  announce(`${e.icon} NOVA ERA: ${e.name.toUpperCase()}!`, 'Novas obras e profissões liberadas');
-  feed(`${e.icon} A vila virou ${e.name}! Novas profissões: ${e.profs.map(p => PROF[p].label).join(', ')}`);
+  applyEraNames(); restyleHouses();
+  announce(`${e.icon} NOVA ERA: ${e.name.toUpperCase()}!`, 'Novas obras, profissões e descobertas');
+  feed(`${e.icon} A vila chegou à ${e.name}!` + (e.profs.length ? ` Novas profissões: ${e.profs.map(p => PROF[p].label).join(', ')}` : ''));
   logEv(`${e.icon} Nova era: ${e.name}`);
   sfx('fanfare'); for (let i = 0; i < 14; i++) setTimeout(() => firework(), i * 250);
-  addHL(5, `${e.icon} A vila chegou à era ${e.name}`, CX * T + 8, CY * T + 8);
+  addHL(5, `${e.icon} A vila chegou à ${e.name}`, CX * T + 8, CY * T + 8);
   for (const v of Object.values(s.viewers)) {
-    const n = npcOf(v); if (!n || !v.pend || !e.profs.includes(v.pend)) continue;
+    const n = npcOf(v); if (!n || !v.pend || !eraUnlocked('profs').includes(v.pend)) continue;
     profCount.custom = Math.max(0, (profCount.custom || 0) - 1);
     n.prof = v.pend; n.custom = ''; v.pend = null;
     profCount[n.prof] = (profCount[n.prof] || 0) + 1;
-    npcColors(n); queueProfBuilding(n.prof); addXp(v, 20);
+    npcColors(n); addXp(v, 20);
     say(n, `Agora sou ${profLabel(n)}! 🎓`); feed(`🎓 ${n.name} se formou: ${profLabel(n)}`);
   }
-  npcVer++; save(); refreshPanel(true);
+  queueUnlockedProfBuildings();
+  s.next.pesq = Math.min(s.next.pesq, Date.now() + 30000);
+  npcVer++; lastTry = -99; save(); refreshPanel(true);
+}
+// Produção total: tudo que entra nos estoques conta (trabalho, doações, prêmios).
+let prodLast = null;
+function trackProduction() {
+  const s = L();
+  const cur = { wood: res.wood, stone: res.stone, food: res.fish + res.crops + res.meals, gold: res.coins, iron: res.iron || 0 };
+  if (prodLast) for (const k in cur) { const d = cur[k] - prodLast[k]; if (d > 0) s.prod[k] = (s.prod[k] || 0) + d; }
+  prodLast = cur;
+}
+// Produção automática dos prédios novos (a cada ~5s).
+function buildingProduction() {
+  const era = L().era, count = t => buildings.filter(b => b.done && b.type === t).length;
+  const of = count('oficina'); if (of && res.tools < toolCap()) res.tools += of;
+  const mo = count('moinho'); if (mo) res.crops += mo * (hasProf('fazendeiro') ? 3 : 1);
+  const mi = count('mina');
+  if (mi && era >= 2) res.coins += mi * (hasProf('minerador') ? 2 : 1);
+  if (mi && era >= 3) res.iron = (res.iron || 0) + mi * (hasProf('ferreiro') || hasProf('minerador') ? 2 : 1);
+  const fe = count('ferraria'); if (fe && era >= 3) res.iron = (res.iron || 0) + fe;
 }
 
 // ================== CICLO ==================
@@ -440,8 +608,11 @@ function liveTick() {
     if (c.track === 'wood' || c.track === 'stone') { const d = res[c.track] - c.last[c.track]; c.last[c.track] = res[c.track]; if (d > 0) chalAdd(null, d); }
     if (s.chal && now >= s.chal.ends) endChallenge(false);
   }
+  trackProduction();
+  if (s.research.cur) researchAdd(0.5);
   if (LIVE_CFG.auto && npcs.length) {
-    if (!s.vote && now >= s.next.obra && now - (s.lastClose || 0) > 20000) { if (openObraVote()) s.lastClose = now; }
+    if (!s.vote && !s.research.cur && now >= s.next.pesq && now - (s.lastClose || 0) > 20000 && availableResearch().length) { if (openResearchVote()) s.lastClose = now; }
+    else if (!s.vote && now >= s.next.obra && now - (s.lastClose || 0) > 20000) { if (openObraVote()) s.lastClose = now; }
     else if (!s.vote && now >= s.next.dilema && npcs.length >= 3 && now - (s.lastClose || 0) > 20000) { openDilema(); s.lastClose = now; }
     if (!s.chal && now >= s.next.chal && npcs.length >= 2) startChallenge();
   }
@@ -453,6 +624,7 @@ function liveTick() {
       const w = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
       if (w > (v.work || 0)) { addXp(v, w - (v.work || 0)); v.work = w; }
     }
+    buildingProduction();
     const p = eraProgress(); if (p && p.ok) eraUp();
   }
   renderLiveHud();
@@ -464,10 +636,12 @@ function secs(t) { const s = Math.max(0, Math.ceil((t - Date.now()) / 1000)); re
 let lastHud = '';
 function renderLiveHud() {
   const s = L(), e = ERAS[s.era], p = eraProgress();
-  let h = `<div class="lh-era"><b>${e.icon} Era ${s.era + 1}: ${esc(e.name)}</b>`;
+  let h = `<div class="lh-era"><b>${e.icon} ${esc(e.name)}</b> <span class="tm">${s.era + 1}/${ERAS.length}</span>`;
   if (p) h += bar(p.f) + `<small>${p.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${esc(i.t)}</span>`).join(' ')}</small>`;
-  else h += '<small>Era final — a vila é uma metrópole!</small>';
+  else h += '<small>Era final: a vila chegou ao futuro!</small>';
   h += '</div>';
+  const rc = s.research.cur;
+  if (rc) { const r = RESEARCH[rc.k]; h += `<div class="lh-box chal"><b>🔬 ${r.icon} ${esc(r.label)}</b> <span class="tm">${Math.floor(Math.min(1, rc.prog / rc.need) * 100)}%</span>${bar(rc.prog / rc.need, 'c')}<small>Conversar no chat e <b>!ajudar</b> aceleram</small></div>`; }
   const vote = s.vote;
   if (vote) {
     const t = tally(vote), tot = t.reduce((a, b) => a + b, 0) || 1;
@@ -596,7 +770,7 @@ $('livePanel').innerHTML = `
   <label for="lvGoal">Meta da live (R$)</label><input class="in" id="lvGoal" type="number" min="0" step="10">
 </section>
 <section class="card"><h3>🎮 Controle da partida</h3>
-  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
+  <div class="row"><button class="btn sm" id="lvVote">🗳️ Votar obra</button><button class="btn sm" id="lvPesq">🔬 Pesquisa</button><button class="btn sm" id="lvDil">🤔 Dilema</button><button class="btn sm" id="lvChal">🏆 Desafio</button><button class="btn sm red" id="lvClose">⏹ Apurar agora</button></div>
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
@@ -649,6 +823,7 @@ $('lvPix').onclick = () => simDonation('pix');
 $('lvSC').onclick = () => simDonation('yt');
 $('lvMember').onclick = () => { const user = $('lvDonUser').value.trim() || $('lvUser').value.trim() || '@membro'; $('lvFeedback').textContent = liveEvent({ src: 'sim', user: 'sim:' + norm(user).replace(/^@/, ''), name: user, kind: 'member' }); };
 $('lvVote').onclick = () => { if (L().vote) closeVote(); if (!openObraVote()) $('lvFeedback').textContent = 'Nenhuma obra disponível nesta era.'; };
+$('lvPesq').onclick = () => { if (L().vote) closeVote(); if (L().research.cur) { $('lvFeedback').textContent = 'Já há uma pesquisa em andamento.'; return; } if (!openResearchVote()) $('lvFeedback').textContent = 'Nenhuma pesquisa disponível nesta era.'; };
 $('lvDil').onclick = () => { if (L().vote) closeVote(); openDilema(); };
 $('lvChal').onclick = () => { if (L().chal) endChallenge(false); startChallenge(); };
 $('lvClose').onclick = () => { if (L().vote) closeVote(); };
@@ -714,10 +889,10 @@ function vitrinePick() {
 function vitrineSummary() {
   const s = L(), e = ERAS[s.era], built = buildings.filter(b => b.done).length;
   const top = topViewers(3).map(v => v.name).join(', ');
-  announce(`${e.icon} ${villageName}`, `${fmt(npcs.length)} morador${npcs.length === 1 ? '' : 'es'} · ${built} obra${built === 1 ? '' : 's'} · Era ${e.name}${top ? ' · Fundadores: ' + top : ''}`);
+  announce(`${e.icon} ${villageName}`, `${fmt(npcs.length)} morador${npcs.length === 1 ? '' : 'es'} · ${built} obra${built === 1 ? '' : 's'} · ${e.name}${top ? ' · Fundadores: ' + top : ''}`);
   showTop = Date.now() + 15000;
 }
-const EMPTY_EX = ['@Ana/lenhadora', '@Leo/pedreiro', '@Bia/fazendeira', '@Rafa/minerador', '@Duda/pedreira', '@Caio/lenhador'];
+const EMPTY_EX = ['@Ana/lenhadora', '@Leo/pedreiro', '@Bia/pescadora', '@Rafa/minerador', '@Duda/pedreira', '@Caio/caçador'];
 let vitLast = performance.now();
 function vitrineFrame(now) {
   const dt = Math.min(0.1, (now - vitLast) / 1000); vitLast = now;
@@ -754,6 +929,7 @@ setInterval(() => {
   s.next.dilema = Math.max(s.next.dilema, now + LIVE_CFG.dilemaMin * 60000);
   s.next.chal = Math.max(s.next.chal, now + 120000);
   for (const v of Object.values(s.viewers)) { const n = npcOf(v); if (n) { n.liveTag = '@' + v.name; n.liveLv = level(v); } }
+  applyEraNames(); restyleHouses();
   if (changed) save();
 })();
 

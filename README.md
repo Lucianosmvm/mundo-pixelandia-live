@@ -23,9 +23,9 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 | Comando | Efeito |
 |---|---|
 | `@Nome/profissão` (ou `!morador Nome \| profissão`) | Traz seu morador. É um morador por pessoa. |
-| `1`, `2`, `3` (ou `!votar fonte`) | Vota na próxima obra. |
+| `1`, `2`, `3` (ou `!votar fonte`) | Vota na próxima obra ou na próxima pesquisa. |
 | `A` / `B` | Escolhe a opção de um dilema. |
-| `!ajudar` | Conta no mutirão e dá ânimo ao seu morador. |
+| `!ajudar` | Acelera a pesquisa, conta no mutirão e dá ânimo ao seu morador. |
 | `!meu` | Entra na fila da câmera: seu morador aparece por 8 s, com nível e status. |
 | `!top` | Mostra o ranking de quem mais ajudou. |
 | `!era` | Mostra o que falta para a próxima era. |
@@ -38,21 +38,37 @@ Profissões:
 - **De uma era futura:** o morador chega como **Aprendiz** e se forma quando a vila alcança essa era.
 - **Desconhecida** (ex.: astronauta): o morador mantém o nome da profissão e ajuda nas obras e no corte de madeira.
 
-## Progressão: eras
+## Progressão: 10 eras
 
-| Era | Libera | Para avançar |
-|---|---|---|
-| 🔥 Acampamento | lenhador, pedreiro, fazendeiro, minerador · casa, serraria, celeiro, poço | 5 moradores, 3 obras, serraria |
-| 🛖 Aldeia | pescador, caçador, cozinheiro, pecuarista, jardineiro, músico | 12 moradores, 9 obras, restaurante |
-| 🏘️ Vila | padeiro, ferreiro, comerciante, carteiro, policial, médico, professor, prefeito | 25 moradores, 20 obras, prefeitura e escola |
-| 🏙️ Cidade | bombeiro, enfermeiro, marinheiro, maquinista | 50 moradores, 35 obras, hospital e estação |
-| 🚀 Metrópole | piloto, polissonografista · estádio, castelo, aeroporto, foguete | era final |
+A vila começa na **Era da Pedra** e avança até a **Era Moderna**. Para sair de uma era, o chat precisa cumprir todos os requisitos mostrados no overlay: população, obras prontas, prédios específicos, a **pesquisa-chave** da era e a **produção total** de recursos. A produção conta tudo o que a vila já produziu, não o que está guardado: construir nunca atrasa a era.
+
+| # | Era | Profissões novas | Obras novas | Para avançar |
+|---|---|---|---|---|
+| 1 | 🪨 Pedra | lenhador, pedreiro, minerador, caçador, pescador | cabana, pátio da lenha, pesqueiro, depósito, oficina, totem | 4 moradores, 4 obras, depósito, Agricultura, 150 🪵, 40 🍖 |
+| 2 | 🌾 Agrícola | fazendeiro, pecuarista, cozinheiro | celeiro, curral, poço, moinho, paliçada, cozinha comunitária | 7 moradores, 9 obras, moinho e paliçada, Metalurgia, 250 🍖, 400 🪵, 120 🪨 |
+| 3 | 🥉 Bronze | comerciante, músico, padeiro, líder | mercado, mina, templo, muralha, palácio, taverna, fonte, estátua, padaria | 10 moradores, 15 obras, templo e mina, Fundição de ferro, 120 🪙, 350 🪨 |
+| 4 | ⚔️ Ferro | ferreiro, guarda | ferraria, torre de vigia, estábulo, posto da guarda, sobrado | 14 moradores, 22 obras, ferraria e torre, Engenharia, 100 ⚙️, 300 🪙 |
+| 5 | 🏛️ Clássica | professor, marinheiro, curandeiro | academia, porto, anfiteatro, parque, casa de cura | 19 moradores, 29 obras, academia e anfiteatro, Filosofia |
+| 6 | 🏰 Medieval | mensageiro | mosteiro, castelo, estalagem, casa dos mensageiros | 24 moradores, 36 obras, castelo, Feudalismo |
+| 7 | 📜 Baixa Idade Média | jardineiro | biblioteca, farol | 30 moradores, 43 obras, biblioteca, Universidades |
+| 8 | 🎨 Renascença | bombeiro | banco, quartel de bombeiros | 36 moradores, 50 obras, banco, Navegação |
+| 9 | 🏭 Industrial | maquinista, enfermeiro, polissonografista | estação de trem, hospital, prédio, roda-gigante | 45 moradores, 60 obras, estação e hospital, Eletricidade |
+| 10 | 🚀 Moderna | piloto | aeroporto, estádio, foguete | era final |
+
+As eras 5 a 10 também pedem produção total de ouro, ferro ou pedra (o overlay mostra os valores).
+
+- **Pesquisa:** o chat vota o que a vila vai descobrir (`1`, `2`, `3`). A pesquisa-chave da era sempre está entre as opções. Ela avança sozinha, e cada mensagem no chat e cada `!ajudar` aceleram. Algumas pesquisas liberam obras: Ferramentas de pedra → oficina, Cestaria → depósito, Rituais → totem, Domesticação → curral, Moagem → moinho, Comércio → mercado, Mineração → mina, Forja → ferraria, Equitação → estábulo.
+- **Recursos novos:** 🪙 ouro aparece no Bronze (mina e comércio) e ⚙️ ferro no Ferro (mina e ferraria). A oficina produz ferramentas e o moinho, comida.
+- **O mundo muda de cara:** as casas passam de palha e tronco para barro, pedra, tijolo e, na era final, concreto. Alguns nomes acompanham a era: Cabana → Casa de barro → Casa; Guarda → Policial; Curandeiro → Médico.
+- **Profissão do futuro:** quem pede uma profissão de era posterior chega como aprendiz e se forma quando a vila chega lá.
+- **Metas de população** dão de presente uma obra da era atual, nunca um prédio do futuro.
 
 ## Ciclo automático
 
 Com o ciclo ligado (**Controle da partida**), o jogo alterna estas rodadas:
 
-- **Votação de obra**, a cada 4 min, com 75 s para votar. São 3 opções da era atual. Uma casa entra entre as opções quando há gente sem casa. O voto tem peso maior para quem tem nível alto e para quem tem voto turbinado.
+- **Votação de pesquisa**, sempre que nenhuma pesquisa estiver em andamento (tem prioridade sobre as outras rodadas), com 75 s para votar.
+- **Votação de obra**, a cada 4 min, com 75 s para votar. São 3 opções liberadas na era; as obras que a era exige aparecem primeiro. Uma casa entra entre as opções quando há gente sem casa. O voto tem peso maior para quem tem nível alto e para quem tem voto turbinado.
 - **Dilema**, a cada 7 min, com 60 s para votar. O chat escolhe A ou B, e cada escolha tem uma consequência: recursos, eventos, novos vizinhos ou festa.
 - **Desafio**, a cada 6 min. Há cinco tipos: juntar madeira, juntar pedra, mutirão de `!ajudar`, receber novos moradores e volume de mensagens. Se o chat cumprir, todos ganham recursos, ânimo e XP. Se falhar, a vila tem uma perda pequena.
 
