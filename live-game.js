@@ -750,9 +750,52 @@ function topViewers(k) { return Object.values(L().viewers).filter(v => v.xp > 0)
 
 // ================== CONEXÃO: YOUTUBE ==================
 // Lê o chat público pela YouTube Data API v3 com chave de API.
-// Cada leitura custa cota: o intervalo respeita pollingIntervalMillis e nunca fica abaixo de 6s.
+// Cota: 10.000 unidades por dia, renovadas à meia-noite do Pacífico (05:00 de Brasília no horário padrão).
+// Cada leitura do chat custa 5 unidades e cada busca do vídeo, 1. O jogo conta o gasto do dia,
+// lê mais devagar com o chat parado ou com a cota baixa e, se a cota acabar, mostra a tela de pausa.
 let yt = null;
-function ytVideoId(s) { s = String(s).trim(); const m = s.match(/(?:v=|youtu\.be\/|live\/|shorts\/)([\w-]{11})/); return m ? m[1] : s; }
+const YT_QUOTA = 10000, YT_Q_KEY = 'pixelandia-live-yt-quota';
+function ytQuotaDay() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); }
+function ytQuota() {
+  let q; try { q = JSON.parse(localStorage.getItem(YT_Q_KEY) || 'null'); } catch (e) {}
+  if (!q || q.day !== ytQuotaDay()) q = { day: ytQuotaDay(), used: 0, out: false };
+  return q;
+}
+function ytSpend(units) { const q = ytQuota(); q.used += units; try { localStorage.setItem(YT_Q_KEY, JSON.stringify(q)); } catch (e) {} return q; }
+function ytSetOut(out) { const q = ytQuota(); q.out = out; if (out) q.used = Math.max(q.used, YT_QUOTA); try { localStorage.setItem(YT_Q_KEY, JSON.stringify(q)); } catch (e) {} quotaScreen(); }
+function ytIsQuotaErr(j) { const r = j?.error?.errors?.[0]?.reason || ''; return /quota|dailyLimit|rateLimit/i.test(r) || /quota/i.test(j?.error?.message || ''); }
+// Hora em que a cota volta, no relógio local (meia-noite do Pacífico).
+function ytResetText() {
+  const now = new Date(), pt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const ms = (24 * 3600 - (pt.getHours() * 3600 + pt.getMinutes() * 60 + pt.getSeconds())) * 1000;
+  return new Date(now.getTime() + ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+// Intervalo entre leituras: rápido com o chat ativo, devagar com o chat parado ou com a cota acabando.
+function ytWait(apiMin) {
+  const left = 1 - ytQuota().used / YT_QUOTA, quiet = Date.now() - lastChatAt > 3 * 60000;
+  let w = quiet ? 15000 : 7000;
+  if (left < 0.5) w = Math.max(w, quiet ? 20000 : 10000);
+  if (left < 0.2) w = Math.max(w, 25000);
+  return Math.max(w, apiMin || 0);
+}
+// Tela de pausa: cobre o jogo inteiro quando a cota acaba. A vila continua rodando por trás.
+function quotaScreen() {
+  const q = ytQuota(); let el = document.getElementById('lvQuotaScreen');
+  const warn = !q.out && q.used >= YT_QUOTA * 0.9;
+  if (!q.out && !warn) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'lvQuotaScreen'; document.body.appendChild(el); }
+  if (q.out) {
+    el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(20,14,8,.82);font-family:"Pixelify Sans",sans-serif;color:#fff;text-align:center';
+    el.innerHTML = `<div style="background:#f5e6c8;color:#4a2c12;border:6px solid #7a4a1e;border-radius:14px;padding:36px 48px;max-width:720px;box-shadow:0 10px 0 #3b220d">
+      <div style="font-size:64px">😴</div>
+      <div style="font-size:40px;font-weight:700;margin:8px 0">A vila está descansando</div>
+      <div style="font-size:24px;line-height:1.4">O jogo atingiu o limite diário de leituras do chat do YouTube.<br>Os comandos voltam a funcionar às <b>${ytResetText()}</b>.</div>
+      <div style="font-size:20px;margin-top:14px;opacity:.8">Obrigado por jogar! 💛 Volte mais tarde para continuar a vila.</div></div>`;
+  } else {
+    el.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:99999;background:#7a4a1e;color:#fff;font-family:"Pixelify Sans",sans-serif;font-size:18px;padding:8px 16px;border-radius:10px;opacity:.92';
+    el.textContent = '⚠️ O chat do jogo vai pausar em breve (limite diário do YouTube quase no fim)';
+  }
+}
 async function ytConnect() {
   ytStop();
   const key = LIVE_CFG.ytKey.trim(), vid = ytVideoId(LIVE_CFG.ytVideo);
@@ -760,33 +803,56 @@ async function ytConnect() {
   const run = yt = { stop: false, token: null, started: Date.now() };
   try {
     liveConn.yt = 'procurando chat…'; liveDirty = true;
+    ytSpend(1);
     const r = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${encodeURIComponent(vid)}&key=${encodeURIComponent(key)}`);
     const j = await r.json();
+    if (ytIsQuotaErr(j)) { ytSetOut(true); throw new Error('cota diária do YouTube esgotada'); }
     if (j.error) throw new Error(j.error.message);
     const chat = j.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
     if (!chat) throw new Error('vídeo sem chat ao vivo ativo');
     run.chat = chat;
+    if (ytQuota().out) ytSetOut(false);
     liveConn.yt = 'conectado ✅'; liveDirty = true;
     ytPoll(run, key, true);
-  } catch (err) { liveConn.yt = 'erro: ' + err.message; liveDirty = true; }
+  } catch (err) {
+    liveConn.yt = 'erro: ' + err.message; liveDirty = true;
+    // Cota esgotada ou rede fora: tenta de novo sozinho (a cada 15 min com a cota esgotada).
+    if (yt === run && !run.stop) run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, ytQuota().out ? 15 * 60000 : 60000);
+  }
 }
 async function ytPoll(run, key, first) {
   if (run.stop) return;
   let wait = 8000;
   try {
     const url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${encodeURIComponent(run.chat)}&part=snippet,authorDetails&maxResults=200${run.token ? '&pageToken=' + encodeURIComponent(run.token) : ''}&key=${encodeURIComponent(key)}`;
+    ytSpend(5);
     const j = await (await fetch(url)).json();
-    if (j.error) throw new Error(j.error.message);
+    if (ytIsQuotaErr(j)) {
+      ytSetOut(true);
+      liveConn.yt = 'cota diária esgotada · volta às ' + ytResetText(); liveDirty = true;
+      run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, 15 * 60000);
+      return;
+    }
+    if (j.error) {
+      // O chat da live acabou (live encerrada): reconecta para achar o chat de novo.
+      if (/liveChatEnded|liveChatNotFound|forbidden/i.test(j.error.errors?.[0]?.reason || '')) { liveConn.yt = 'chat encerrado: procurando de novo…'; liveDirty = true; run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, 60000); return; }
+      throw new Error(j.error.message);
+    }
+    if (ytQuota().out) ytSetOut(false);
     run.token = j.nextPageToken;
-    wait = Math.max(6000, j.pollingIntervalMillis || 6000);
+    wait = ytWait(j.pollingIntervalMillis);
     // Na primeira leitura, ignora mensagens antigas para não reprocessar o histórico.
     if (!first) for (const it of j.items || []) { try { const e = ytMap(it); if (e) liveEvent(e); } catch (e) { console.error('mensagem do YouTube:', e, it); } }
     first = false;
-    liveConn.yt = `conectado ✅ · ${new Date().toLocaleTimeString('pt-BR')}`; liveDirty = true;
+    const q = ytQuota();
+    liveConn.yt = `conectado ✅ · ${new Date().toLocaleTimeString('pt-BR')} · cota ${Math.min(100, Math.round(q.used / YT_QUOTA * 100))}%`; liveDirty = true;
   } catch (err) { liveConn.yt = 'erro: ' + err.message + ' (tentando de novo)'; liveDirty = true; wait = 20000; }
+  quotaScreen();
   run.timer = setTimeout(() => ytPoll(run, key, first), wait);
 }
 function ytStop() { if (yt) { yt.stop = true; clearTimeout(yt.timer); yt = null; } liveConn.yt = 'desligado'; liveDirty = true; }
+// Ao abrir o jogo, mostra a tela de pausa se a cota de hoje já tinha acabado; confere a virada do dia.
+setTimeout(quotaScreen, 1000); setInterval(quotaScreen, 60000);
 function ytMap(it) {
   const sn = it.snippet || {}, au = it.authorDetails || {};
   const base = { id: 'yt:' + it.id, src: 'yt', user: 'yt:' + au.channelId, name: au.displayName || 'Anônimo' };
