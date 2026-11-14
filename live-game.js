@@ -6,7 +6,7 @@
 const LIVE_CFG_KEY = 'pixelandia-live-config-v1';
 const LIVE_CFG = Object.assign({
   ytKey: '', ytVideo: '', bridgeUrl: 'http://localhost:8787/eventos',
-  auto: true, vitrine: true, raids: true, autoEv: true, evMin: 10, autoSeason: true, seasonDays: 5, hideStudio: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
+  auto: true, vitrine: true, raids: true, howTo: true, autoEv: true, evMin: 10, autoSeason: true, seasonDays: 5, hideStudio: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
 }, (() => { try { return JSON.parse(localStorage.getItem(LIVE_CFG_KEY) || '{}'); } catch (e) { return {}; } })());
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
@@ -320,6 +320,9 @@ function processArrival() {
   n.liveTag = viewerTag(v); n.liveLv = level(v);
   if (v.vet) { addXp(v, 10); feed(`⭐ ${v.name} voltou! Veterano(a) de ${v.vet} temporada(s)`); }
   addHL(2, n.name + ' chegou à vila', n.x, n.y);
+  // Primeira dica para quem acabou de entrar: o morador fala o primeiro comando num balão.
+  const tip = { lenhador: '!cortar', pedreiro: '!construir', minerador: '!minerar', pescador: '!pescar', cacador: '!caçar' }[prof] || '!cortar';
+  setTimeout(() => { if (n.active) n.bubble = { text: `Me dê ordens: ${tip} 😉`, t: 6 }; }, 6000);
 }
 function liveGuest() {
   const sex = Math.random() < 0.5 ? 'f' : 'm';
@@ -916,6 +919,7 @@ $('livePanel').innerHTML = `
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
+  <label><input type="checkbox" id="lvHowTo"> Cartão "Como jogar" na tela (comandos alternando à direita)</label>
   <label><input type="checkbox" id="lvAutoEv"> Eventos automáticos (chuva, festa, galinhas, OVNI e neve em dezembro)</label>
   <label><input type="checkbox" id="lvAutoSeason"> Estações do ano automáticas (mudam a cada 5 dias do jogo)</label>
   <label><input type="checkbox" id="lvHideStudio"> Esconder vídeos e eventos manuais (modo live sozinha)</label>
@@ -956,7 +960,7 @@ $('lvSeason').onclick = () => { if (startNewSeason()) $('lvFeedback').textConten
 $('lvStats').onclick = openStats;
 $('lvHall').onclick = () => { showHall = Date.now() + 20000; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
-for (const [id, key] of [['lvAutoEv', 'autoEv'], ['lvAutoSeason', 'autoSeason'], ['lvHideStudio', 'hideStudio']]) { $(id).checked = LIVE_CFG[key]; $(id).onchange = e => { LIVE_CFG[key] = e.target.checked; liveSaveCfg(); if (key === 'hideStudio') applyStudioHide(); }; }
+for (const [id, key] of [['lvHowTo', 'howTo'], ['lvAutoEv', 'autoEv'], ['lvAutoSeason', 'autoSeason'], ['lvHideStudio', 'hideStudio']]) { $(id).checked = LIVE_CFG[key]; $(id).onchange = e => { LIVE_CFG[key] = e.target.checked; liveSaveCfg(); if (key === 'hideStudio') applyStudioHide(); }; }
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
 
@@ -2000,6 +2004,37 @@ setInterval(() => {
   applyEraNames(); restyleHouses();
   if (changed) save();
 })();
+
+// ================== COMO JOGAR (cartão fixo na tela) ==================
+// Os comandos ficam sempre visíveis no canto direito, alternando de página a cada 12 s.
+// Some quando o painel do streamer está aberto (ele ocupa o mesmo lado) e nos momentos de destaque.
+const HOWTO_PAGES = [
+  ['🎮 Como jogar', ['<b>@SeuNome/profissão</b> entra na vila', '<small>ex.: <b>@Ana/lenhadora</b> · <b>@Leo/pescador</b></small>', '<b>1 2 3</b> votam · <b>A B</b> escolhem', '<b>!meu</b> mostra seu morador e seus status']],
+  ['🪓 Dê ordens ao seu morador', ['<b>!cortar</b> · <b>!pescar</b> · <b>!minerar</b> · <b>!caçar</b>', '<b>!construir</b> · <b>!trabalhar</b>', '<b>!ir</b> floresta · rio · mina · praça · casa', '<b>!comer</b> · <b>!dormir</b> · <b>!parar</b>']],
+  ['⚔️ Lute e ganhe moedas', ['Trabalhar rende 💰 para você', '<b>!atacar</b> lobo, javali, urso e saqueadores', '<b>!duelo @nome</b> · <b>!aceitar</b> (ninguém perde)', '<b>!ajudar</b> acelera pesquisas e mutirões']],
+  ['🛒 Loja e mochila', ['<b>!loja</b> mostra os itens', '<b>!comprar</b> machado · espada · escudo · poção', '<b>!equipar</b> item · <b>!usar</b> item', '<b>!mochila</b> mostra o que você tem']],
+  ['🐾 Pets', ['<b>!pet</b> mostra a lista de pets', '<b>!pet cachorro</b> adota (25 💰)', '<b>!pet nome Rex</b> · <b>!pet carinho</b>', 'Pets trazem achados e ajudam na luta']],
+  ['💎 Lendários com Pix', ['Cada R$ 1 em Pix ou Super Chat = 1 💎', '🐉 dragão · 🔥 fênix · 🦄 unicórnio · 🧚 fada', '⚔️ katana · 🔮 cajado · 🛡️ armadura dourada', 'Escreva <b>!pet dragao</b> na mensagem do Pix']],
+];
+function howToFrame() {
+  let el = document.getElementById('lvHowToCard');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'lvHowToCard';
+    el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:5;width:min(290px,calc(100vw - 24px));pointer-events:none;background:rgba(40,25,10,.86);color:#fff3d4;border:2px solid #f6c344;border-radius:6px;padding:7px 10px;box-shadow:0 3px 0 rgba(0,0,0,.3);font-size:14px;line-height:1.35;transition:opacity .4s';
+    document.body.appendChild(el);
+  }
+  const panelOpen = !panelHidden(), busy = !!(TOUR || REC || (L().raid && L().raid.phase !== 'warn'));
+  const show = LIVE_CFG.howTo && panelOpen === false && !busy;
+  el.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const i = Math.floor(Date.now() / 12000) % HOWTO_PAGES.length;
+  if (el.dataset.p !== String(i)) {
+    el.dataset.p = String(i);
+    const [t, lines] = HOWTO_PAGES[i];
+    el.innerHTML = `<b style="color:#ffe08a">${t}</b><span style="float:right;color:#ffb36b;font-weight:700">${i + 1}/${HOWTO_PAGES.length}</span>` + lines.map(l => `<div style="font-size:13px;margin-top:2px">${l.replace(/<b>/g, '<b style="color:#ffe08a">')}</div>`).join('');
+  }
+}
+setInterval(() => { try { howToFrame(); } catch (e) { console.error('como jogar:', e); } }, 1000);
 
 // ================== LIVE SOZINHA ==================
 // Para a live rodar sem ninguém no comando: eventos e estações acontecem sozinhos,

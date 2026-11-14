@@ -35,6 +35,12 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 | `!ajuda` | Mostra os comandos na tela. |
 | Qualquer outra mensagem | Seu morador fala o texto num balão e ganha ânimo (trabalha 60% mais rápido por 45 s). |
 
+### Como os jogadores descobrem os comandos
+
+- **Cartão "Como jogar"** no canto inferior direito, sempre na tela, alternando 6 páginas a cada 12 s: entrar na vila, ordens, luta, loja, pets e lendários com Pix. Some quando o painel do streamer está aberto ou durante uma batalha. Liga e desliga em **Controle da partida**.
+- **Balão de boas-vindas:** uns segundos depois de chegar, o morador diz o primeiro comando para o dono testar (ex.: "Me dê ordens: !pescar").
+- **`!ajuda`** mostra todos os comandos por 15 s, e as dicas da caixa de baixo alternam sozinhas.
+
 ### Controle do seu morador
 
 Cada espectador controla o próprio morador por ordens no chat. As mensagens chegam ao jogo com 7 a 15 s de atraso, por isso o controle é por ordem, não por setas. Uma ordem dura 3 minutos; depois, ou com `!parar`, o morador volta à rotina sozinho.
