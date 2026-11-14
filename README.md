@@ -35,6 +35,58 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 | `!ajuda` | Mostra os comandos na tela. |
 | Qualquer outra mensagem | Seu morador fala o texto num balão e ganha ânimo (trabalha 60% mais rápido por 45 s). |
 
+### Como os jogadores descobrem os comandos
+
+- **Cartão "Como jogar"** no canto inferior direito, sempre na tela, alternando 6 páginas a cada 12 s: entrar na vila, ordens, luta, loja, pets e lendários com Pix. Some quando o painel do streamer está aberto ou durante uma batalha. Liga e desliga em **Controle da partida**.
+- **Balão de boas-vindas:** uns segundos depois de chegar, o morador diz o primeiro comando para o dono testar (ex.: "Me dê ordens: !pescar").
+- **`!ajuda`** mostra todos os comandos por 15 s, e as dicas da caixa de baixo alternam sozinhas.
+
+### Controle do seu morador
+
+Cada espectador controla o próprio morador por ordens no chat. As mensagens chegam ao jogo com 7 a 15 s de atraso, por isso o controle é por ordem, não por setas. Uma ordem dura 3 minutos; depois, ou com `!parar`, o morador volta à rotina sozinho.
+
+O jogo é feito para ser divertido, não para castigar quem saiu da live: nada se perde por fome ou cansaço, e o morador se cuida sozinho.
+
+**Principais:** `@Nome/profissão`, `!cortar` / `!pescar` / `!minerar` / `!caçar`, `!atacar` e `!meu`. Os outros são extras.
+
+| Comando | Efeito |
+|---|---|
+| `!ir floresta` (rio, mina, praça, depósito, casa ou o nome de uma obra) | Vai até lá e espera. |
+| `!cortar`, `!minerar`, `!pescar`, `!caçar`, `!construir`, `!trabalhar` | Faz esse trabalho por 3 minutos. |
+| `!comer` | Come no depósito: 🍲 refeição +60, 🐟 peixe +35, 🥕 colheita +30 de fome saciada. |
+| `!dormir` | Vai para casa e descansa até recuperar a energia. |
+| `!parar` | Cancela a ordem. |
+| `!status` (ou `!meu`) | Entra na fila da câmera e mostra ❤️ vida, 🍗 fome, ⚡ energia, 💰 moedas e ataque. |
+| `!mochila` | Entra na fila da câmera e mostra moedas, itens, o que está equipado e o pet. |
+| `!loja` / `!comprar item` / `!equipar item` / `!usar item` | Compra, equipa e usa itens. |
+| `!pet cachorro` (veja a lista abaixo) | Adota um pet. `!pet` sozinho mostra a lista na tela. `!pet nome Rex` dá nome, `!pet carinho` dá ânimo, `!pet soltar` devolve à floresta. |
+| `!atacar` | Luta contra a fera que apareceu ou entra na defesa contra saqueadores. |
+| `!duelo @nome` / `!aceitar` | Duelo amigável na praça: o vencedor ganha 5 💰, quem perde ganha 1 💰. Ninguém perde nada. |
+
+**Necessidades (só bônus):** a fome e a energia caem devagar. Morador alimentado (🍗 60+) e descansado (⚡ 40+) trabalha 60% mais rápido. Fome e cansaço nunca tiram vida: só aparece um ícone 🍗 ou 💤 ao lado da cabeça, convidando a dar `!comer` ou `!dormir`. Sem ordem, o morador come sozinho quando a fome fica baixa. A vida só cai em combate e volta sozinha; se zerar, o morador desmaia por 20 s (💫) e não perde nada. Uma barrinha de vida aparece embaixo de quem está machucado. Arma e escudo equipados aparecem desenhados no morador.
+
+**Contra repetição (spam):** repetir a mesma ordem só renova o tempo dela; ordens novas valem no máximo uma a cada 5 s; `!comer` só com fome (abaixo de 90) e a cada 30 s; a `!loja` aparece na tela no máximo a cada 30 s; no desafio de mensagens cada pessoa conta 1 mensagem a cada 5 s. Votos já contam um por pessoa.
+
+**Moedas:** cada tarefa do morador rende 1 💰 ao dono (2 com a ferramenta certa). Às vezes ele encontra um item trabalhando. Todo morador novo começa com 10 💰.
+
+**💎 Cristais (Pix e Super Chat):** cada R$ 1 doado vira 1 💎 para quem doou; membro novo ganha 10 💎. Os cristais são a única forma de liberar os pets lendários e as armas e itens raros. Dá para resgatar na hora escrevendo o comando na mensagem do Pix ou Super Chat, por exemplo `!pet dragao` ou `!comprar katana`. Itens raros já entram equipados.
+
+**Loja:** 🪓 machado, ⛏️ picareta, 🎣 vara e 🔨 martelo (20 💰, deixam o trabalho certo 60% mais rápido); 🏹 arco (30, +6 de ataque), 🔱 lança (40, +9), 🗡️ espada (60, +14), 🛡️ escudo (40, menos dano); 🧪 poção (15, +50 vida), 🥖 pão (6, +45 fome), ☕ café (8, +40 energia), 🦴 petisco (5, o pet traz um achado na hora).
+
+**Raros (só 💎):** ⚔️ katana (15 💎, +22 de ataque), 🔨 marreta de guerra (15 💎, +20 e constrói rápido), 🏹 besta (12 💎, +18 e caça rápido), 🔮 cajado mágico (25 💎, +28), 🛡️ armadura dourada (15 💎, quase não leva dano), ⚗️ elixir (3 💎, vida, fome e energia no máximo). Todos aparecem desenhados no morador.
+
+**Pets:** seguem o dono (os que voam ficam pairando ao lado dele), somam ataque e a cada 4 minutos trazem um achado.
+
+| Tipo | Pets | Preço |
+|---|---|---|
+| Comuns | 🐶 cachorro, 🐱 gato, 🐰 coelho, 🐔 galinha, 🦊 raposa, 🐷 porco, 🐸 sapo, 🐢 tartaruga, 🐹 capivara, 🦜 papagaio, 🐒 macaco | 25 💰 |
+| Raros | 🐍 cobra, 🕷️ aranha, 🦇 morcego, 🦉 coruja, 🐆 onça | 50 💰 e nível 2 |
+| Lendários | 🟢 slime (5 💎), 🧚 fada (10 💎, cura o dono), 👹 orc (10 💎, +9 de ataque), 🦄 unicórnio (15 💎, recupera energia), 🦅 grifo (20 💎), 🔥 fênix (25 💎, o dono renasce em 5 s), 🐉 dragão (30 💎, +12 de ataque e cospe fogo) | só 💎 |
+
+**Feras:** de dia, a cada 6 a 11 minutos, um 🐺 lobo, 🐗 javali ou 🐻 urso (eras mais avançadas) aparece na beira da floresta e ataca quem estiver perto. Quem dá `!atacar` vai lutar; ataque = 4 + metade do nível + arma + pet. Derrotada a fera, as moedas são divididas pelo dano de cada um. Sem ninguém lutando, ela volta para a floresta em 2 minutos. As feras aparecem junto com os eventos automáticos (opção no painel).
+
+**Saqueadores:** durante o aviso, `!atacar` soma o ataque do seu morador à defesa (uma vez por pessoa). Quem entrou na luta pode se machucar, mais na derrota.
+
 Profissões:
 
 - **Liberada na era atual:** o morador chega trabalhando nela.
@@ -47,10 +99,10 @@ A vila começa na **Era da Pedra** e avança até a **Era Moderna**. Para sair d
 
 | # | Era | Profissões novas | Obras novas | Para avançar |
 |---|---|---|---|---|
-| 1 | 🪨 Pedra | lenhador, pedreiro, minerador, caçador, pescador, guerreiro | cabana, pátio da lenha, pesqueiro, depósito, oficina, totem | 4 moradores, 4 obras, depósito, Agricultura, 150 🪵, 40 🍖 |
-| 2 | 🌾 Agrícola | fazendeiro, pecuarista, cozinheiro | celeiro, curral, poço, moinho, paliçada, cozinha comunitária | 7 moradores, 9 obras, moinho e paliçada, Metalurgia, 250 🍖, 400 🪵, 120 🪨 |
-| 3 | 🥉 Bronze | comerciante, músico, padeiro, líder | mercado, mina, templo, muralha, palácio, taverna, fonte, estátua, padaria | 10 moradores, 15 obras, templo e mina, Fundição de ferro, 120 🪙, 350 🪨 |
-| 4 | ⚔️ Ferro | ferreiro, guarda | ferraria, torre de vigia, estábulo, posto da guarda, sobrado | 14 moradores, 22 obras, ferraria e torre, Engenharia, 100 ⚙️, 300 🪙 |
+| 1 | ⛰️ Pedra | lenhador, pedreiro, minerador, caçador, pescador, guerreiro | cabana, pátio da lenha, pesqueiro, depósito, oficina, totem | 4 moradores, 4 obras, depósito, Agricultura, 150 🌲, 40 🍖 |
+| 2 | 🌾 Agrícola | fazendeiro, pecuarista, cozinheiro | celeiro, curral, poço, moinho, paliçada, cozinha comunitária | 7 moradores, 9 obras, moinho e paliçada, Metalurgia, 250 🍖, 400 🌲, 120 ⛰️ |
+| 3 | 🥉 Bronze | comerciante, músico, padeiro, líder | mercado, mina, templo, muralha, palácio, taverna, fonte, estátua, padaria | 10 moradores, 15 obras, templo e mina, Fundição de ferro, 120 💰, 350 ⛰️ |
+| 4 | ⚔️ Ferro | ferreiro, guarda | ferraria, torre de vigia, estábulo, posto da guarda, sobrado | 14 moradores, 22 obras, ferraria e torre, Engenharia, 100 ⚙️, 300 💰 |
 | 5 | 🏛️ Clássica | professor, marinheiro, curandeiro | academia, porto, anfiteatro, parque, casa de cura, aqueduto | 19 moradores, 29 obras, academia, anfiteatro e aqueduto, Filosofia |
 | 6 | 🏰 Medieval | mensageiro | mosteiro, castelo, estalagem, casa dos mensageiros | 24 moradores, 36 obras, castelo, Feudalismo |
 | 7 | 📜 Baixa Idade Média | jardineiro | biblioteca, farol, catedral, universidade | 30 moradores, 43 obras, biblioteca, catedral e universidade, Universidades |
@@ -63,7 +115,7 @@ As eras 5 a 10 também pedem produção total de ouro, ferro, pedra ou energia (
 **Grande final:** na Era Moderna, com 55 moradores, 70 obras, foguete, aeroporto e centro de tecnologia, a pesquisa Corrida espacial e 1.500 ⚡ produzidos, o foguete da vila decola. Há festa, fogos, o ranking dos fundadores na tela e XP para todos. Acontece uma vez por mundo; depois a vila continua viva.
 
 - **Pesquisa:** o chat vota o que a vila vai descobrir (`1`, `2`, `3`). A pesquisa-chave da era sempre está entre as opções. Ela avança sozinha, e cada mensagem no chat e cada `!ajudar` aceleram. Algumas pesquisas liberam obras: Ferramentas de pedra → oficina, Cestaria → depósito, Rituais → totem, Domesticação → curral, Moagem → moinho, Comércio → mercado, Mineração → mina, Forja → ferraria, Equitação → estábulo, Aquedutos → aqueduto, Medicina → casa de cura, Mosteiros → mosteiro, Arquitetura gótica → catedral, Universidades → universidade, Bancos → banco, Máquina a vapor → fábrica, Ferrovia → estação, Usina a carvão → usina, Aviação → aeroporto, Computação → centro de tecnologia, Corrida espacial → foguete. Universidade (+25%), centro de tecnologia (+50%) e cientistas aceleram as pesquisas; Cavalaria (+10) e Pólvora (+20) aumentam a defesa.
-- **Recursos novos:** 🪙 ouro aparece no Bronze (mina, comércio e fábrica), ⚙️ ferro no Ferro (mina e ferraria) e ⚡ energia na Industrial (usina, mais com engenheiro). A oficina e a fábrica produzem ferramentas; o moinho e o aqueduto, comida.
+- **Recursos novos:** 💰 ouro aparece no Bronze (mina, comércio e fábrica), ⚙️ ferro no Ferro (mina e ferraria) e ⚡ energia na Industrial (usina, mais com engenheiro). A oficina e a fábrica produzem ferramentas; o moinho e o aqueduto, comida.
 - **O mundo muda de cara:** as casas passam de palha e tronco para barro, pedra, tijolo e, na era final, concreto. Alguns nomes acompanham a era: Cabana → Casa de barro → Casa; Guarda → Policial; Curandeiro → Médico.
 - **Profissão do futuro:** quem pede uma profissão de era posterior chega como aprendiz e se forma quando a vila chega lá.
 - **Metas de população** dão de presente uma obra da era atual, nunca um prédio do futuro.
@@ -79,11 +131,11 @@ Quando a vila termina (normalmente depois do foguete), o streamer clica em **�
    - ❄️ **Inverno eterno:** neve o tempo todo e plantações lentas.
    - 🌱 **Terra fértil:** comida em dobro.
    - ⚔️ **Terras hostis:** ataques desde a Pedra, mais fortes, mais frequentes e com saque dobrado.
-   - 🪙 **Corrida do ouro:** minas rendem o dobro.
+   - 💰 **Corrida do ouro:** minas rendem o dobro.
    - 📚 **Povo sábio:** pesquisas 50% mais rápidas.
 4. **Veteranos:** quem jogou temporadas anteriores ganha ⭐ com o número de temporadas na etiqueta do morador, +10 XP ao voltar e um aviso no overlay. Nível e XP recomeçam a cada temporada, para todos disputarem de igual.
 
-O hall da fama e os veteranos ficam salvos dentro do mundo, então vão junto no backup. O overlay mostra a temporada e o mundo no topo (ex.: `T2 🪙 · 🪨 Era da Pedra`). O modo vitrine alterna entre o ranking atual e o hall da fama, e o botão **🏛️ Hall** mostra o hall na tela.
+O hall da fama e os veteranos ficam salvos dentro do mundo, então vão junto no backup. O overlay mostra a temporada e o mundo no topo (ex.: `T2 💰 · ⛰️ Era da Pedra`). O modo vitrine alterna entre o ranking atual e o hall da fama, e o botão **🏛️ Hall** mostra o hall na tela.
 
 ## Estatísticas
 
@@ -143,7 +195,7 @@ O XP vem de mensagens (1 a cada 15 s), votos, `!ajudar`, desafios vencidos e doa
 
 | Valor | Efeito (acumulativo) |
 |---|---|
-| Qualquer valor | +8 🪵 e +4 🪨 por real. Também conta na meta da live e nos desafios de recurso. |
+| Qualquer valor | +8 🌲 e +4 ⛰️ por real. Também conta na meta da live e nos desafios de recurso. |
 | ≥ R$ 5 | 3 votos turbinados (+4 de peso cada). |
 | ≥ R$ 10 | Obra relâmpago: +40% na obra atual. Também dispara um evento se a mensagem tiver `!festa`, `!chuva`, `!neve`, `!galinhas` ou `!ovni`. |
 | ≥ R$ 25 | Com `!obra nome` na mensagem, essa obra vem de presente. |

@@ -1,0 +1,35 @@
+🎮 MUNDO PIXELÂNDIA LIVE — o chat constrói a vila!
+
+⭐ COMO ENTRAR
+@SeuNome/profissão → traz seu morador (ex.: @Ana/lenhadora, @Leo/pescador)
+!meu → mostra seu morador e seus status
+1 2 3 → votam nas obras e pesquisas · A B → escolhem nos dilemas
+
+🪓 DÊ ORDENS AO SEU MORADOR
+!cortar · !pescar · !minerar · !caçar · !construir · !trabalhar
+!ir floresta / rio / mina / praça / casa
+!comer · !dormir · !parar
+(o chat chega com alguns segundos de atraso: espere o morador responder)
+
+⚔️ LUTE E GANHE MOEDAS
+Trabalhar rende 💰 para você
+!atacar → lobo, javali, urso e saqueadores
+!duelo @nome → desafia alguém (!aceitar para aceitar, ninguém perde nada)
+!ajudar → acelera pesquisas e mutirões
+
+🛒 LOJA E MOCHILA
+!loja · !comprar item · !equipar item · !usar item · !mochila
+Itens: machado, picareta, vara, martelo, arco, lança, espada, escudo, poção, pão, café, petisco
+
+🐾 PETS
+!pet → mostra a lista · !pet cachorro → adota · !pet nome Rex · !pet carinho
+Comuns (25 💰): cachorro, gato, coelho, galinha, raposa, porco, sapo, tartaruga, capivara, papagaio, macaco
+Raros (50 💰, nível 2): cobra, aranha, morcego, coruja, onça
+
+💎 LENDÁRIOS COM PIX OU SUPER CHAT
+Cada R$ 1 = 1 💎 cristal · membro novo ganha 10 💎
+Pets: slime 5, fada 10, orc 10, unicórnio 15, grifo 20, fênix 25, dragão 30 💎
+Itens: katana 15, marreta 15, besta 12, cajado 25, armadura dourada 15, elixir 3 💎
+Escreva o comando na mensagem do Pix (ex.: !pet dragao) e ganhe na hora!
+
+📜 !ajuda mostra todos os comandos na tela

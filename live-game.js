@@ -6,7 +6,7 @@
 const LIVE_CFG_KEY = 'pixelandia-live-config-v1';
 const LIVE_CFG = Object.assign({
   ytKey: '', ytVideo: '', bridgeUrl: 'http://localhost:8787/eventos',
-  auto: true, vitrine: true, raids: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
+  auto: true, vitrine: true, raids: true, howTo: true, autoEv: true, evMin: 10, autoSeason: true, seasonDays: 5, hideStudio: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
 }, (() => { try { return JSON.parse(localStorage.getItem(LIVE_CFG_KEY) || '{}'); } catch (e) { return {}; } })());
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
@@ -15,7 +15,7 @@ function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify
 // need = requisitos para SAIR da era: população, obras prontas, prédios, pesquisa-chave
 // e produção TOTAL (o que a vila já produziu, não o que tem guardado: construir não atrasa a era).
 const ERAS = [
-  { name: 'Era da Pedra', icon: '🪨',
+  { name: 'Era da Pedra', icon: '⛰️',
     profs: ['lenhador', 'pedreiro', 'minerador', 'cacador', 'pescador', 'guerreiro'],
     blds: ['casa', 'cabana', 'serraria', 'peixaria', 'deposito', 'oficina', 'totem'],
     need: { pop: 4, built: 4, has: ['deposito'], research: 'agricultura', prod: { wood: 150, food: 40 } } },
@@ -62,12 +62,12 @@ const ERAS = [
 const RESEARCH = {
   ferramentas: { era: 0, icon: '🪓', label: 'Ferramentas de pedra', unlock: ['oficina'], fx: () => { res.tools += 6; return '+6 🔧 e a oficina liberada'; } },
   cestaria: { era: 0, icon: '🧺', label: 'Cestaria', unlock: ['deposito'], fx: () => { res.crops += 15; return 'Cestos para guardar comida: depósito liberado'; } },
-  rituais: { era: 0, icon: '🪶', label: 'Rituais da tribo', unlock: ['totem'], fx: () => 'Totem liberado: a vila fica mais feliz' },
+  rituais: { era: 0, icon: '🔮', label: 'Rituais da tribo', unlock: ['totem'], fx: () => 'Totem liberado: a vila fica mais feliz' },
   agricultura: { era: 0, icon: '🌾', label: 'Agricultura', key: true, fx: () => 'Plantar em vez de só coletar!' },
   domesticacao: { era: 1, icon: '🐄', label: 'Domesticação', unlock: ['curral'], fx: () => 'Curral liberado' },
   moagem: { era: 1, icon: '🌀', label: 'Moagem', unlock: ['moinho'], fx: () => 'Moinho liberado: mais comida' },
   metalurgia: { era: 1, icon: '🔥', label: 'Metalurgia do bronze', key: true, fx: () => 'O fogo agora derrete metal' },
-  comercio: { era: 2, icon: '⚖️', label: 'Comércio', unlock: ['mercado'], fx: () => { res.coins += 20; return 'Mercado liberado e +20 🪙'; } },
+  comercio: { era: 2, icon: '⚖️', label: 'Comércio', unlock: ['mercado'], fx: () => { res.coins += 20; return 'Mercado liberado e +20 💰'; } },
   mineracao: { era: 2, icon: '⛏️', label: 'Mineração profunda', unlock: ['mina'], fx: () => 'Mina liberada: ouro!' },
   ferro: { era: 2, icon: '⚙️', label: 'Fundição de ferro', key: true, fx: () => 'Ferro: mais forte que o bronze' },
   forja: { era: 3, icon: '⚒️', label: 'Forja', unlock: ['ferraria'], fx: () => { res.tools += 10; return 'Ferraria liberada e +10 🔧'; } },
@@ -80,14 +80,14 @@ const RESEARCH = {
   cavalaria: { era: 5, icon: '🐴', label: 'Cavalaria', fx: () => { L().defBonus = (L().defBonus || 0) + 10; return '+10 de defesa contra invasores'; } },
   feudalismo: { era: 5, icon: '🛡️', label: 'Feudalismo', key: true, fx: () => 'Castelos e senhores' },
   gotica: { era: 6, icon: '⛪', label: 'Arquitetura gótica', unlock: ['catedral'], fx: () => 'Catedral liberada' },
-  imprensa: { era: 6, icon: '📰', label: 'Imprensa', fx: () => { res.coins += 80; return 'Notícias correm: +80 🪙'; } },
+  imprensa: { era: 6, icon: '📰', label: 'Imprensa', fx: () => { res.coins += 80; return 'Notícias correm: +80 💰'; } },
   universidades: { era: 6, icon: '🎓', label: 'Universidades', key: true, unlock: ['universidade'], fx: () => 'Universidade liberada: pesquisas mais rápidas' },
   polvora: { era: 7, icon: '💥', label: 'Pólvora', fx: () => { L().defBonus = (L().defBonus || 0) + 20; return '+20 de defesa contra piratas'; } },
   bancos: { era: 7, icon: '🏦', label: 'Bancos', unlock: ['banco'], fx: () => 'Banco liberado' },
   navegacao: { era: 7, icon: '🧭', label: 'Navegação oceânica', key: true, fx: () => 'Mares abertos' },
   vapor: { era: 8, icon: '♨️', label: 'Máquina a vapor', unlock: ['fabrica'], fx: () => 'Fábrica liberada' },
   ferrovia: { era: 8, icon: '🚂', label: 'Ferrovia', unlock: ['estacao'], fx: () => 'Estação de trem liberada' },
-  carvao: { era: 8, icon: '🪨', label: 'Usina a carvão', unlock: ['usina'], fx: () => 'Usina liberada: ⚡ energia!' },
+  carvao: { era: 8, icon: '⛰️', label: 'Usina a carvão', unlock: ['usina'], fx: () => 'Usina liberada: ⚡ energia!' },
   eletricidade: { era: 8, icon: '⚡', label: 'Eletricidade', key: true, fx: () => 'Luz em todas as casas' },
   aviacao: { era: 9, icon: '✈️', label: 'Aviação', unlock: ['aeroporto'], fx: () => 'Aeroporto liberado' },
   computacao: { era: 9, icon: '💻', label: 'Computação', unlock: ['centrotec'], fx: () => 'Centro de tecnologia liberado' },
@@ -147,15 +147,15 @@ function restyleHouses() { for (const b of buildings) if (b.type === 'casa') { b
 
 // ================== DILEMAS E DESAFIOS ==================
 const DILEMAS = [
-  { t: '🧳 Um mercador viajante quer 30 🪵 por 6 ferramentas',
+  { t: '🧳 Um mercador viajante quer 30 🌲 por 6 ferramentas',
     a: ['Trocar', () => { if (res.wood < 30) return 'Faltou madeira… o mercador foi embora 😕'; res.wood -= 30; res.tools += 6; return '+6 🔧 ferramentas: todo mundo trabalha mais rápido!'; }],
-    b: ['Recusar', () => { res.coins += 5; return 'Ele deixou 5 🪙 de gorjeta pela hospitalidade'; }] },
+    b: ['Recusar', () => { res.coins += 5; return 'Ele deixou 5 💰 de gorjeta pela hospitalidade'; }] },
   { t: '⛈️ Nuvens pretas no horizonte!',
     a: ['Proteger a horta', () => { startEvent('rain'); res.crops += 12; return 'A chuva veio e a horta rendeu +12 🥕'; }],
-    b: ['Cortar árvores antes da chuva', () => { startEvent('rain'); res.wood += 25; return 'Correria! +25 🪵 antes do temporal'; }] },
+    b: ['Cortar árvores antes da chuva', () => { startEvent('rain'); res.wood += 25; return 'Correria! +25 🌲 antes do temporal'; }] },
   { t: '🚶 Uma família de viajantes pede abrigo',
     a: ['Acolher', () => { liveGuest(); liveGuest(); return 'Dois novos vizinhos chegaram à vila ❤️'; }],
-    b: ['Seguir viagem', () => { res.coins += 10; return 'Pagaram 10 🪙 pelo pedágio e seguiram'; }] },
+    b: ['Seguir viagem', () => { res.coins += 10; return 'Pagaram 10 💰 pelo pedágio e seguiram'; }] },
   { t: '🎉 O pessoal está cansado. E agora?',
     a: ['Festa na praça', () => { startEvent('party'); return 'Fogos e dança: a vila ficou mais feliz!'; }],
     b: ['Mutirão de trabalho', () => { for (const n of npcs) n.boost = 90; return '⚡ Todos trabalham 60% mais rápido por um tempo'; }] },
@@ -164,17 +164,17 @@ const DILEMAS = [
     b: ['Deixar pra lá', () => { res.crops = Math.max(0, res.crops - 8); return 'Elas comeram 8 🥕 da horta…'; }] },
   { t: '🛸 Luzes estranhas no céu esta noite…',
     a: ['Investigar', () => { startEvent('ufo'); return 'Ninguém estava preparado para isso 👽'; }],
-    b: ['Acender mais fogueiras', () => { res.wood = Math.max(0, res.wood - 10); res.stone += 6; return 'Gastaram 10 🪵, mas acharam 6 🪨 brilhantes'; }] },
+    b: ['Acender mais fogueiras', () => { res.wood = Math.max(0, res.wood - 10); res.stone += 6; return 'Gastaram 10 🌲, mas acharam 6 ⛰️ brilhantes'; }] },
   { t: '💎 Encontraram um veio de pedra rara',
-    a: ['Minerar tudo', () => { res.stone += 30; return '+30 🪨 para as próximas obras'; }],
-    b: ['Preservar a natureza', () => { res.coins += 8; for (const n of npcs) n.boost = Math.max(n.boost || 0, 40); return 'Turistas vieram ver: +8 🪙 e ânimo geral'; }] },
+    a: ['Minerar tudo', () => { res.stone += 30; return '+30 ⛰️ para as próximas obras'; }],
+    b: ['Preservar a natureza', () => { res.coins += 8; for (const n of npcs) n.boost = Math.max(n.boost || 0, 40); return 'Turistas vieram ver: +8 💰 e ânimo geral'; }] },
 ];
 
 // Moradores dormem à noite: desafio de coleta só se ainda houver dia pela frente.
 function dayLeft() { return !isNight() && hour() < 15.5; }
 const CHALLENGES = {
-  madeira: { icon: '🪵', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 && dayLeft() },
-  pedra: { icon: '🪨', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => (hasProf('minerador') || hasProf('pedreiro')) && dayLeft() },
+  madeira: { icon: '🌲', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 && dayLeft() },
+  pedra: { icon: '⛰️', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => (hasProf('minerador') || hasProf('pedreiro')) && dayLeft() },
   mutirao: { icon: '💪', min: 2, title: n => `Mutirão: ${n}× !ajudar no chat`, target: () => 10 + Math.min(40, Object.keys(L().viewers).length), track: 'help', ok: () => true },
   boasvindas: { icon: '👋', min: 5, title: n => `Receber ${n} novos moradores`, target: () => 3, track: 'arrive', ok: () => true },
   hype: { icon: '💬', min: 3, title: n => `${n} mensagens no chat`, target: () => 25 + Math.min(75, Object.keys(L().viewers).length * 2), track: 'msg', ok: () => true },
@@ -253,7 +253,8 @@ function onChat(v, uid, text) {
   if (!text) return '';
   const now = Date.now();
   v.msgs++; statMsg(uid);
-  if (L().chal && L().chal.track === 'msg') chalAdd(uid, 1);
+  // Desafio de mensagens: repetir a mesma coisa não adianta, conta 1 mensagem por pessoa a cada 5 s.
+  if (L().chal && L().chal.track === 'msg' && now - (v.chalMsg || 0) >= 5000) { v.chalMsg = now; chalAdd(uid, 1); }
   if (now - v.last > 15000) { v.last = now; addXp(v, 1); researchAdd(3); const n = npcOf(v); if (n) n.boost = Math.max(n.boost || 0, 45); }
 
   const arrive = text.match(/^@\s*([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/u) || text.match(/^!morador\s+([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/iu);
@@ -271,7 +272,8 @@ function onChat(v, uid, text) {
   if (/^!temporada\b/.test(lower)) { const m = MODS[mod()]; announce(`🌱 Temporada ${L().season}`, `${m.icon} ${m.label}: ${m.desc}`); return ''; }
   if (/^!era\b/.test(lower)) { const e = ERAS[L().era]; announce(`${e.icon} ${e.name}`, eraNeedText() || 'Última era!'); return ''; }
   if (/^!(ajuda|comandos)\b/.test(lower)) { showHelp = Date.now() + 15000; return 'Comandos na tela.'; }
-  if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !defender, !meu, !top, !era.';
+  const pc = playerCommand(v, uid, lower, text); if (pc != null) return pc;
+  if (lower.startsWith('!')) return 'Comandos: @Nome/profissão, 1-4, A/B, !ajudar, !defender, !meu, !top, !era, !ir, !cortar, !comer, !dormir, !status, !loja, !pet, !atacar.';
 
   // Mensagem comum: o morador do espectador fala no mundo.
   const n = npcOf(v);
@@ -318,6 +320,9 @@ function processArrival() {
   n.liveTag = viewerTag(v); n.liveLv = level(v);
   if (v.vet) { addXp(v, 10); feed(`⭐ ${v.name} voltou! Veterano(a) de ${v.vet} temporada(s)`); }
   addHL(2, n.name + ' chegou à vila', n.x, n.y);
+  // Primeira dica para quem acabou de entrar: o morador fala o primeiro comando num balão.
+  const tip = { lenhador: '!cortar', pedreiro: '!construir', minerador: '!minerar', pescador: '!pescar', cacador: '!caçar' }[prof] || '!cortar';
+  setTimeout(() => { if (n.active) n.bubble = { text: `Me dê ordens: ${tip} 😉`, t: 6 }; }, 6000);
 }
 function liveGuest() {
   const sex = Math.random() < 0.5 ? 'f' : 'm';
@@ -423,7 +428,7 @@ function closeVote() {
     let at = 0; while (at < queue.length && queue[at].manual) at++;
     queue.splice(at, 0, { type: win.k, manual: true, voteId: result.id });
     lastTry = -99;
-    const lacks = [res.wood < d.wood ? `${d.wood - res.wood} 🪵` : '', res.stone < d.stone ? `${d.stone - res.stone} 🪨` : ''].filter(Boolean).join(' e ');
+    const lacks = [res.wood < d.wood ? `${d.wood - res.wood} 🌲` : '', res.stone < d.stone ? `${d.stone - res.stone} ⛰️` : ''].filter(Boolean).join(' e ');
     announce(`${d.icon} O chat escolheu: ${d.label}!`, voters ? `${voters} voto(s)` + (lacks ? ` · faltam ${lacks}` : ' · obra começando!') : 'Ninguém votou… sorteio!');
     feed(`🏗️ ${d.label} venceu com ${max} ponto(s)` + (lacks ? ` — faltam ${lacks}` : ''));
     logEv(`🗳️ Chat escolheu ${d.icon} ${d.label}`);
@@ -469,7 +474,7 @@ function endChallenge(win) {
     res.wood += 15 + k * 2; res.stone += 8 + k; res.coins += 10;
     for (const n of npcs) n.boost = Math.max(n.boost || 0, 60);
     for (const uid of helpers) if (s.viewers[uid]) addXp(s.viewers[uid], 10);
-    announce(`🏆 DESAFIO CUMPRIDO!`, `${def.icon} ${def.title(c.target)} · +${15 + k * 2} 🪵 +${8 + k} 🪨 e ânimo geral`);
+    announce(`🏆 DESAFIO CUMPRIDO!`, `${def.icon} ${def.title(c.target)} · +${15 + k * 2} 🌲 +${8 + k} ⛰️ e ânimo geral`);
     feed(helpers.length ? `🏆 Desafio cumprido! ${helpers.length} pessoa(s) do chat ajudaram` : '🏆 Desafio cumprido pelos moradores!');
     sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
   } else {
@@ -491,9 +496,14 @@ function onDonation(v, uid, amount, text, src) {
   res.wood += wood; res.stone += stone;
   const ch = s.chal;
   if (ch && (ch.track === 'wood' || ch.track === 'stone')) { ch.last[ch.track] = res[ch.track]; chalAdd(uid, ch.track === 'wood' ? wood : stone); }
-  const perks = [`+${wood} 🪵 +${stone} 🪨`];
+  const perks = [`+${wood} 🌲 +${stone} ⛰️`];
   if (amount >= 5) { v.turbo += 3; perks.push('3 votos turbinados'); }
   const lower = norm(text);
+  // 💎 Cristais: cada R$ 1 vira 1 cristal, que libera pets lendários e itens raros.
+  const gems = Math.max(1, Math.floor(amount)); pl(v); v.gems = (v.gems || 0) + gems; perks.push(`+${gems} 💎`);
+  // Resgate na hora: "!pet dragao" ou "!comprar katana" na mensagem do Pix/Super Chat.
+  const redeem = lower.match(/!(pet|comprar)\s+[a-z]+/);
+  if (redeem && n) { const r = playerCommand(v, uid, redeem[0], redeem[0]); if (r) feed(`💎 ${v.name}: ${r}`); else perks.push('resgatado: ' + redeem[0].slice(1)); }
   const merc = raidMercs(amount, v.name); if (merc) perks.push(merc);
   if (amount >= 10) {
     const site = buildings.find(b => !b.done);
@@ -518,17 +528,17 @@ function onDonation(v, uid, amount, text, src) {
 }
 function liveGoalReached() {
   const s = L();
-  announce('🎆 META DA LIVE BATIDA!', `R$ ${fmt(s.goal)} — festa gigante e +100 🪵 +60 🪨`);
+  announce('🎆 META DA LIVE BATIDA!', `R$ ${fmt(s.goal)} — festa gigante e +100 🌲 +60 ⛰️`);
   feed(`🎆 Meta de R$ ${fmt(s.goal)} batida! Próxima: R$ ${fmt(s.goal * 2)}`);
   res.wood += 100; res.stone += 60; startEvent('party'); for (let i = 0; i < 12; i++) firework();
   s.goal *= 2;
 }
 function onMember(v) {
-  v.member = true; stat('members'); addXp(v, 50);
+  v.member = true; stat('members'); addXp(v, 50); pl(v); v.gems = (v.gems || 0) + 10; // membro novo ganha 10 💎
   const n = npcOf(v);
   if (n && !n.vip) { n.fan = true; setVip(n, true); }
   else announce('👑 NOVO MEMBRO!', `${v.name} ganha mansão quando trouxer seu morador`);
-  feed(`👑 ${v.name} virou membro do canal!`); save(); return 'Membro registrado.';
+  feed(`👑 ${v.name} virou membro do canal! +10 💎`); save(); return 'Membro registrado.';
 }
 function onGift(v, count) {
   addXp(v, 30 * count);
@@ -541,14 +551,14 @@ let showTop = 0, showHelp = 0;
 // Fila de câmera: cada !meu ganha alguns segundos de destaque, um de cada vez.
 const SPOT_SEC = 8;
 const camQ = { cur: null, until: 0, queue: [], lastWasSpot: false };
-function showMine(v) {
+function showMine(v, kind = 'meu') {
   const n = npcOf(v);
   if (!n) return 'Você ainda não tem morador: digite @Nome/profissão';
   if (camQ.cur && camQ.cur.npc === n.id && Date.now() < camQ.until) return 'Seu morador já está na tela!';
   const pos = camQ.queue.findIndex(x => x.npc === n.id);
-  if (pos >= 0) return `Você já está na fila da câmera (${pos + 1}º).`;
+  if (pos >= 0) { camQ.queue[pos].kind = kind; return `Você já está na fila da câmera (${pos + 1}º).`; }
   if (camQ.queue.length >= 30) return 'Fila da câmera cheia, tente daqui a pouco.';
-  camQ.queue.push({ npc: n.id, uid: norm(v.name) });
+  camQ.queue.push({ npc: n.id, uid: norm(v.name), kind });
   liveDirty = true;
   return camQ.queue.length > 1 || camQ.cur ? `Fila da câmera: ${camQ.queue.length}º.` : 'Seu morador vai aparecer!';
 }
@@ -568,13 +578,14 @@ function processSpotlight() {
   follow = n.id; pinnedFollow = false; followUntil = performance.now() + SPOT_SEC * 1000;
   camQ.cur = { npc: n.id, name: n.name, who: v.name }; camQ.until = now + SPOT_SEC * 1000; camQ.lastWasSpot = true;
   const work = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
-  announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'} · ${work} tarefas`);
+  if (item.kind === 'mochila' && v.hp != null) announce(`🎒 Mochila de ${n.name}`, `de @${v.name} · 💰 ${v.coins}${gemsText(v)} · ${invText(v)} · ${eqText(v)}${n.pet ? ' · ' + (PET_BY_K[n.pet.k] || {}).icon + ' ' + (n.pet.name || (PET_BY_K[n.pet.k] || {}).label || 'pet') : ''}`);
+  else announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)}${v.hp != null ? ' · ' + bars(v) + ' · 💰 ' + v.coins + gemsText(v) + ' · ⚔️ ' + atkOf(v, n) : ''} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'}`);
   say(n, pick(['Oi, chat! 👋', 'Tô aqui!', 'Olha eu! ✨', 'Trabalhando duro 💪']));
   liveDirty = true;
 }
 
 // ================== ERA ==================
-const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
+const PROD_L = { wood: ['🌲', 'madeira'], stone: ['⛰️', 'pedra'], food: ['🍖', 'comida'], gold: ['💰', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
 function eraProgress() {
   const s = L(), e = ERAS[s.era], n = e.need || (!s.finale && e.finale); if (!n) return null;
   const done = buildings.filter(b => b.done && b.type !== 'monumento'); // memorial e presente de população não contam
@@ -735,10 +746,10 @@ function renderLiveHud() {
   if (s.goal > 0) h += `<div class="lh-goal">💛 Meta da live: R$ ${fmt(Math.round(s.raised))} / ${fmt(s.goal)}${bar(s.raised / s.goal, 'g')}</div>`;
   if (Date.now() < showTop) h += `<div class="lh-box"><b>🏆 Quem mais ajudou</b>${topViewers(5).map((v, i) => `<div class="opt"><span>${i + 1}. ${esc(v.name)}${npcOf(v) ? ' · ' + esc(npcOf(v).name) : ''}</span><em>nv ${level(v)}</em></div>`).join('') || '<small>Ninguém ainda</small>'}</div>`;
   if (Date.now() < showHall) h += hallBox();
-  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br><b>!hall</b> temporadas passadas · <b>!temporada</b> o mundo atual<br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
+  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br>⭐ <b>Principais:</b> <b>@Nome/profissão</b> · <b>!cortar</b> <b>!pescar</b> <b>!minerar</b> <b>!caçar</b> · <b>!atacar</b> · <b>!meu</b><br>➕ <b>Extras:</b> <b>!ir</b> lugar · <b>!comer</b> · <b>!dormir</b> · <b>!parar</b> · <b>!mochila</b> · <b>!pet cachorro</b> · <b>!loja</b> <b>!comprar</b> <b>!equipar</b> <b>!usar</b> · <b>!duelo @nome</b><br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
   const recent = s.feed.filter(f => Date.now() - f.at < 25000).slice(-4);
   if (recent.length) h += `<div class="lh-feed">${recent.map(f => `<div>${esc(f.t)}</div>`).join('')}</div>`;
-  const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos'];
+  const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos', '🪓 <b>!cortar</b> · <b>!pescar</b> · <b>!minerar</b>: dê ordens ao seu morador', '💰 Trabalhar rende moedas: <b>!loja</b> tem armas, pets e mais', '⚔️ <b>!atacar</b> quando aparecer lobo ou saqueador', '🍗 Morador alimentado trabalha mais rápido: <b>!comer</b>', '🐾 <b>!pet cachorro</b> adota um pet (25 💰)'];
   if (npcs.length) {
     h += `<div class="lh-tip">${tips[Math.floor(Date.now() / 8000) % tips.length]}</div>`;
     h += `<div class="lh-join">💬 Entre na vila: <b>@SeuNome/profissão</b></div>`;
@@ -750,9 +761,52 @@ function topViewers(k) { return Object.values(L().viewers).filter(v => v.xp > 0)
 
 // ================== CONEXÃO: YOUTUBE ==================
 // Lê o chat público pela YouTube Data API v3 com chave de API.
-// Cada leitura custa cota: o intervalo respeita pollingIntervalMillis e nunca fica abaixo de 6s.
+// Cota: 10.000 unidades por dia, renovadas à meia-noite do Pacífico (05:00 de Brasília no horário padrão).
+// Cada leitura do chat custa 5 unidades e cada busca do vídeo, 1. O jogo conta o gasto do dia,
+// lê mais devagar com o chat parado ou com a cota baixa e, se a cota acabar, mostra a tela de pausa.
 let yt = null;
-function ytVideoId(s) { s = String(s).trim(); const m = s.match(/(?:v=|youtu\.be\/|live\/|shorts\/)([\w-]{11})/); return m ? m[1] : s; }
+const YT_QUOTA = 10000, YT_Q_KEY = 'pixelandia-live-yt-quota';
+function ytQuotaDay() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); }
+function ytQuota() {
+  let q; try { q = JSON.parse(localStorage.getItem(YT_Q_KEY) || 'null'); } catch (e) {}
+  if (!q || q.day !== ytQuotaDay()) q = { day: ytQuotaDay(), used: 0, out: false };
+  return q;
+}
+function ytSpend(units) { const q = ytQuota(); q.used += units; try { localStorage.setItem(YT_Q_KEY, JSON.stringify(q)); } catch (e) {} return q; }
+function ytSetOut(out) { const q = ytQuota(); q.out = out; if (out) q.used = Math.max(q.used, YT_QUOTA); try { localStorage.setItem(YT_Q_KEY, JSON.stringify(q)); } catch (e) {} quotaScreen(); }
+function ytIsQuotaErr(j) { const r = j?.error?.errors?.[0]?.reason || ''; return /quota|dailyLimit|rateLimit/i.test(r) || /quota/i.test(j?.error?.message || ''); }
+// Hora em que a cota volta, no relógio local (meia-noite do Pacífico).
+function ytResetText() {
+  const now = new Date(), pt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const ms = (24 * 3600 - (pt.getHours() * 3600 + pt.getMinutes() * 60 + pt.getSeconds())) * 1000;
+  return new Date(now.getTime() + ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+// Intervalo entre leituras: rápido com o chat ativo, devagar com o chat parado ou com a cota acabando.
+function ytWait(apiMin) {
+  const left = 1 - ytQuota().used / YT_QUOTA, quiet = Date.now() - lastChatAt > 3 * 60000;
+  let w = quiet ? 15000 : 7000;
+  if (left < 0.5) w = Math.max(w, quiet ? 20000 : 10000);
+  if (left < 0.2) w = Math.max(w, 25000);
+  return Math.max(w, apiMin || 0);
+}
+// Tela de pausa: cobre o jogo inteiro quando a cota acaba. A vila continua rodando por trás.
+function quotaScreen() {
+  const q = ytQuota(); let el = document.getElementById('lvQuotaScreen');
+  const warn = !q.out && q.used >= YT_QUOTA * 0.9;
+  if (!q.out && !warn) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'lvQuotaScreen'; document.body.appendChild(el); }
+  if (q.out) {
+    el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(20,14,8,.82);font-family:"Pixelify Sans",sans-serif;color:#fff;text-align:center';
+    el.innerHTML = `<div style="background:#f5e6c8;color:#4a2c12;border:6px solid #7a4a1e;border-radius:14px;padding:36px 48px;max-width:720px;box-shadow:0 10px 0 #3b220d">
+      <div style="font-size:64px">😴</div>
+      <div style="font-size:40px;font-weight:700;margin:8px 0">A vila está descansando</div>
+      <div style="font-size:24px;line-height:1.4">O jogo atingiu o limite diário de leituras do chat do YouTube.<br>Os comandos voltam a funcionar às <b>${ytResetText()}</b>.</div>
+      <div style="font-size:20px;margin-top:14px;opacity:.8">Obrigado por jogar! 💛 Volte mais tarde para continuar a vila.</div></div>`;
+  } else {
+    el.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:99999;background:#7a4a1e;color:#fff;font-family:"Pixelify Sans",sans-serif;font-size:18px;padding:8px 16px;border-radius:10px;opacity:.92';
+    el.textContent = '⚠️ O chat do jogo vai pausar em breve (limite diário do YouTube quase no fim)';
+  }
+}
 async function ytConnect() {
   ytStop();
   const key = LIVE_CFG.ytKey.trim(), vid = ytVideoId(LIVE_CFG.ytVideo);
@@ -760,33 +814,56 @@ async function ytConnect() {
   const run = yt = { stop: false, token: null, started: Date.now() };
   try {
     liveConn.yt = 'procurando chat…'; liveDirty = true;
+    ytSpend(1);
     const r = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${encodeURIComponent(vid)}&key=${encodeURIComponent(key)}`);
     const j = await r.json();
+    if (ytIsQuotaErr(j)) { ytSetOut(true); throw new Error('cota diária do YouTube esgotada'); }
     if (j.error) throw new Error(j.error.message);
     const chat = j.items?.[0]?.liveStreamingDetails?.activeLiveChatId;
     if (!chat) throw new Error('vídeo sem chat ao vivo ativo');
     run.chat = chat;
+    if (ytQuota().out) ytSetOut(false);
     liveConn.yt = 'conectado ✅'; liveDirty = true;
     ytPoll(run, key, true);
-  } catch (err) { liveConn.yt = 'erro: ' + err.message; liveDirty = true; }
+  } catch (err) {
+    liveConn.yt = 'erro: ' + err.message; liveDirty = true;
+    // Cota esgotada ou rede fora: tenta de novo sozinho (a cada 15 min com a cota esgotada).
+    if (yt === run && !run.stop) run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, ytQuota().out ? 15 * 60000 : 60000);
+  }
 }
 async function ytPoll(run, key, first) {
   if (run.stop) return;
   let wait = 8000;
   try {
     const url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${encodeURIComponent(run.chat)}&part=snippet,authorDetails&maxResults=200${run.token ? '&pageToken=' + encodeURIComponent(run.token) : ''}&key=${encodeURIComponent(key)}`;
+    ytSpend(5);
     const j = await (await fetch(url)).json();
-    if (j.error) throw new Error(j.error.message);
+    if (ytIsQuotaErr(j)) {
+      ytSetOut(true);
+      liveConn.yt = 'cota diária esgotada · volta às ' + ytResetText(); liveDirty = true;
+      run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, 15 * 60000);
+      return;
+    }
+    if (j.error) {
+      // O chat da live acabou (live encerrada): reconecta para achar o chat de novo.
+      if (/liveChatEnded|liveChatNotFound|forbidden/i.test(j.error.errors?.[0]?.reason || '')) { liveConn.yt = 'chat encerrado: procurando de novo…'; liveDirty = true; run.timer = setTimeout(() => { if (yt === run && !run.stop) ytConnect(); }, 60000); return; }
+      throw new Error(j.error.message);
+    }
+    if (ytQuota().out) ytSetOut(false);
     run.token = j.nextPageToken;
-    wait = Math.max(6000, j.pollingIntervalMillis || 6000);
+    wait = ytWait(j.pollingIntervalMillis);
     // Na primeira leitura, ignora mensagens antigas para não reprocessar o histórico.
     if (!first) for (const it of j.items || []) { try { const e = ytMap(it); if (e) liveEvent(e); } catch (e) { console.error('mensagem do YouTube:', e, it); } }
     first = false;
-    liveConn.yt = `conectado ✅ · ${new Date().toLocaleTimeString('pt-BR')}`; liveDirty = true;
+    const q = ytQuota();
+    liveConn.yt = `conectado ✅ · ${new Date().toLocaleTimeString('pt-BR')} · cota ${Math.min(100, Math.round(q.used / YT_QUOTA * 100))}%`; liveDirty = true;
   } catch (err) { liveConn.yt = 'erro: ' + err.message + ' (tentando de novo)'; liveDirty = true; wait = 20000; }
+  quotaScreen();
   run.timer = setTimeout(() => ytPoll(run, key, first), wait);
 }
 function ytStop() { if (yt) { yt.stop = true; clearTimeout(yt.timer); yt = null; } liveConn.yt = 'desligado'; liveDirty = true; }
+// Ao abrir o jogo, mostra a tela de pausa se a cota de hoje já tinha acabado; confere a virada do dia.
+setTimeout(quotaScreen, 1000); setInterval(quotaScreen, 60000);
 function ytMap(it) {
   const sn = it.snippet || {}, au = it.authorDetails || {};
   const base = { id: 'yt:' + it.id, src: 'yt', user: 'yt:' + au.channelId, name: au.displayName || 'Anônimo' };
@@ -842,6 +919,10 @@ $('livePanel').innerHTML = `
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
+  <label><input type="checkbox" id="lvHowTo"> Cartão "Como jogar" na tela (comandos alternando à direita)</label>
+  <label><input type="checkbox" id="lvAutoEv"> Eventos automáticos (chuva, festa, galinhas, OVNI e neve em dezembro)</label>
+  <label><input type="checkbox" id="lvAutoSeason"> Estações do ano automáticas (mudam a cada 5 dias do jogo)</label>
+  <label><input type="checkbox" id="lvHideStudio"> Esconder vídeos e eventos manuais (modo live sozinha)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
   <p class="tip" id="lvStatus"></p>
   <label for="lvBanName">Bloquear espectador (remove o morador e ignora as mensagens)</label>
@@ -879,6 +960,7 @@ $('lvSeason').onclick = () => { if (startNewSeason()) $('lvFeedback').textConten
 $('lvStats').onclick = openStats;
 $('lvHall').onclick = () => { showHall = Date.now() + 20000; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
+for (const [id, key] of [['lvHowTo', 'howTo'], ['lvAutoEv', 'autoEv'], ['lvAutoSeason', 'autoSeason'], ['lvHideStudio', 'hideStudio']]) { $(id).checked = LIVE_CFG[key]; $(id).onchange = e => { LIVE_CFG[key] = e.target.checked; liveSaveCfg(); if (key === 'hideStudio') applyStudioHide(); }; }
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
 
@@ -1010,6 +1092,7 @@ function raidAttack() {
   const tile = { x: Math.round(mx), y: Math.round(my) };
   const fighters = npcs.filter(n => n.active && !n.inside && ['guerreiro', 'policial', 'cacador'].includes(n.prof));
   const extra = npcs.filter(n => n.active && !n.inside && !fighters.includes(n)).slice(0, Math.min(8, Object.keys(r.help).length * 2));
+  for (const uid of Object.keys(r.fighters || {})) { const v = s.viewers[uid], n = v && npcOf(v); if (n && !fighters.includes(n) && !extra.includes(n)) { if (!n.active) activate(n); n.inside = false; extra.push(n); } }
   for (const n of fighters.concat(extra)) { n.plan = [goNear(tile.x, tile.y, 3), work(RAID_FIGHT + 4, 'hammer', null)]; n.step = null; n.sleeping = false; n.status = 'Defendendo a vila ⚔️'; }
   announce('⚔️ ATAQUE!', `🛡️ Defesa ${r.def} contra 🗡️ ${r.str}`);
   sfx('thunder'); camTo(r.meet.x, r.meet.y); follow = null;
@@ -1052,7 +1135,7 @@ function raidResolve() {
     if (s.era >= 2) res.coins += loot; else res.wood += loot;
     for (const v of new Set(helpers.concat(owners))) addXp(v, 15);
     s.raidsWon = (s.raidsWon || 0) + 1;
-    announce('🛡️ VITÓRIA!', `Os ${(r.kind || 'Saqueadores').toLowerCase()} fugiram e deixaram ${loot} ${s.era >= 2 ? '🪙' : '🪵'} para trás`);
+    announce('🛡️ VITÓRIA!', `Os ${(r.kind || 'Saqueadores').toLowerCase()} fugiram e deixaram ${loot} ${s.era >= 2 ? '💰' : '🌲'} para trás`);
     feed(`🛡️ A vila venceu os ${(r.kind || 'Saqueadores').toLowerCase()} (${r.def} contra ${r.str})! ${helpers.length} pessoa(s) do chat ajudaram`);
     sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
     for (const z of raiders) { z.tx = z.hx; z.ty = z.hy; z.fade = true; }
@@ -1068,6 +1151,7 @@ function raidResolve() {
     setTimeout(() => { for (const z of raiders) { z.carry = 'wood'; z.tx = z.hx; z.ty = z.hy; z.fade = true; } }, 6000);
     if (Math.random() < 0.35) setTimeout(() => startEvent('fire'), 3000);
   }
+  for (const uid of r.hurtList || []) { const v = s.viewers[uid], n = v && npcOf(v); if (v) { pl(v); hurt(v, n && n.active ? n : null, r.win ? rnd(4, 12) : rnd(18, 35), 'batalha'); v.coins += r.win ? 6 : 1; } }
   for (const n of npcs) if (n.status === 'Defendendo a vila ⚔️') { n.plan = []; n.step = null; n.anim = null; say(n, r.win ? pick(['Vitória! 🎉', 'Corram, saqueadores!', 'Ninguém mexe na nossa vila!']) : pick(['Eles levaram tudo…', 'Precisamos de muralhas!']), 0.6); }
   save(); liveDirty = true;
 }
@@ -1081,7 +1165,568 @@ function raidTick(now) {
     if (!s.next.raid) s.next.raid = now + 5 * 60000; else startRaid(false);
   }
 }
-function liveWorldEntities() { return raiders.map(z => ({ y: z.y, k: 'live', draw: () => { ctx.save(); ctx.globalAlpha = clamp(z.a, 0, 1); drawNPC(z); ctx.restore(); } })); }
+function liveWorldEntities() { return beasts.map(z => ({ y: z.y, k: 'live', draw: () => drawBeast(z) })).concat(hpBarEntities(), raidersEntities()); }
+function raidersEntities() { return raiders.map(z => ({ y: z.y, k: 'live', draw: () => { ctx.save(); ctx.globalAlpha = clamp(z.a, 0, 1); drawNPC(z); ctx.restore(); } })); }
+
+// ================== CONTROLE DO MORADOR ==================
+// Cada espectador controla o próprio morador por ordens no chat (o chat chega com 7 a 15 s de atraso,
+// então o controle é por ordem, não por setas). Sem ordem nova, o morador volta à rotina sozinho.
+// Tudo fica salvo no espectador (L().viewers), que vai junto no salvamento e no backup do mundo.
+//   Fase 1: ordens e necessidades (❤️ vida, 🍗 fome, ⚡ energia). Modo leve: fome e energia só dão
+//           bônus (bem alimentado e descansado trabalha mais rápido) e nunca castigam; vida só cai em combate.
+//   Fase 2: pets que seguem o dono e trazem achados
+//   Fase 3: 💰 moedas pessoais, mochila, loja, ferramentas e armas
+//   Fase 4: combate (lobos, saqueadores, duelos) e desmaio
+const ORDER_MS = 3 * 60000, KO_MS = 20000, NEED_TICK = 10000, ORDER_GAP = 5000, EAT_GAP = 30000;
+const ORDER_LABEL = { go: 'Indo', stay: 'Esperando', chop: 'Cortando árvores 🪓', mine: 'Minerando ⛏️', fish: 'Pescando 🎣', hunt: 'Caçando 🏹', build: 'Construindo 🔨', job: 'Trabalhando', sleep: 'Descansando 💤', fight: 'Lutando ⚔️' };
+const ITEMS = {
+  machado: { icon: '🪓', label: 'Machado', price: 20, slot: 'tool', work: 'chop', desc: 'corta árvores 60% mais rápido' },
+  picareta: { icon: '⛏️', label: 'Picareta', price: 20, slot: 'tool', work: 'mine', desc: 'minera 60% mais rápido' },
+  vara: { icon: '🎣', label: 'Vara de pesca', price: 20, slot: 'tool', work: 'fish', desc: 'pesca 60% mais rápido' },
+  martelo: { icon: '🔨', label: 'Martelo', price: 20, slot: 'tool', work: 'build', desc: 'constrói 60% mais rápido' },
+  arco: { icon: '🏹', label: 'Arco', price: 30, slot: 'weapon', atk: 6, work: 'hunt', desc: '+6 de ataque e caça melhor' },
+  lanca: { icon: '🔱', label: 'Lança', price: 40, slot: 'weapon', atk: 9, desc: '+9 de ataque' },
+  espada: { icon: '🗡️', label: 'Espada', price: 60, slot: 'weapon', atk: 14, desc: '+14 de ataque' },
+  escudo: { icon: '🛡️', label: 'Escudo', price: 40, slot: 'armor', def: 8, desc: 'leva menos dano' },
+  pocao: { icon: '🧪', label: 'Poção', price: 15, use: 'hp', amount: 50, desc: '+50 de vida' },
+  pao: { icon: '🥖', label: 'Pão', price: 6, use: 'food', amount: 45, desc: '+45 de fome saciada' },
+  cafe: { icon: '☕', label: 'Café', price: 8, use: 'en', amount: 40, desc: '+40 de energia' },
+  petisco: { icon: '🦴', label: 'Petisco', price: 5, use: 'pet', desc: 'o pet traz um achado na hora' },
+  // Raros: só com 💎 cristais (cada R$ 1 em Pix ou Super Chat = 1 💎).
+  katana: { icon: '⚔️', label: 'Katana', gems: 15, slot: 'weapon', atk: 22, desc: '+22 de ataque' },
+  marreta: { icon: '🔨', label: 'Marreta de guerra', gems: 15, slot: 'weapon', atk: 20, work: 'build', desc: '+20 de ataque e constrói rápido' },
+  besta: { icon: '🏹', label: 'Besta', gems: 12, slot: 'weapon', atk: 18, work: 'hunt', desc: '+18 de ataque e caça rápido' },
+  cajado: { icon: '🔮', label: 'Cajado mágico', gems: 25, slot: 'weapon', atk: 28, desc: '+28 de ataque com magia' },
+  armadura: { icon: '🛡️', label: 'Armadura dourada', gems: 15, slot: 'armor', def: 20, desc: 'quase não leva dano' },
+  elixir: { icon: '⚗️', label: 'Elixir', gems: 3, use: 'all', desc: 'vida, fome e energia no máximo' },
+};
+const ITEM_ALIAS = { katana: 'katana', marreta: 'marreta', besta: 'besta', cajado: 'cajado', varinha: 'cajado', armadura: 'armadura', elixir: 'elixir', pocao: 'pocao', pocoes: 'pocao', vida: 'pocao', pao: 'pao', comida: 'pao', cafe: 'cafe', osso: 'petisco', petisco: 'petisco', machado: 'machado', picareta: 'picareta', vara: 'vara', martelo: 'martelo', arco: 'arco', lanca: 'lanca', espada: 'espada', escudo: 'escudo' };
+// Pets: comuns (25 💰), raros (50 💰, nível 2) e lendários de RPG (só com 💎 cristais, que vêm de Pix/Super Chat).
+// k = código de 3 letras (é o que vai no salvamento); fly = voa ao lado do dono; art = artigo (um/uma).
+const PET_KINDS = {
+  cachorro: { k: 'dog', icon: '🐶', label: 'Cachorro', tier: 'comum', atk: 4, find: ['🦴 um osso enterrado', 'coins', 3] },
+  gato: { k: 'cat', icon: '🐱', label: 'Gato', tier: 'comum', atk: 1, find: ['🐟 um peixe', 'fish', 2] },
+  coelho: { k: 'bun', icon: '🐰', label: 'Coelho', tier: 'comum', atk: 0, find: ['🥕 cenouras', 'crops', 3] },
+  galinha: { k: 'hen', icon: '🐔', label: 'Galinha', art: 'uma', tier: 'comum', atk: 0, find: ['🥚 ovos fresquinhos', 'meals', 1] },
+  raposa: { k: 'fox', icon: '🦊', label: 'Raposa', art: 'uma', tier: 'comum', atk: 3, find: ['💰 moedas perdidas', 'coins', 4] },
+  porco: { k: 'pig', icon: '🐷', label: 'Porquinho', tier: 'comum', atk: 1, find: ['🍄 uma trufa rara', 'coins', 6] },
+  sapo: { k: 'fro', icon: '🐸', label: 'Sapo', tier: 'comum', atk: 0, find: ['💰 uma moeda no fundo do lago', 'coins', 3] },
+  tartaruga: { k: 'tur', icon: '🐢', label: 'Tartaruga', art: 'uma', tier: 'comum', atk: 0, find: ['🐟 peixinhos', 'fish', 2] },
+  capivara: { k: 'cap', icon: '🐹', label: 'Capivara', art: 'uma', tier: 'comum', atk: 1, find: ['🥕 capim fresquinho', 'crops', 3] },
+  papagaio: { k: 'par', icon: '🦜', label: 'Papagaio', tier: 'comum', fly: true, atk: 0, find: ['💰 uma moeda brilhante', 'coins', 3] },
+  macaco: { k: 'mon', icon: '🐒', label: 'Macaco', tier: 'comum', atk: 2, find: ['🍌 bananas', 'crops', 3] },
+  cobra: { k: 'sna', icon: '🐍', label: 'Cobra', art: 'uma', tier: 'raro', atk: 4, find: ['💰 ouro escondido', 'coins', 5] },
+  aranha: { k: 'spi', icon: '🕷️', label: 'Aranha', art: 'uma', tier: 'raro', atk: 3, find: ['🕸️ seda para ferramentas', 'tools', 1] },
+  morcego: { k: 'bat', icon: '🦇', label: 'Morcego', tier: 'raro', fly: true, atk: 2, find: ['💰 moedas de uma caverna', 'coins', 5] },
+  coruja: { k: 'owl', icon: '🦉', label: 'Coruja', art: 'uma', tier: 'raro', fly: true, atk: 2, find: ['💰 moedas vistas lá do alto', 'coins', 5] },
+  onca: { k: 'jag', icon: '🐆', label: 'Onça', art: 'uma', tier: 'raro', atk: 7, find: ['🍖 uma caça', 'meals', 2] },
+  slime: { k: 'sli', icon: '🟢', label: 'Slime', tier: 'mitico', gems: 5, atk: 2, find: ['💰 moedas que ele engoliu', 'coins', 7] },
+  fada: { k: 'fai', icon: '🧚', label: 'Fada', art: 'uma', tier: 'mitico', gems: 10, fly: true, atk: 1, find: ['✨ pó de fada', 'coins', 6], perk: 'Cura o dono aos pouquinhos' },
+  orc: { k: 'orc', icon: '👹', label: 'Orc', tier: 'mitico', gems: 10, atk: 9, find: ['🌲 uma pilha de lenha', 'wood', 8], perk: 'Forte na luta' },
+  unicornio: { k: 'uni', icon: '🦄', label: 'Unicórnio', tier: 'mitico', gems: 15, atk: 5, find: ['🍎 frutas mágicas', 'crops', 6], perk: 'Recupera a energia do dono' },
+  grifo: { k: 'grf', icon: '🦅', label: 'Grifo', tier: 'mitico', gems: 20, fly: true, atk: 8, find: ['💰 o tesouro do ninho', 'coins', 10] },
+  fenix: { k: 'phx', icon: '🔥', label: 'Fênix', art: 'uma', tier: 'mitico', gems: 25, fly: true, atk: 6, find: ['💰 uma pena dourada', 'coins', 9], perk: 'Se o dono desmaiar, ele renasce em 5 s' },
+  dragao: { k: 'drg', icon: '🐉', label: 'Dragão', tier: 'mitico', gems: 30, fly: true, atk: 12, find: ['💰 o tesouro do dragão', 'coins', 15], perk: 'Cospe fogo na luta' },
+};
+const PET_ALIAS = { serpente: 'cobra', jaguar: 'onca', pantera: 'onca', arara: 'papagaio', sapinho: 'sapo', ra: 'sapo', capivaras: 'capivara', fenix: 'fenix', phoenix: 'fenix', unicornio: 'unicornio', dragon: 'dragao', dragao: 'dragao', grifo: 'grifo', grifon: 'grifo', slime: 'slime', gosma: 'slime', fadinha: 'fada', porquinho: 'porco', cao: 'cachorro', cachorrinho: 'cachorro', gatinho: 'gato', morcegos: 'morcego', aranhas: 'aranha' };
+for (const p of Object.values(PET_KINDS)) { if (p.price == null && !p.gems) p.price = p.tier === 'raro' ? 50 : 25; if (p.lvl == null) p.lvl = p.tier === 'raro' ? 2 : 1; }
+const PET_BY_K = Object.fromEntries(Object.entries(PET_KINDS).map(([nm, p]) => [p.k, { ...p, nm }]));
+const PET_PRICE = 25;
+const PLAYER_START_COINS = 10;
+let shopAt = 0;
+
+// ---------- Estado do jogador (fica no espectador) ----------
+function pl(v) {
+  if (v.hp == null) Object.assign(v, { hp: 100, food: 80, en: 90, coins: PLAYER_START_COINS, inv: {}, eq: {}, ord: null, ko: 0, petAt: 0 });
+  if (!v.inv) v.inv = {}; if (!v.eq) v.eq = {};
+  return v;
+}
+let ownerCache = null, ownerCacheAt = 0;
+function ownerOf(n) {
+  if (!ownerCache || Date.now() - ownerCacheAt > 1000) {
+    ownerCache = new Map(); ownerCacheAt = Date.now();
+    for (const v of Object.values(L().viewers)) if (v.npc != null && !v.banned) ownerCache.set(v.npc, v);
+  }
+  return ownerCache.get(n.id) || null;
+}
+function bars(v) { return `❤️ ${Math.round(v.hp)} · 🍗 ${Math.round(v.food)} · ⚡ ${Math.round(v.en)}`; }
+function atkOf(v, n) { const w = ITEMS[v.eq.weapon]; const p = n && n.pet && PET_BY_K[n.pet.k]; return 4 + Math.floor(level(v) / 2) + (w ? w.atk : 0) + (p ? p.atk : 0); }
+function defOf(v) { const a = ITEMS[v.eq.armor]; return a ? a.def : 0; }
+function gemsText(v) { return v.gems ? ` · 💎 ${v.gems}` : ''; }
+function invText(v) { const it = Object.entries(v.inv).filter(([, q]) => q > 0).map(([k, q]) => `${ITEMS[k].icon}${q > 1 ? '×' + q : ''}`); return it.join(' ') || 'vazia'; }
+function eqText(v) { return ['tool', 'weapon', 'armor'].map(s => v.eq[s] && ITEMS[v.eq[s]] ? ITEMS[v.eq[s]].icon + ' ' + ITEMS[v.eq[s]].label : null).filter(Boolean).join(' · ') || 'nada equipado'; }
+function findItem(word) { const w = norm(word || '').replace(/[^a-z]/g, ''); if (!w) return null; if (ITEM_ALIAS[w]) return ITEM_ALIAS[w]; return Object.keys(ITEMS).find(k => k.startsWith(w) || w.startsWith(k)) || null; }
+function hurt(v, n, dmg, why) {
+  pl(v); dmg = Math.max(1, Math.round(dmg - defOf(v) * 0.5)); v.hp = Math.max(0, v.hp - dmg);
+  if (n) { floatTxt(n.x, n.y - 26, '-' + dmg + ' ❤️'); burst(n.x, n.y - 10, '#e74c3c', 5); }
+  if (v.hp <= 0) knockOut(v, n, why);
+}
+function knockOut(v, n, why) {
+  if (n && n.pet && n.pet.k === 'phx') { // Fênix: o dono renasce rapidinho
+    v.ko = Date.now() + 5000; v.ord = null; v.hp = 0;
+    feed(`🔥 ${n.name} caiu, mas a fênix ${n.pet.name || ''} o fez renascer das cinzas!`);
+    if (n.active) { for (let i = 0; i < 3; i++) burst(n.x + rnd(-6, 6), n.y - 10, pick(['#ff9a2a', '#ffd04a', '#ff5a2a']), 8); say(n, 'Renasci! 🔥'); }
+    return;
+  }
+  v.ko = Date.now() + KO_MS; v.ord = null; v.hp = 0;
+  feed(`💫 ${n ? n.name : v.name} desmaiou${why ? ' (' + why + ')' : ''} e volta em 20 s`);
+  if (n) { say(n, 'Ai… 💫'); n.plan = []; n.step = null; n.anim = null; const h = homeB(n); n.status = 'Desmaiado 💫'; if (h) { const f = frontOf(h); n.plan = [goTile(f.x, f.y), fn(m => { m.inside = true; })]; } else { n.sleeping = true; n.idle = 5; } }
+}
+
+// ---------- Fase 1: ordens ----------
+function setOrder(v, n, k, extra) {
+  pl(v);
+  // Repetir a mesma ordem não reinicia o caminho; ordens novas, no máximo uma a cada 5 s.
+  if (v.ord && v.ord.k === k && !extra) { v.ord.until = Date.now() + ORDER_MS; return ''; }
+  if (Date.now() - (v.ordAt || 0) < ORDER_GAP) return '';
+  v.ordAt = Date.now();
+  if (v.ko > Date.now()) return `${n.name} está desmaiado 💫 e volta em ${Math.ceil((v.ko - Date.now()) / 1000)}s.`;
+  v.ord = Object.assign({ k, until: Date.now() + ORDER_MS }, extra || {});
+  if (!n.active) activate(n);
+  n.plan = []; n.step = null; n.anim = null; n.idle = 0; n.inside = false; n.sleeping = false;
+  if (n.carry && !n.carryRes) n.carry = null;
+  say(n, pick(['Pode deixar! 👍', 'Indo agora!', 'Sim, chefe! 🫡', 'Bora!']), 0.9);
+  liveDirty = true; return '';
+}
+function placeGoal(word, n) {
+  const w = norm(word || '').replace(/^(a|o|ao|na|no|para|pra)\s+/, '');
+  const R = clearR();
+  if (/^(floresta|mata|bosque|arvore)/.test(w)) return { g: (x, y) => !inR(x, y, R - 1) && nearObj(x, y, O_TREE, 1) && Math.random() < 0.15, label: 'a floresta' };
+  if (/^(rio|lago|mar|praia|agua|lagoa)/.test(w)) return { g: (x, y) => { for (const [dx, dy] of DIRS) { const nx = x + dx, ny = y + dy; if (inB(nx, ny) && isWaterG(ground[idx(nx, ny)])) return Math.random() < 0.3; } return false; }, label: 'a água' };
+  if (/^(mina|pedreira|pedra|rocha|montanha)/.test(w)) return { g: (x, y) => nearObj(x, y, O_ROCK, 1) && Math.random() < 0.3, label: 'as pedras' };
+  if (/^(praca|centro|fogueira|vila)/.test(w)) return { g: (x, y) => (x - CX) ** 2 + (y - CY) ** 2 <= 9 && !(x === CX && y === CY) && Math.random() < 0.35, label: 'a praça' };
+  if (/^(deposito|estoque|armazem)/.test(w)) return { g: (x, y) => Math.abs(x - CRX) + Math.abs(y - CRY) === 1, label: 'o depósito' };
+  if (/^(casa|lar)/.test(w)) { const h = homeB(n); if (!h) return null; const f = frontOf(h); return { g: (x, y) => x === f.x && y === f.y, label: 'casa', home: true }; }
+  const b = buildings.find(b => b.done && (norm(BT[b.type].label).startsWith(w) || norm(bName(b)).includes(w)));
+  if (b) { const s = goBld(b); return { g: s.goal, label: bName(b) }; }
+  return null;
+}
+// Ordem ativa: decide o próximo passo do morador. Devolve true se cuidou do morador.
+function orderPlan(n, v) {
+  const now = Date.now();
+  if (v.ko > now) { n.inside = !!homeB(n); n.sleeping = !homeB(n); n.status = 'Desmaiado 💫'; n.idle = 4; return true; }
+  if (v.ko && v.ko <= now) { v.ko = 0; v.hp = Math.max(v.hp, 60); n.inside = false; n.sleeping = false; say(n, 'Acordei! 😵‍💫'); }
+  const o = v.ord;
+  if (!o) {
+    // Sem ordem: cuida das próprias necessidades antes da rotina.
+    if (v.food < 20 && !isNight() && (res.meals > 0 || res.fish > 0 || res.crops > 0)) { planEat(n, v, false); return true; }
+    return false;
+  }
+  if (now > o.until || (o.k === 'sleep' && v.en >= 98)) { v.ord = null; say(n, 'Voltando à rotina!', 0.6); return false; }
+  if (EV.party > 0 || EV.fire) return false;
+  if (o.k !== 'sleep') { n.inside = false; n.sleeping = false; }
+  const tool = ITEMS[v.eq.tool], weap = ITEMS[v.eq.weapon];
+  if ((tool && tool.work === o.k) || (weap && weap.work === o.k)) n.boost = Math.max(n.boost || 0, 20);
+  const want = { chop: 'wood', mine: 'stone', fish: 'fish', hunt: 'crops' }[o.k];
+  if (n.carry && n.carryRes && (n.carryRes !== want || n.carryN >= (o.k === 'chop' ? 9 : 6))) { planDeliver(n); return true; }
+  let ok = true;
+  if (o.k === 'chop') ok = aiLumber(n);
+  else if (o.k === 'mine') ok = aiMiner(n);
+  else if (o.k === 'fish') ok = aiFisher(n);
+  else if (o.k === 'hunt') ok = aiHunter(n);
+  else if (o.k === 'build') ok = aiBuilder(n);
+  else if (o.k === 'job') { const P = PROF[n.prof]; ok = P && P.ai ? P.ai(n) : aiBuilder(n) || aiLumber(n); }
+  else if (o.k === 'sleep') { if (!n.inside && !n.sleeping) planSleep(n); else n.idle = 3; n.status = 'Descansando 💤'; return true; }
+  else if (o.k === 'go') { n.plan = [{ t: 'go', goal: o.goal }, fn(m => { if (v.ord === o) { o.k = 'stay'; if (o.home) m.inside = true; } }), wait(rnd(2, 4))]; }
+  else if (o.k === 'stay') { if (o.home) { n.inside = true; n.idle = 4; } else n.plan = [{ t: 'go', goal: o.goal }, wait(rnd(5, 10))]; }
+  else if (o.k === 'fight') return beastOrder(n, v);
+  if (!ok) { v.ord = null; say(n, pick(['Não achei onde fazer isso… 🤷', 'Não tem nada para isso aqui perto']), 0.9); return false; }
+  if (ORDER_LABEL[o.k]) n.status = `${ORDER_LABEL[o.k]}${o.label ? ' ' + o.label : ''} (ordem de @${v.name})`;
+  return true;
+}
+const FOODS = [['meals', 60, '🍲'], ['fish', 35, '🐟'], ['crops', 30, '🥕']];
+function planEat(n, v, ordered) {
+  n.status = 'Indo comer 🍽️';
+  n.plan = [goAdj(CRX, CRY), fn(m => {
+    for (const [k, q, ic] of FOODS) if ((res[k] || 0) > 0) { res[k]--; v.food = Math.min(100, v.food + q); v.hp = Math.min(100, v.hp + 5); floatTxt(m.x, m.y - 24, '+' + q + ' 🍗 ' + ic); say(m, pick(['Hmm, delícia! 😋', 'Que fome!', 'Barriga cheia!']), 0.8); return; }
+    say(m, 'O depósito está sem comida… 😢', 0.9);
+  }), work(2.5, 'cook', null)];
+  if (ordered) v.ord = null;
+}
+// Necessidades: fome e energia caem com o tempo; vida cai com fome zerada e volta com o morador bem.
+function needsTick() {
+  for (const v of Object.values(L().viewers)) {
+    if (v.npc == null || v.banned || v.hp == null) continue;
+    const n = npcOf(v); if (!n) continue;
+    const resting = n.inside || n.sleeping, working = v.ord && !['stay', 'sleep'].includes(v.ord.k);
+    v.food = clamp(v.food - (working ? 0.8 : 0.3), 0, 100);
+    v.en = clamp(v.en + (resting ? 5 : working ? -0.8 : -0.1), 0, 100);
+    // Vida volta sozinha (mais rápido descansando). Fome e energia nunca tiram vida.
+    if (v.hp < 100 && !(v.ko > Date.now())) v.hp = Math.min(100, v.hp + (resting ? 5 : 2));
+    // Bônus: bem alimentado e descansado trabalha 60% mais rápido.
+    if (v.food >= 60 && v.en >= 40 && n.active) n.boost = Math.max(n.boost || 0, NEED_TICK / 1000 + 1);
+    // Poderes dos pets lendários: fada cura, unicórnio recupera energia.
+    const pk = n.pet && n.pet.k;
+    if (pk === 'fai' && v.hp < 100 && !(v.ko > Date.now())) { v.hp = Math.min(100, v.hp + 4); if (n.active && n.petO) burst(n.petO.x, n.petO.y - 16, '#ffd1f0', 3); }
+    if (pk === 'uni') v.en = Math.min(100, v.en + 3);
+  }
+}
+
+// ---------- Fase 2: pets ----------
+function petCmd(v, n, args, rawRest) {
+  const [a, ...rest] = args;
+  if (!a) { if (n.pet) return petCard(v, n); petList(); return ''; }
+  if (a === 'nome') {
+    if (!n.pet) return 'Você ainda não tem pet.';
+    const nm = (rawRest || rest.join(' ')).trim().slice(0, 14); if (!nm || badName(nm)) return 'Nome inválido.';
+    n.pet.name = nm; say(n, `Agora você se chama ${nm}! 🐾`); npcVer++; save(); return '';
+  }
+  if (a === 'carinho' || a === 'brincar') {
+    if (!n.pet) return 'Você ainda não tem pet.';
+    if (Date.now() - (v.petPat || 0) < 60000) return '';
+    v.petPat = Date.now(); v.en = Math.min(100, v.en + 8); addXp(v, 2);
+    if (n.petO) { heart(n.petO.x, n.petO.y - 12); } say(n, pick(['Quem é o bonzinho? 🐾', 'Que fofura! 💛', 'Bom pet!'])); return '';
+  }
+  if (a === 'soltar') { if (!n.pet) return ''; feed(`🐾 ${n.name} soltou ${n.pet.name || 'o pet'} na floresta`); n.pet = null; n.petO = null; npcVer++; save(); return ''; }
+  const key = PET_KINDS[a] ? a : PET_ALIAS[a] || Object.keys(PET_KINDS).find(k => norm(PET_KINDS[k].label) === a);
+  const kind = key && PET_KINDS[key];
+  if (!kind) { petList(); return ''; }
+  if (n.pet) return `${n.name} já tem um pet. Use !pet soltar antes de adotar outro.`;
+  if (level(v) < kind.lvl) return `${kind.label} pede nível ${kind.lvl} (você é nível ${level(v)}).`;
+  if (kind.gems) { if ((v.gems || 0) < kind.gems) return `${kind.label} é lendári${kind.art === 'uma' ? 'a' : 'o'}: ${kind.gems} 💎 (você tem ${v.gems || 0}). Cristais vêm de Pix e Super Chat.`; v.gems -= kind.gems; }
+  else { if (v.coins < kind.price) return `${kind.label} custa ${kind.price} 💰 (você tem ${v.coins}). Trabalhe para ganhar moedas!`; v.coins -= kind.price; } n.pet = { k: kind.k, c: (Math.random() * 5) | 0, name: '' }; n.petO = null; v.petAt = Date.now();
+  const rare = kind.tier === 'mitico';
+  feed(`${kind.icon} ${n.name} adotou ${kind.art || 'um'} ${kind.label.toLowerCase()}${rare ? ' lendári' + (kind.art === 'uma' ? 'a' : 'o') + '!' : '!'} Dê um nome com !pet nome …`);
+  if (rare) { announce(`${kind.icon} ${n.name} tem ${kind.art || 'um'} ${kind.label.toUpperCase()}!`, kind.perk || 'Um pet lendário chegou à vila'); sfx('fanfare'); if (n.active) for (let i = 0; i < 3; i++) confetti(n.x + rnd(-10, 10), n.y - 20); }
+  if (n.active) { heart(n.x, n.y - 20); say(n, `Meu ${kind.label.toLowerCase()}! ${kind.icon}`); }
+  npcVer++; save(); return '';
+}
+function petCard(v, n) { return showMine(v, 'mochila'); }
+// Lista de pets na tela (no máximo a cada 30 s, igual à loja).
+let petListAt = 0;
+function petList() {
+  if (Date.now() - petListAt < 30000) return; petListAt = Date.now();
+  const g = t => Object.entries(PET_KINDS).filter(([, p]) => p.tier === t).map(([k, p]) => `${p.icon}${k}${p.gems ? ' ' + p.gems + '💎' : ''}`).join(' ');
+  announce('🐾 Pets: !pet nome-do-pet', `Comuns 25💰: ${g('comum')} · Raros 50💰 nv2: ${g('raro')} · Lendários (💎 via Pix/Super Chat): ${g('mitico')}`);
+}
+function petFind(v, n, forced) {
+  const p = n.pet && PET_BY_K[n.pet.k]; if (!p) return;
+  const [txt, key, q] = p.find;
+  if (key === 'coins') v.coins += q; else res[key] = (res[key] || 0) + q;
+  const who = n.pet.name || `o ${p.label.toLowerCase()}`;
+  feed(`${p.icon} ${who} de ${n.name} achou ${txt}${key === 'coins' ? ` (+${q} 💰)` : ''}`);
+  if (n.active && n.petO) { floatTxt(n.petO.x, n.petO.y - 14, key === 'coins' ? `+${q} 💰` : `+${q} ${RES_ICON[key] || ''}`); burst(n.petO.x, n.petO.y - 6, '#ffe066', 5); }
+  if (!forced) v.petAt = Date.now();
+}
+function petTickAll() {
+  for (const v of Object.values(L().viewers)) {
+    if (v.npc == null || v.hp == null) continue; const n = npcOf(v);
+    if (n && n.pet && PET_BY_K[n.pet.k] && Date.now() - (v.petAt || 0) > 4 * 60000) petFind(v, n);
+  }
+}
+// Desenho dos pets novos (cachorro e gato continuam com o desenho original).
+Object.assign(PET_COL, {
+  bun: ['#f2f2f2', '#c8a27a', '#8a8a8a', '#e8d8c0', '#5a4a3a'], hen: ['#f5f5f5', '#c8763a', '#2b2b2b', '#e8c26a', '#a0522d'],
+  fox: ['#e0722a', '#c8581e', '#b0b0b0', '#f08a3a', '#8a4a2a'], pig: ['#f2a7b8', '#e892a5', '#c97a8a', '#f7c3cf', '#d68c9c'],
+  fro: ['#4ab04a', '#2a8a6a', '#c8c020', '#3a7ae0', '#e05a5a'], tur: ['#4a7a3a', '#6a5a3a', '#3a6a6a', '#7a8a3a', '#5a4a2a'],
+  cap: ['#9a6a3a', '#8a5a30', '#a8784a', '#7a5a3a', '#b08858'], par: ['#e03a2a', '#2a6ae0', '#2ab04a', '#f1c40f', '#e07020'],
+  mon: ['#8a5a2a', '#5a3a1e', '#b08050', '#4a4a4a', '#c8a070'], sna: ['#3a9a3a', '#c8a020', '#7a3aa0', '#2a2a2a', '#d05a2a'],
+  spi: ['#2b2b2b', '#6a3a1e', '#7a2a8a', '#3a3a5a', '#8a1e1e'], bat: ['#3a2a3a', '#5a4a3a', '#2b2b3a', '#6a3a5a', '#4a4a4a'],
+  owl: ['#8a6a4a', '#c8c0b0', '#5a4a3a', '#a08060', '#e8e8e8'], jag: ['#e0a030', '#2b2b2b', '#f0f0f0', '#c88020', '#d8b060'],
+  sli: ['#5ad05a', '#5aa0e0', '#e05ab0', '#e0c040', '#a05ae0'], fai: ['#ff8ad0', '#8ad0ff', '#a0ff8a', '#ffd08a', '#d08aff'],
+  orc: ['#5a8a3a', '#4a7a4a', '#6a9a2a', '#3a6a3a', '#7a8a5a'], uni: ['#f5f5f5', '#f0e0f5', '#e0f0ff', '#fff0d0', '#3a3a3a'],
+  grf: ['#c8a050', '#b08040', '#e0c080', '#a07040', '#d8b070'], phx: ['#e8601a', '#f0a020', '#e83a2a', '#5ab0f0', '#a050e0'],
+  drg: ['#c0392b', '#27ae60', '#2980b9', '#8e44ad', '#2b2b2b'],
+});
+const drawPetBase = drawPet;
+// Desenha os pets novos em pixel art, olhando para a direita, com o chão em y = 0.
+// Pets que voam ficam pairando ao lado do dono, com uma sombrinha no chão.
+function drawPetArt(k, col, dk, lt, ph, moving, t) {
+  const P = (c, x, y, w, h) => px(ctx, c, x, y, w, h), E = '#222', flap = Math.sin(t * 18) > 0;
+  if (k === 'bun') { const hop = moving ? -Math.abs(Math.sin(t * 8)) * 2 : 0; ctx.translate(0, hop); P(col, -3, -5, 6, 4); P(col, 2, -7, 3, 3); P(col, 2, -11, 1, 4); P(col, 4, -11, 1, 4); P('#f5a0b0', 2, -10, 1, 2); P(E, 4, -6, 1, 1); P('#fff', -4, -5, 2, 2); P(dk, -2, -1, 1, 1); P(dk, 1, -1, 1, 1); }
+  else if (k === 'hen') { const b = ph ? -1 : 0; P(col, -3, -6 + b, 6, 5); P(col, 2, -9 + b, 3, 3); P('#e74c3c', 3, -10 + b, 2, 1); P('#f1c40f', 5, -8 + b, 2, 1); P(E, 3, -8 + b, 1, 1); P(dk, -4, -6 + b, 2, 3); P('#f1c40f', -1, -1, 1, 1); P('#f1c40f', 1, -1 + (ph ? -1 : 0), 1, 1); }
+  else if (k === 'fox') { P(col, -4, -6, 8, 4); for (const [lx, u] of [[-4, !ph], [-1, ph], [1, !ph], [3, ph]]) P(dk, lx, -2 - (u ? 1 : 0), 1, 2); P(col, 3, -9, 4, 4); P(col, 3, -11, 1, 2); P(col, 6, -11, 1, 2); P('#fff', 5, -7, 2, 2); P(E, 6, -8, 1, 1); const w = Math.sin(t * 10) > 0 ? -1 : 0; P(col, -8, -7 + w, 4, 3); P('#fff', -9, -7 + w, 2, 2); }
+  else if (k === 'pig') { P(col, -4, -6, 8, 5); P(dk, -3, -1 + (ph ? -1 : 0), 1, 1); P(dk, -1, -1, 1, 1); P(dk, 1, -1 + (ph ? -1 : 0), 1, 1); P(dk, 3, -1, 1, 1); P(col, 3, -8, 4, 4); P(dk, 6, -6, 2, 2); P(E, 5, -7, 1, 1); P(dk, 3, -9, 1, 1); P(dk, -5, -6, 1, 1); }
+  else if (k === 'fro') { const hop = moving ? -Math.abs(Math.sin(t * 7)) * 3 : 0; ctx.translate(0, hop); P(col, -3, -4, 6, 4); P(lt, -2, -2, 4, 1); P('#fff', -2, -6, 2, 2); P('#fff', 1, -6, 2, 2); P(E, -1, -6, 1, 1); P(E, 2, -6, 1, 1); P(dk, -4, -1, 2, 1); P(dk, 2, -1, 2, 1); P('#c0392b', -1, -3, 3, 1); }
+  else if (k === 'tur') { P(col, -4, -5, 8, 4); P(dk, -3, -4, 2, 2); P(dk, 1, -4, 2, 2); P(lt, -4, -5, 8, 1); P('#8ab060', 4, -4 + (ph ? 0 : -1), 3, 2); P(E, 6, -4 + (ph ? 0 : -1), 1, 1); P('#8ab060', -3, -1, 2, 1); P('#8ab060', 2, -1, 2, 1); P('#8ab060', -5, -3, 1, 1); }
+  else if (k === 'cap') { P(col, -5, -6, 10, 5); P(lt, -5, -6, 10, 1); for (const [lx, u] of [[-4, ph], [-1, !ph], [1, ph], [3, !ph]]) P(dk, lx, -1 - (u ? 1 : 0), 1, 2); P(col, 4, -8, 4, 5); P(dk, 7, -6, 1, 2); P(E, 6, -7, 1, 1); P(dk, 4, -9, 1, 1); }
+  else if (k === 'mon') { P(col, -2, -8, 4, 5); P(col, -2, -3, 1, 2 + (ph ? 0 : -1)); P(col, 1, -3, 1, 2 + (ph ? -1 : 0)); P(col, 0, -12, 5, 4); P('#e8c8a0', 2, -11, 3, 3); P(E, 3, -11, 1, 1); P(col, -1, -11, 1, 1); const w = Math.sin(t * 4) > 0; P(col, -4, -7, 2, 1); P(col, -5, w ? -9 : -8, 1, 2); }
+  else if (k === 'sna') { const wv = i => Math.round(Math.sin(t * 8 + i) * (moving ? 1 : 0.4)); for (let i = 0; i < 4; i++) { P(col, -7 + i * 3, -3 + wv(i), 3, 2); if (i % 2) P(dk, -6 + i * 3, -3 + wv(i), 1, 1); } P(col, 5, -5 + wv(4), 3, 3); P(E, 7, -5 + wv(4), 1, 1); if (Math.sin(t * 6) > 0.4) P('#e74c3c', 8, -3 + wv(4), 2, 1); }
+  else if (k === 'spi') { P(col, -3, -6, 5, 4); P(col, 2, -6, 3, 3); P('#e74c3c', 3, -5, 1, 1); P('#e74c3c', 4, -6, 1, 1); for (let i = 0; i < 4; i++) { const u = (i + (ph ? 1 : 0)) % 2; P(dk, -4 + i * 2, -2 - u, 1, 2); P(dk, -5 + i * 2, -1, 1, 1); } P(lt, -2, -6, 2, 1); }
+  else if (k === 'par') { P(col, -2, -6, 4, 5); P(PET_COL.par[(PET_COL.par.indexOf(col) + 1) % 5], -3, flap ? -6 : -4, 2, 3); P(col, 1, -9, 3, 3); P('#f1c40f', 4, -8, 1, 2); P(E, 2, -8, 1, 1); P('#f1c40f', -3, -1, 1, 3); }
+  else if (k === 'bat') { P(col, -1, -6, 3, 4); P(col, -1, -8, 3, 2); P(col, -1, -9, 1, 1); P(col, 1, -9, 1, 1); P('#e74c3c', 0, -7, 1, 1); if (flap) { P(dk, -6, -8, 5, 2); P(dk, 2, -8, 5, 2); P(dk, -7, -6, 2, 1); P(dk, 6, -6, 2, 1); } else { P(dk, -5, -5, 4, 3); P(dk, 2, -5, 4, 3); } }
+  else if (k === 'owl') { P(col, -3, -9, 6, 8); P(lt, -2, -8, 4, 3); P('#f1c40f', -2, -7, 1, 1); P('#f1c40f', 1, -7, 1, 1); P(E, -2, -7, 1, 1); P(E, 1, -7, 1, 1); P('#e0a020', 0, -6, 1, 1); P(col, -3, -10, 1, 1); P(col, 2, -10, 1, 1); P(dk, flap ? -5 : -4, -6, 2, 4); P(dk, flap ? 3 : 2, -6, 2, 4); }
+  else if (k === 'jag') { P(col, -5, -7, 10, 5); for (const [sx, sy] of [[-3, -6], [0, -5], [2, -7], [-1, -7], [3, -5]]) P(col === '#2b2b2b' ? '#444' : '#5a3a10', sx, sy, 1, 1); for (const [lx, u] of [[-5, ph], [-2, !ph], [1, ph], [3, !ph]]) P(dk, lx, -2 - (u ? 1 : 0), 2, 2); P(col, 4, -10, 4, 4); P(col, 4, -11, 1, 1); P(col, 7, -11, 1, 1); P(col === '#2b2b2b' ? '#8ef08e' : E, 6, -9, 1, 1); const w = Math.sin(t * 5) > 0 ? -1 : 0; P(col, -8, -8 + w, 3, 1); P(col, -9, -9 + w, 1, 1); }
+  else if (k === 'sli') { const sq = Math.sin(t * 6) * (moving ? 1 : 0.5); ctx.globalAlpha *= 0.85; P(col, -4 - Math.round(sq), -5 + Math.round(sq), 8 + Math.round(sq * 2), 5 - Math.round(sq)); P(lt, -3, -4 + Math.round(sq), 2, 1); P(E, -1, -3, 1, 1); P(E, 2, -3, 1, 1); ctx.globalAlpha /= 0.85; }
+  else if (k === 'fai') { P('rgba(220,250,255,.75)', flap ? -5 : -4, -8, 3, 4); P('rgba(220,250,255,.75)', flap ? 2 : 1, -8, 3, 4); P(col, -1, -6, 2, 4); P('#f5d0b0', -1, -8, 2, 2); P('#ffe05a', -1, -9, 2, 1); if (Math.sin(t * 9) > 0.6) P('#fff', rnd(-4, 4) | 0, rnd(-10, -2) | 0, 1, 1); }
+  else if (k === 'orc') { const b = ph ? -1 : 0; P('#5a3a1e', -2, -3 + b, 1, 3); P('#5a3a1e', 1, -3, 1, 3); P('#6a4a2a', -2, -7 + b, 4, 4); P(col, -3, -7 + b, 1, 3); P(col, 2, -7 + b, 1, 3); P(col, -2, -11 + b, 4, 4); P(E, 0, -10 + b, 1, 1); P('#fff', 1, -8 + b, 1, 1); P('#fff', -1, -8 + b, 1, 1); P('#8a5a2a', 3, -11 + b, 1, 6); P('#8a5a2a', 3, -12 + b, 2, 2); }
+  else if (k === 'uni') { for (const [lx, u] of [[-4, ph], [-2, !ph], [1, ph], [3, !ph]]) P(dk, lx, -4 - (u ? 1 : 0), 1, 4); P(col, -5, -9, 10, 5); P(col, 3, -13, 3, 5); P(col, 4, -14, 4, 3); P(E, 6, -13, 1, 1); P('#f1c40f', 6, -16, 1, 2); P('#f1c40f', 7, -17, 1, 1); const rb = ['#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6']; for (let i = 0; i < 5; i++) P(rb[i], 2, -14 + i, 1, 1); for (let i = 0; i < 4; i++) P(rb[(i + Math.floor(t * 4)) % 6], -6 - (i > 1 ? 1 : 0), -9 + i, 1, 1); }
+  else if (k === 'grf') { P(col, -4, -7, 8, 4); for (const [lx, u] of [[-4, ph], [-1, !ph], [1, ph], [3, !ph]]) P(dk, lx, -3 - (u ? 1 : 0), 1, 3); P('#f0f0f0', 3, -11, 4, 4); P('#f1c40f', 7, -10, 2, 1); P(E, 5, -10, 1, 1); P('#8a5a2a', -3, flap ? -13 : -10, 5, 3); P('#6a4a1e', -2, flap ? -14 : -11, 3, 1); P(col, -7, -7, 3, 1); P(dk, -8, -8, 1, 2); }
+  else if (k === 'phx') { P(col, -2, -7, 5, 5); P(lt, -1, -6, 3, 2); P(col, 2, -10, 3, 3); P('#ffe05a', 5, -9, 1, 1); P(E, 3, -9, 1, 1); P('#ffd04a', flap ? -6 : -5, flap ? -11 : -8, 4, 3); const fl = ['#ff5a1a', '#ffb02a', '#ffe05a']; for (let i = 0; i < 4; i++) P(fl[(i + Math.floor(t * 10)) % 3], -4 - i, -4 + (i % 2), 2, 2); }
+  else if (k === 'drg') { const belly = '#f5c16c'; P(col, -4, -8, 8, 5); P(belly, -3, -5, 6, 2); for (const [lx, u] of [[-3, ph], [2, !ph]]) P(dk, lx, -3 - (u ? 1 : 0), 2, 3); P(col, 3, -12, 5, 4); P(col, 7, -11, 2, 2); P('#ffe05a', 5, -11, 1, 1); P('#eeeeee', 4, -13, 1, 1); P('#eeeeee', 6, -13, 1, 1); P(dk, flap ? -4 : -3, flap ? -15 : -12, 5, 4); P(lt, flap ? -3 : -2, flap ? -14 : -11, 3, 1); P(col, -7, -7, 3, 2); P(dk, -9, -8, 2, 2); if (Math.sin(t * 2) > 0.92) P('#ff8a2a', 9, -11, 2, 1); }
+}
+drawPet = function (n) {
+  const pet = n.pet; if (!pet || pet.k === 'dog' || pet.k === 'cat' || !PET_COL[pet.k]) return drawPetBase(n);
+  const p = n.petO, x = Math.round(p.x), y = Math.round(p.y), col = PET_COL[pet.k][(pet.c || 0) % 5], dk = shade(col, -35), lt = shade(col, 30), ph = p.moving ? Math.floor(p.walkT * 10) % 2 : 0;
+  const fly = PET_BY_K[pet.k] && PET_BY_K[pet.k].fly && !n.sleeping;
+  ctx.save(); ctx.translate(x, y);
+  px(ctx, 'rgba(0,0,0,.22)', fly ? -3 : -5, 0, fly ? 6 : 10, 1);
+  if (fly) ctx.translate(0, -10 + Math.round(Math.sin(gtime * 3 + n.id) * 2));
+  if (p.dir === 'left') ctx.scale(-1, 1);
+  if (n.sleeping && !fly) ctx.translate(0, 1);
+  drawPetArt(pet.k, col, dk, lt, ph, p.moving, gtime + n.id);
+  ctx.restore();
+};
+
+// ---------- Fase 3: moedas, mochila e loja ----------
+// Todo trabalho do morador rende moedas ao dono (+1 com a ferramenta certa) e às vezes um achado.
+const incBase = inc;
+const INC_WORK = { t: 'chop', s: 'mine', f: 'fish', x: 'hunt', o: 'build' };
+inc = function (m, k, val = 1) {
+  incBase(m, k, val);
+  const v = m && ownerOf(m); if (!v || v.hp == null) return;
+  const tool = ITEMS[v.eq.tool], weap = ITEMS[v.eq.weapon], w = INC_WORK[k];
+  let c = 1; if (w && ((tool && tool.work === w) || (weap && weap.work === w))) c++;
+  v.coins += c;
+  if (Math.random() < 0.03) { const it = pick(['pao', 'cafe', 'pocao', 'petisco']); v.inv[it] = (v.inv[it] || 0) + 1; feed(`🎁 ${m.name} encontrou ${ITEMS[it].icon} ${ITEMS[it].label} trabalhando!`); }
+};
+function shopText() { return Object.entries(ITEMS).filter(([, it]) => !it.gems).map(([k, it]) => `${it.icon} ${k} ${it.price}💰`).join(' · ') + ' · 💎 com Pix/Super Chat: ' + Object.entries(ITEMS).filter(([, it]) => it.gems).map(([k, it]) => `${it.icon} ${k} ${it.gems}💎`).join(' · '); }
+function buy(v, n, word) {
+  const k = findItem(word); if (!k) return `Item não encontrado. Loja: ${shopText()}`;
+  const it = ITEMS[k];
+  if (it.gems) { if ((v.gems || 0) < it.gems) return `${it.label} é um item raro: ${it.gems} 💎 (você tem ${v.gems || 0}). Cristais vêm de Pix e Super Chat.`; v.gems -= it.gems; }
+  else { if (v.coins < it.price) return `${it.label} custa ${it.price} 💰 (você tem ${v.coins}).`; v.coins -= it.price; }
+  v.inv[k] = (v.inv[k] || 0) + 1;
+  if (it.gems && it.slot) v.eq[it.slot] = k; // item raro já entra equipado
+  if (it.slot && !v.eq[it.slot]) v.eq[it.slot] = k;
+  feed(`🛒 ${n.name} comprou ${it.icon} ${it.label}${it.slot && v.eq[it.slot] === k ? ' (equipado)' : ''}`);
+  if (n.active) { say(n, `Comprei ${it.icon}!`); burst(n.x, n.y - 14, '#ffe066', 6); }
+  return '';
+}
+function equip(v, n, word) {
+  const k = findItem(word); if (!k || !ITEMS[k].slot) return 'Só dá para equipar ferramentas, armas e escudo.';
+  if (!(v.inv[k] > 0)) return `Você não tem ${ITEMS[k].label}. Compre com !comprar ${k}.`;
+  v.eq[ITEMS[k].slot] = k; if (n.active) say(n, `${ITEMS[k].icon} equipado!`); return '';
+}
+function useItem(v, n, word) {
+  const k = findItem(word); if (!k) return 'Item não encontrado.';
+  const it = ITEMS[k]; if (!it.use) return `${it.label} não se usa assim: experimente !equipar ${k}.`;
+  if (!(v.inv[k] > 0)) return `Você não tem ${it.label}. Compre com !comprar ${k}.`;
+  if (it.use === 'pet' && !n.pet) return 'Você precisa de um pet para dar o petisco.';
+  v.inv[k]--;
+  if (it.use === 'hp') v.hp = Math.min(100, v.hp + it.amount);
+  if (it.use === 'food') v.food = Math.min(100, v.food + it.amount);
+  if (it.use === 'en') v.en = Math.min(100, v.en + it.amount);
+  if (it.use === 'pet') petFind(v, n, true);
+  if (it.use === 'all') { v.hp = 100; v.food = 100; v.en = 100; }
+  if (n.active) { floatTxt(n.x, n.y - 26, it.icon); say(n, pick(['Ahh, melhor agora!', 'Valeu!', 'Isso que eu precisava!'])); }
+  return '';
+}
+
+// ---------- Fase 4: combate ----------
+// Feras aparecem na beira da floresta de vez em quando. !atacar manda o morador lutar.
+let beasts = [], beastNext = Date.now() + 6 * 60000, beastId = 0;
+const BEASTS = [
+  { k: 'lobo', icon: '🐺', label: 'Lobo', hp: 45, dmg: 9, col: '#7d7d86', reward: 12 },
+  { k: 'javali', icon: '🐗', label: 'Javali', hp: 60, dmg: 11, col: '#6b4a32', reward: 16 },
+  { k: 'urso', icon: '🐻', label: 'Urso', hp: 110, dmg: 16, col: '#5a3a22', reward: 30 },
+];
+function spawnBeast(forced) {
+  if (beasts.length >= 2 || (!forced && (L().raid || npcs.length < 3))) return false;
+  const era = L().era, kinds = BEASTS.filter((b, i) => i <= Math.min(2, Math.floor(era / 2) + 1)), B = pick(kinds);
+  // Nasce na beira da floresta, num ponto que tenha caminho até a praça (busca a partir da praça).
+  // Percorre toda a área alcançável e escolhe um dos pontos mais afastados do centro.
+  const cand = [];
+  bfs(CX, CY, (x, y) => { cand.push([x, y, (x - CX) ** 2 + (y - CY) ** 2]); return false; }, 40000);
+  if (cand.length < 10) return false;
+  cand.sort((a, b) => b[2] - a[2]);
+  const [tx, ty] = pick(cand.slice(0, Math.max(5, Math.floor(cand.length * 0.08))));
+  const z = { id: ++beastId, ...B, max: Math.round(B.hp * (1 + era * 0.25)), x: tx * T + 8, y: ty * T + 12, dir: 'left', moving: false, walkT: 0, hitAt: 0, born: Date.now(), fighters: {}, dead: false, a: 1 };
+  z.hpNow = z.max; beasts.push(z);
+  announce(`${B.icon} ${B.label.toUpperCase()} NA FLORESTA!`, 'Digite !atacar para mandar seu morador lutar');
+  feed(`${B.icon} Um ${B.label.toLowerCase()} apareceu perto da vila! !atacar`);
+  sfx('siren'); return true;
+}
+function nearestBeast(n) { let b = null, bd = 1e9; for (const z of beasts) { if (z.dead) continue; const d = Math.hypot(z.x - n.x, z.y - n.y); if (d < bd) { bd = d; b = z; } } return b; }
+function beastOrder(n, v) {
+  const z = beasts.find(b => b.id === v.ord.target && !b.dead) || nearestBeast(n);
+  if (!z) { v.ord = null; return false; }
+  v.ord.target = z.id; n.status = `Lutando contra o ${z.label.toLowerCase()} ⚔️ (ordem de @${v.name})`;
+  const tx = Math.floor(z.x / T), ty = Math.floor(z.y / T);
+  n.plan = [{ t: 'go', goal: (x, y) => Math.abs(x - tx) + Math.abs(y - ty) <= 1 && Math.random() < 0.5, face: [tx, ty] }, work(1.6, 'hammer', m => strike(m, v, z))];
+  return true;
+}
+function strike(n, v, z) {
+  if (z.dead || Math.hypot(z.x - n.x, z.y - n.y) > 44) return;
+  let dmg = Math.round(atkOf(v, n) * rnd(0.8, 1.25));
+  if (n.pet && n.pet.k === 'drg' && n.petO) { dmg += 6; for (let i = 0; i < 6; i++) particles.push({ x: n.petO.x, y: n.petO.y - 18, vx: (z.x - n.petO.x) * rnd(1.2, 2) + rnd(-10, 10), vy: (z.y - n.petO.y) * rnd(1.2, 2) + rnd(-10, 10), life: 0.5, max: 0.5, type: 'px', col: pick(['#ff5a1a', '#ffb02a', '#ffe05a']) }); }
+  z.hpNow -= dmg; z.fighters[n.id] = (z.fighters[n.id] || 0) + dmg;
+  floatTxt(z.x, z.y - 18, '-' + dmg); burst(z.x, z.y - 8, '#ffffff', 4); sfxAt('whoosh', z.x, z.y);
+  v.en = Math.max(0, v.en - 2);
+  if (z.hpNow <= 0) beastDie(z);
+}
+function beastDie(z) {
+  z.dead = true; z.fade = true;
+  const ids = Object.keys(z.fighters).map(Number), tot = Object.values(z.fighters).reduce((a, b) => a + b, 0) || 1;
+  const names = [];
+  for (const id of ids) { const n = npcs.find(m => m.id === id), v = n && ownerOf(n); if (!v) continue; const share = Math.max(2, Math.round(z.reward * z.fighters[id] / tot)); v.coins += share; addXp(v, 8); names.push(n.name); if (v.ord && v.ord.k === 'fight') v.ord = null; }
+  res.crops = (res.crops || 0) + Math.round(z.reward / 3);
+  announce(`🏆 ${z.label} derrotado!`, names.length ? `Heróis: ${names.slice(0, 5).join(', ')} · moedas e XP para quem lutou` : 'A vila está segura');
+  feed(`🏆 O ${z.label.toLowerCase()} foi derrotado${names.length ? ' por ' + names.slice(0, 5).join(', ') : ''}! +${Math.round(z.reward / 3)} 🥕`);
+  sfx('fanfare'); confetti(z.x, z.y - 10);
+}
+function beastFrame(dt) {
+  const now = Date.now();
+  if (LIVE_CFG.autoEv && now > beastNext) { beastNext = now + rnd(6, 11) * 60000; if (!isNight()) spawnBeast(false); }
+  for (const z of beasts) {
+    if (z.dead) { z.a -= dt * 0.8; continue; }
+    // Sem ninguém lutando por 2 min, a fera volta para a floresta.
+    if (now - z.born > 120000 && !Object.keys(z.fighters).length) { z.dead = true; z.fade = true; feed(`${z.icon} O ${z.label.toLowerCase()} voltou para a floresta`); continue; }
+    // Quem veio lutar prende a fera: ela para e briga com o lutador mais próximo.
+    let tgt = null, td = 1e9, fighter = false;
+    for (const n of npcs) {
+      if (!n.active || n.inside || n.sleeping) continue; const d = Math.hypot(n.x - z.x, n.y - z.y);
+      const f = d < 48 && n.status && n.status.startsWith('Lutando');
+      if ((f && (!fighter || d < td)) || (!fighter && d < td)) { td = d; tgt = n; fighter = fighter || f; }
+    }
+    if (fighter && td > 14) { z.moving = false; z.dir = tgt.x < z.x ? 'left' : 'right'; td = 14; }
+    if (tgt && td < 140) {
+      if (td > 14) { const sp = SPEED * 0.7 * dt; z.x += (tgt.x - z.x) / td * sp; z.y += (tgt.y - z.y) / td * sp; z.moving = true; z.walkT += dt; z.dir = tgt.x < z.x ? 'left' : 'right'; }
+      else { z.moving = false; if (now - z.hitAt > 2200) { z.hitAt = now; const v = ownerOf(tgt); if (v) { pl(v); hurt(v, tgt, z.dmg * rnd(0.7, 1.2), z.label.toLowerCase()); } else { floatTxt(tgt.x, tgt.y - 24, '😱'); } } }
+    } else z.moving = false;
+  }
+  beasts = beasts.filter(z => z.a > 0);
+}
+function drawBeast(z) {
+  const x = Math.round(z.x), y = Math.round(z.y), col = z.col, dk = shade(col, -30), lt = shade(col, 25), ph = z.moving ? Math.floor(z.walkT * 10) % 2 : 0, big = z.k === 'urso' ? 1.5 : 1.15;
+  ctx.save(); ctx.globalAlpha = clamp(z.a, 0, 1); ctx.translate(x, y); ctx.scale(z.dir === 'left' ? -big : big, big);
+  px(ctx, 'rgba(0,0,0,.25)', -7, 0, 14, 2);
+  px(ctx, col, -6, -8, 11, 6); px(ctx, lt, -6, -8, 11, 1);
+  for (const [lx, up] of [[-6, ph], [-3, !ph], [1, ph], [3, !ph]]) px(ctx, dk, lx, -2 - (up ? 1 : 0), 2, 3);
+  px(ctx, col, 4, -11, 5, 5); px(ctx, '#d33', 7, -9, 1, 1); px(ctx, dk, 8, -8, 2, 2);
+  if (z.k === 'lobo') { px(ctx, col, 4, -13, 1, 2); px(ctx, col, 7, -13, 1, 2); px(ctx, col, -9, -9, 3, 2); }
+  if (z.k === 'javali') { px(ctx, '#fff', 9, -7, 1, 2); px(ctx, dk, -7, -9, 1, 1); }
+  if (z.k === 'urso') { px(ctx, col, 4, -12, 2, 1); px(ctx, col, 7, -12, 2, 1); }
+  ctx.restore();
+  if (!z.dead) { const w = 18, f = clamp(z.hpNow / z.max, 0, 1); px(ctx, 'rgba(0,0,0,.6)', x - w / 2 - 1, y - 22, w + 2, 4); px(ctx, f > 0.5 ? '#2ecc71' : f > 0.25 ? '#f1c40f' : '#e74c3c', x - w / 2, y - 21, Math.round(w * f), 2); }
+}
+// Barra de vida pequena embaixo dos moradores machucados.
+function hpBarEntities() {
+  const out = [];
+  for (const v of Object.values(L().viewers)) {
+    if (v.npc == null || v.hp == null) continue; const n = npcOf(v);
+    if (!n || !n.active || n.inside) continue;
+    const icon = v.ko > Date.now() ? '💫' : v.food < 30 ? '🍗' : v.en < 25 ? '💤' : '';
+    if (v.hp >= 100 && !icon) continue;
+    out.push({ y: n.y + 0.5, k: 'live', draw: () => {
+      const x = Math.round(n.x), y = Math.round(n.y);
+      if (v.hp < 100) { const w = 14, f = clamp(v.hp / 100, 0, 1); px(ctx, 'rgba(0,0,0,.55)', x - w / 2 - 1, y + 2, w + 2, 3); px(ctx, f > 0.5 ? '#2ecc71' : f > 0.25 ? '#f1c40f' : '#e74c3c', x - w / 2, y + 3, Math.round(w * f), 1); }
+      if (icon) { ctx.save(); ctx.font = '8px "Segoe UI Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(gtime * 3)); ctx.fillText(icon, x + 9, y - 20); ctx.restore(); }
+    } });
+  }
+  return out;
+}
+// Saqueadores: !atacar durante o aviso soma o ataque do morador na defesa (uma vez por pessoa).
+function raidAttackCmd(v, uid, n) {
+  const r = L().raid; if (!r) return null;
+  if (r.phase !== 'warn') return 'A batalha já começou!';
+  r.fighters = r.fighters || {};
+  if (r.fighters[uid]) return '';
+  const a = atkOf(v, n); r.fighters[uid] = a; r.chat += a; addXp(v, 4);
+  feed(`⚔️ ${n.name} entrou na defesa: +${a} 🛡️${v.eq.weapon ? ' com ' + ITEMS[v.eq.weapon].icon : ''}`);
+  if (n.active) say(n, pick(['Pela vila! ⚔️', 'Venham, saqueadores!', 'Ninguém passa!']));
+  // Na batalha, quem entrou na defesa pode se machucar.
+  r.hurtList = r.hurtList || []; r.hurtList.push(uid);
+  return '';
+}
+// Duelo amigável na praça: !duelo @nome, o outro aceita com !aceitar. Vale 5 moedas.
+let duels = [];
+function duelCmd(v, uid, n, target) {
+  const t = norm(String(target || '').replace(/^@/, ''));
+  if (!t) return 'Use !duelo @nome.';
+  const ov = Object.values(L().viewers).find(x => norm(x.name) === t && x.npc != null);
+  if (!ov || ov === v) return 'Não achei esse jogador na vila.';
+  const on = npcOf(ov); if (!on) return 'Esse jogador não tem morador.';
+  pl(ov);
+  if (v.ko > Date.now() || ov.ko > Date.now()) return 'Alguém está desmaiado 💫.';
+  duels = duels.filter(d => Date.now() < d.expires && !d.done);
+  if (duels.some(d => d.av === v || d.bv === ov || d.av === ov || d.bv === v)) return 'Já tem um duelo pendente.';
+  duels.push({ av: v, bv: ov, expires: Date.now() + 60000, done: false });
+  announce(`⚔️ ${n.name} desafiou ${on.name}!`, `@${ov.name}, digite !aceitar em até 60 s · ninguém perde nada`);
+  return '';
+}
+function acceptDuel(v, uid, n) {
+  const d = duels.find(d => d.bv === v && !d.done && Date.now() < d.expires);
+  if (!d) return 'Nenhum desafio para você agora.';
+  d.done = true; const an = npcOf(d.av); if (!an) return '';
+  for (const [m, vv] of [[an, d.av], [n, v]]) { if (!m.active) activate(m); vv.ord = { k: 'stay', until: Date.now() + 25000, goal: (x, y) => (x - CX) ** 2 + (y - CY) ** 2 <= 4 && Math.random() < 0.5 }; m.plan = [{ t: 'go', goal: vv.ord.goal }, work(6, 'hammer', null)]; m.step = null; m.inside = false; m.sleeping = false; m.status = 'Duelando ⚔️'; }
+  announce(`⚔️ DUELO NA PRAÇA!`, `${an.name} contra ${n.name}`);
+  camTo(CX * T + 8, CY * T + 8);
+  setTimeout(() => {
+    const pa = atkOf(d.av, an) + d.av.hp / 10 + rnd(0, 12), pb = atkOf(v, n) + v.hp / 10 + rnd(0, 12);
+    const [wv, wn, lv, ln] = pa >= pb ? [d.av, an, v, n] : [v, n, d.av, an];
+    wv.coins += 5; lv.coins += 1; addXp(wv, 6); addXp(lv, 3);
+    announce(`🏆 ${wn.name} venceu o duelo!`, `+5 💰 para o vencedor · +1 💰 para ${ln.name} · boa luta!`);
+    feed(`⚔️ ${wn.name} venceu ${ln.name} no duelo (+5 💰)`);
+    if (wn.active) { confetti(wn.x, wn.y - 10); say(wn, 'Vitória! 🏆'); }
+    if (ln.active) say(ln, 'Revanche! 😤');
+  }, 14000);
+  return '';
+}
+
+// ---------- Arma e escudo desenhados no morador ----------
+const drawNPCBase = drawNPC;
+drawNPC = function (n) {
+  drawNPCBase(n);
+  if (n.id == null || n.sleeping || n.inside || n.prof === 'saqueador') return;
+  const v = ownerOf(n); if (!v || !v.eq) return;
+  const w = v.eq.weapon, a = v.eq.armor; if (!w && !a) return;
+  const x = Math.round(n.x), y = Math.round(n.y), swing = n.anim === 'hammer' ? Math.round(Math.sin(n.animT * 14) * 2) : 0;
+  ctx.save(); ctx.translate(x, y); if (n.dir === 'left') ctx.scale(-1, 1);
+  if (w === 'espada') { px(ctx, '#e3e8ee', 5, -17 + swing, 1, 8); px(ctx, '#ffffff', 5, -17 + swing, 1, 1); px(ctx, '#b8862f', 4, -9 + swing, 3, 1); px(ctx, '#5a3a1e', 5, -8 + swing, 1, 2); }
+  else if (w === 'lanca') { px(ctx, '#8a5a2a', 5, -20 + swing, 1, 14); px(ctx, '#cfd6de', 4, -22 + swing, 3, 2); px(ctx, '#cfd6de', 5, -23 + swing, 1, 1); }
+  else if (w === 'arco') { px(ctx, '#8a5a2a', 6, -16, 1, 1); px(ctx, '#8a5a2a', 7, -15, 1, 7); px(ctx, '#8a5a2a', 6, -8, 1, 1); px(ctx, '#eeeeee', 5, -15, 1, 7); }
+  else if (w === 'katana') { px(ctx, '#f0f4f8', 5, -19 + swing, 1, 10); px(ctx, '#ffffff', 6, -19 + swing, 1, 2); px(ctx, '#2b2b2b', 4, -9 + swing, 3, 1); px(ctx, '#8e1f1f', 5, -8 + swing, 1, 3); }
+  else if (w === 'marreta') { px(ctx, '#6a4a2a', 5, -16 + swing, 1, 10); px(ctx, '#7a8088', 3, -19 + swing, 5, 4); px(ctx, '#aab0b8', 3, -19 + swing, 5, 1); }
+  else if (w === 'besta') { px(ctx, '#6a4a2a', 4, -11, 5, 1); px(ctx, '#7a8088', 8, -14, 1, 7); px(ctx, '#eeeeee', 7, -13, 1, 5); px(ctx, '#cfd6de', 9, -11, 1, 1); }
+  else if (w === 'cajado') { px(ctx, '#5a3a1e', 5, -19 + swing, 1, 14); px(ctx, '#8a5a2a', 4, -20 + swing, 3, 1); const g = Math.sin(gtime * 5) > 0; px(ctx, g ? '#9b59ff' : '#c08aff', 4, -23 + swing, 3, 3); px(ctx, '#ffffff', 5, -22 + swing, 1, 1); if (Math.random() < 0.05) particles.push({ x: x + (n.dir === 'left' ? -5 : 5), y: y - 22, vx: rnd(-6, 6), vy: -10, life: 0.6, max: 0.6, type: 'px', col: '#c08aff' }); }
+  if (a === 'escudo') { px(ctx, '#cfd6de', -8, -12, 4, 6); px(ctx, '#8a5a2a', -7, -11, 2, 4); px(ctx, '#f1c40f', -7, -10, 1, 1); }
+  else if (a === 'armadura') { px(ctx, '#e8b830', -4, -12, 8, 2); px(ctx, '#f5d870', -4, -12, 8, 1); px(ctx, '#e8b830', -5, -11, 1, 2); px(ctx, '#e8b830', 4, -11, 1, 2); px(ctx, '#c8961a', -3, -8, 6, 1); }
+  ctx.restore();
+};
+
+// ---------- Comandos ----------
+function playerCommand(v, uid, lower, raw) {
+  if (!lower.startsWith('!')) return null;
+  const [cmd0, ...args] = lower.slice(1).split(/\s+/); const cmd = cmd0.replace(/[^a-z]/g, '');
+  const known = ['ir', 'va', 'vai', 'andar', 'anda', 'cortar', 'madeira', 'minerar', 'pedra', 'pescar', 'cacar', 'construir', 'trabalhar', 'comer', 'dormir', 'descansar', 'parar', 'status', 'ficha', 'vida', 'pet', 'mochila', 'inventario', 'loja', 'comprar', 'equipar', 'usar', 'atacar', 'lutar', 'duelo', 'aceitar', 'moedas'];
+  if (!known.includes(cmd)) return null;
+  if (cmd === 'loja') { if (Date.now() - shopAt > 30000) { shopAt = Date.now(); announce('🛒 Loja da vila', shopText() + ' · !comprar item'); } return ''; }
+  const n = npcOf(v); if (!n) return 'Você ainda não tem morador: digite @Nome/profissão';
+  pl(v);
+  // Fichas entram na fila do !meu: a câmera mostra um jogador por vez, sem atropelar ninguém.
+  if (['status', 'ficha', 'vida', 'moedas'].includes(cmd)) return showMine(v, 'meu');
+  if (cmd === 'mochila' || cmd === 'inventario') return showMine(v, 'mochila');
+  if (cmd === 'comprar') return buy(v, n, args.join(' '));
+  if (cmd === 'equipar') return equip(v, n, args.join(' '));
+  if (cmd === 'usar') return useItem(v, n, args.join(' '));
+  if (cmd === 'pet') return petCmd(v, n, args, String(raw || '').trim().split(/\s+/).slice(2).join(' '));
+  if (cmd === 'duelo') return duelCmd(v, uid, n, args[0]);
+  if (cmd === 'aceitar') return acceptDuel(v, uid, n);
+  if (cmd === 'parar') { if (!v.ord) return ''; v.ord = null; n.plan = []; n.step = null; n.anim = null; say(n, 'Ok, de volta à rotina!', 0.8); return ''; }
+  if (cmd === 'comer') { if (v.ko > Date.now() || v.food >= 90 || Date.now() - (v.eatAt || 0) < EAT_GAP) return ''; v.eatAt = Date.now(); if (!n.active) activate(n); n.plan = []; n.step = null; n.inside = false; n.sleeping = false; planEat(n, v, true); return ''; }
+  if (cmd === 'dormir' || cmd === 'descansar') return setOrder(v, n, 'sleep');
+  if (cmd === 'atacar' || cmd === 'lutar') {
+    const rr = raidAttackCmd(v, uid, n); if (rr != null) return rr;
+    if (!beasts.some(z => !z.dead)) return 'Nenhuma fera por perto agora.';
+    return setOrder(v, n, 'fight');
+  }
+  const map = { cortar: 'chop', madeira: 'chop', minerar: 'mine', pedra: 'mine', pescar: 'fish', cacar: 'hunt', construir: 'build', trabalhar: 'job' };
+  if (map[cmd]) return setOrder(v, n, map[cmd]);
+  // !ir lugar
+  const place = placeGoal(args.join(' '), n);
+  if (!place) return 'Lugares: floresta, rio, mina, praça, depósito, casa ou o nome de uma obra.';
+  return setOrder(v, n, 'go', { goal: place.g, label: place.label, home: !!place.home });
+}
+
+// O cérebro dos moradores: ordens e necessidades de quem tem dono vêm antes da rotina.
+const thinkBase = think;
+think = function (n) {
+  const v = ownerOf(n);
+  if (v) { pl(v); try { if (orderPlan(n, v)) return; } catch (e) { console.error('ordem:', e); v.ord = null; } }
+  return thinkBase(n);
+};
+setInterval(() => { try { needsTick(); petTickAll(); } catch (e) { console.error('necessidades:', e); } }, NEED_TICK);
 
 // ================== TEMPORADAS ==================
 // Ao fim de uma temporada (normalmente depois do foguete), o streamer começa um mundo novo.
@@ -1091,7 +1736,7 @@ const MODS = {
   inverno: { icon: '❄️', label: 'Inverno eterno', desc: 'Neve o tempo todo e plantações lentas' },
   fertil: { icon: '🌱', label: 'Terra fértil', desc: 'Comida em dobro' },
   hostil: { icon: '⚔️', label: 'Terras hostis', desc: 'Ataques desde a Pedra, mais fortes e com saque dobrado' },
-  ouro: { icon: '🪙', label: 'Corrida do ouro', desc: 'Minas rendem o dobro' },
+  ouro: { icon: '💰', label: 'Corrida do ouro', desc: 'Minas rendem o dobro' },
   sabio: { icon: '📚', label: 'Povo sábio', desc: 'Pesquisas 50% mais rápidas' },
 };
 function mod() { return L().mod || 'normal'; }
@@ -1284,7 +1929,26 @@ function vitrinePick() {
     return null;
   }
   if (done.length && roll < 0.8) { const b = pick(done); return { x: (b.x + b.w / 2) * T, y: (b.y + b.h / 2) * T, z: z + 0.4 }; }
-  return { x: CX * T + 8, y: CY * T + 8, z: Math.max(zMin(), z - 1) };
+  return overviewShot();
+}
+// Plano geral: enquadra todas as obras e moradores. Quanto maior a vila, mais a câmera se afasta.
+// O lado esquerdo da tela fica coberto pelo overlay da live, então a vila é enquadrada no resto.
+function overviewShot() {
+  let x0 = CX - 6, y0 = CY - 5, x1 = CX + 6, y1 = CY + 5;
+  for (const b of buildings) { x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y - 1); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); }
+  for (const n of npcs) if (n.active && !n.inside) { const tx = n.x / T, ty = n.y / T; if (Math.abs(tx - CX) < 40 && Math.abs(ty - CY) < 40) { x0 = Math.min(x0, tx); y0 = Math.min(y0, ty - 1); x1 = Math.max(x1, tx + 1); y1 = Math.max(y1, ty + 1); } }
+  const pad = 2, usableW = cw * (cw < 700 ? 1 : 0.74), usableH = ch * 0.86;
+  const z = Math.max(zMin(), Math.min(isMobile() ? 2.2 : 2.6, usableW / ((x1 - x0 + pad * 2) * T), usableH / ((y1 - y0 + pad * 2) * T)));
+  const shift = (cw - usableW) / 2 / z; // empurra a vila para a direita, longe do overlay
+  return { x: (x0 + x1) / 2 * T - shift, y: (y0 + y1) / 2 * T + ch * 0.04 / z, z };
+}
+// Sem ninguém em destaque, a câmera volta ao plano geral da vila (e se afasta conforme ela cresce).
+let ovAt = 0, ovTarget = null;
+function overviewFrame(dt) {
+  if (!npcs.length || TOUR || REC || follow != null || Date.now() < camQ.until || Date.now() - lastUserCam < 60000) { ovTarget = null; return; }
+  if (!ovTarget || Date.now() - ovAt > 3000) { ovAt = Date.now(); ovTarget = overviewShot(); }
+  const k = Math.min(1, dt * 0.6);
+  cam.x += (ovTarget.x - cam.x) * k; cam.y += (ovTarget.y - cam.y) * k; cam.z += (ovTarget.z - cam.z) * k;
 }
 function vitrineSummary() {
   const s = L(), e = ERAS[s.era], built = buildings.filter(b => b.done).length;
@@ -1299,6 +1963,7 @@ function vitrineFrame(now) {
   const dt = Math.min(0.1, (now - vitLast) / 1000); vitLast = now;
   const on = vitrineActive();
   try { raidFrame(dt); } catch (e) { console.error('saqueadores:', e); }
+  try { beastFrame(dt); } catch (e) { console.error('feras:', e); }
   if (on !== vit.on) { vit.on = on; vit.target = null; vit.shotAt = 0; }
   if (on) {
     const t = Date.now();
@@ -1308,6 +1973,8 @@ function vitrineFrame(now) {
       cam.x += (vit.target.x - cam.x) * k; cam.y += (vit.target.y - cam.y) * k; cam.z += (vit.target.z - cam.z) * k;
     }
     if (npcs.length && t - vit.summaryAt > VIT_SUMMARY) { vit.summaryAt = t; vitrineSummary(); }
+  } else {
+    try { overviewFrame(dt); } catch (e) { console.error('câmera:', e); }
   }
   requestAnimationFrame(vitrineFrame);
 }
@@ -1338,8 +2005,131 @@ setInterval(() => {
   if (changed) save();
 })();
 
+// ================== COMO JOGAR (cartão fixo na tela) ==================
+// Os comandos ficam sempre visíveis no canto direito, alternando de página a cada 12 s.
+// Some quando o painel do streamer está aberto (ele ocupa o mesmo lado) e nos momentos de destaque.
+const HOWTO_PAGES = [
+  ['🎮 Como jogar', ['<b>@SeuNome/profissão</b> entra na vila', '<small>ex.: <b>@Ana/lenhadora</b> · <b>@Leo/pescador</b></small>', '<b>1 2 3</b> votam · <b>A B</b> escolhem', '<b>!meu</b> mostra seu morador e seus status']],
+  ['🪓 Dê ordens ao seu morador', ['<b>!cortar</b> · <b>!pescar</b> · <b>!minerar</b> · <b>!caçar</b>', '<b>!construir</b> · <b>!trabalhar</b>', '<b>!ir</b> floresta · rio · mina · praça · casa', '<b>!comer</b> · <b>!dormir</b> · <b>!parar</b>']],
+  ['⚔️ Lute e ganhe moedas', ['Trabalhar rende 💰 para você', '<b>!atacar</b> lobo, javali, urso e saqueadores', '<b>!duelo @nome</b> · <b>!aceitar</b> (ninguém perde)', '<b>!ajudar</b> acelera pesquisas e mutirões']],
+  ['🛒 Loja e mochila', ['<b>!loja</b> mostra os itens', '<b>!comprar</b> machado · espada · escudo · poção', '<b>!equipar</b> item · <b>!usar</b> item', '<b>!mochila</b> mostra o que você tem']],
+  ['🐾 Pets', ['<b>!pet</b> mostra a lista de pets', '<b>!pet cachorro</b> adota (25 💰)', '<b>!pet nome Rex</b> · <b>!pet carinho</b>', 'Pets trazem achados e ajudam na luta']],
+  ['💎 Lendários com Pix', ['Cada R$ 1 em Pix ou Super Chat = 1 💎', '🐉 dragão · 🔥 fênix · 🦄 unicórnio · 🧚 fada', '⚔️ katana · 🔮 cajado · 🛡️ armadura dourada', 'Escreva <b>!pet dragao</b> na mensagem do Pix']],
+];
+function howToFrame() {
+  let el = document.getElementById('lvHowToCard');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'lvHowToCard';
+    el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:5;width:min(290px,calc(100vw - 24px));pointer-events:none;background:rgba(40,25,10,.86);color:#fff3d4;border:2px solid #f6c344;border-radius:6px;padding:7px 10px;box-shadow:0 3px 0 rgba(0,0,0,.3);font-size:14px;line-height:1.35;transition:opacity .4s';
+    document.body.appendChild(el);
+  }
+  const panelOpen = !panelHidden(), busy = !!(TOUR || REC || (L().raid && L().raid.phase !== 'warn'));
+  const show = LIVE_CFG.howTo && panelOpen === false && !busy;
+  el.style.display = show ? 'block' : 'none';
+  if (!show) return;
+  const i = Math.floor(Date.now() / 12000) % HOWTO_PAGES.length;
+  if (el.dataset.p !== String(i)) {
+    el.dataset.p = String(i);
+    const [t, lines] = HOWTO_PAGES[i];
+    el.innerHTML = `<b style="color:#ffe08a">${t}</b><span style="float:right;color:#ffb36b;font-weight:700">${i + 1}/${HOWTO_PAGES.length}</span>` + lines.map(l => `<div style="font-size:13px;margin-top:2px">${l.replace(/<b>/g, '<b style="color:#ffe08a">')}</div>`).join('');
+  }
+}
+setInterval(() => { try { howToFrame(); } catch (e) { console.error('como jogar:', e); } }, 1000);
+
+// ================== LIVE SOZINHA ==================
+// Para a live rodar sem ninguém no comando: eventos e estações acontecem sozinhos,
+// e os botões de gravar vídeo e de disparar eventos à mão ficam escondidos.
+function applyStudioHide() {
+  let st = document.getElementById('lvHideCss');
+  if (!st) { st = document.createElement('style'); st.id = 'lvHideCss'; document.head.appendChild(st); }
+  st.textContent = LIVE_CFG.hideStudio ? '#recMenuBtn,#camBtn,#sndRec,#evBtn,#tlBtn,#pxQuick [data-action="cinema"],#pxQuick [data-action="events"]{display:none!important}' : '';
+}
+applyStudioHide();
+
+const AUTO_EV = [
+  { k: 'rain', w: 5, ok: () => !isNight(), msg: ['🌧️ CHUVA NA VILA!', 'As plantações agradecem 🌱'] },
+  { k: 'chickens', w: 3, ok: () => !isNight() && npcs.length >= 3, msg: null },
+  { k: 'party', w: 3, ok: () => hour() >= 16 && hour() < 20.5 && npcs.length >= 3, msg: ['🎆 FESTA NA PRAÇA!', 'Fim de tarde é dia de festa!'] },
+  { k: 'ufo', w: 1, ok: () => npcs.length >= 4, msg: null },
+  { k: 'snow', w: 3, ok: () => new Date().getMonth() === 11 && mod() !== 'inverno', msg: null },
+];
+let autoEvNext = Date.now() + 4 * 60000;
+function autoEventBusy() {
+  return TOUR || REC || L().raid || EV.rain > 0 || EV.snow > 0 || EV.party > 0 || EV.fire || EV.chickens.length || EV.ufo || EV.launch;
+}
+function autoEventTick() {
+  if (!LIVE_CFG.autoEv || npcs.length < 2) return;
+  if (Date.now() < autoEvNext) return;
+  if (autoEventBusy()) { autoEvNext = Date.now() + 60000; return; }
+  const opts = AUTO_EV.filter(e => e.ok());
+  autoEvNext = Date.now() + LIVE_CFG.evMin * 60000 * (0.7 + Math.random() * 0.6);
+  if (!opts.length) return;
+  let r = Math.random() * opts.reduce((a, e) => a + e.w, 0), ev = opts[0];
+  for (const e of opts) { r -= e.w; if (r <= 0) { ev = e; break; } }
+  startEvent(ev.k);
+  if (ev.msg) announce(ev.msg[0], ev.msg[1]);
+  feed(`🎲 Evento automático: ${ev.msg ? ev.msg[0] : ev.k}`);
+}
+const SEASON_ORDER = ['primavera', 'verao', 'outono', 'inverno'];
+function autoSeasonTick() {
+  if (!LIVE_CFG.autoSeason || TOUR || REC) return;
+  const want = mod() === 'inverno' ? 'inverno' : SEASON_ORDER[Math.floor((day() - 1) / Math.max(1, LIVE_CFG.seasonDays)) % 4];
+  if (want !== SEASON) setSeason(want, mod() === 'inverno');
+}
+setInterval(() => { try { autoEventTick(); autoSeasonTick(); } catch (e) { console.error('live sozinha:', e); } }, 5000);
+
+// ================== PAINEL: LEMBRA SE ESTAVA ESCONDIDO ==================
+// O estado da tecla H vale entre recarregamentos: atualizar o jogo nunca reabre o painel na live.
+const PANEL_KEY = 'pixelandia-live-panel-hidden';
+function panelHidden() { const p = document.getElementById('panel'); return !!p && p.classList.contains('hidden'); }
+addEventListener('load', () => setTimeout(() => {
+  try {
+    const p = document.getElementById('panel'); if (!p) return;
+    if (localStorage.getItem(PANEL_KEY) === '1' && !panelHidden() && typeof togglePanel === 'function') togglePanel();
+    new MutationObserver(() => { try { localStorage.setItem(PANEL_KEY, panelHidden() ? '1' : '0'); } catch (e) {} }).observe(p, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) { console.warn('painel:', e); }
+}, 0));
+
+// ================== ATUALIZAÇÃO AUTOMÁTICA ==================
+// A cada minuto confere se index.html ou live-game.js mudaram no servidor local.
+// Achou versão nova (igual em duas conferências seguidas, para não pegar arquivo pela metade):
+// espera um momento calmo (sem ataque nem votação aberta), salva o mundo e recarrega sozinho.
+// O painel continua como estava (escondido com H fica escondido).
+const UPD_FILES = ['./index.html', './live-game.js'];
+let updBase = null, updSeen = null, updReadyAt = 0;
+function updHash(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ':' + (h >>> 0).toString(36); }
+async function updSig() {
+  const texts = await Promise.all(UPD_FILES.map(f => fetch(f + '?upd=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })));
+  return texts.map(updHash).join('|');
+}
+function updCalm() {
+  const s = L();
+  return !s.raid && !s.vote && !TOUR && !REC && !EV.ufo && !EV.launch && !(camQ.cur && Date.now() < camQ.until);
+}
+async function updCheck() {
+  if (!/^https?:$/.test(location.protocol)) return;
+  try {
+    const sig = await updSig();
+    if (!updBase) { updBase = sig; return; }
+    if (sig === updBase) { updSeen = null; updReadyAt = 0; return; }
+    if (sig !== updSeen) { updSeen = sig; return; } // espera a próxima conferência confirmar
+    if (!updReadyAt) { updReadyAt = Date.now(); console.log('Versão nova do jogo encontrada: recarrega no próximo momento calmo.'); }
+    if (updCalm() || Date.now() - updReadyAt > 10 * 60000) {
+      try { if (typeof save === 'function') save(); } catch (e) {}
+      try { localStorage.setItem(PANEL_KEY, panelHidden() ? '1' : '0'); } catch (e) {}
+      location.reload();
+    }
+  } catch (e) { /* servidor fora do ar: tenta de novo depois */ }
+}
+setTimeout(updCheck, 5000);
+setInterval(() => { updCheck(); }, 60000);
+// Com versão nova confirmada, confere a cada 10 s se já está calmo para recarregar.
+setInterval(() => { if (updReadyAt && (updCalm() || Date.now() - updReadyAt > 10 * 60000)) updCheck(); }, 10000);
+
 // Jogo aberto pelo servidor local (iniciar-live.bat): a ponte já conecta sozinha.
 try { if (new URL(LIVE_CFG.bridgeUrl, location.href).origin === location.origin) bridgeConnect(); } catch (e) {}
+// Chave e live já salvas: reconecta o chat do YouTube sozinho ao reabrir ou recarregar o jogo.
+if (LIVE_CFG.ytKey.trim() && LIVE_CFG.ytVideo.trim()) ytConnect();
 
 // Vigia: um erro inesperado no loop de desenho congelaria a tela da live. Religa uma vez por erro.
 let frameErrAt = 0;
