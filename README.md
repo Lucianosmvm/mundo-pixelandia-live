@@ -39,6 +39,10 @@ Ao reabrir, votações e desafios que venceram com o jogo fechado são cancelado
 
 Cada espectador controla o próprio morador por ordens no chat. As mensagens chegam ao jogo com 7 a 15 s de atraso, por isso o controle é por ordem, não por setas. Uma ordem dura 3 minutos; depois, ou com `!parar`, o morador volta à rotina sozinho.
 
+O jogo é feito para ser divertido, não para castigar quem saiu da live: nada se perde por fome ou cansaço, e o morador se cuida sozinho.
+
+**Principais:** `@Nome/profissão`, `!cortar` / `!pescar` / `!minerar` / `!caçar`, `!atacar` e `!meu`. Os outros são extras.
+
 | Comando | Efeito |
 |---|---|
 | `!ir floresta` (rio, mina, praça, depósito, casa ou o nome de uma obra) | Vai até lá e espera. |
@@ -46,14 +50,16 @@ Cada espectador controla o próprio morador por ordens no chat. As mensagens che
 | `!comer` | Come no depósito: 🍲 refeição +60, 🐟 peixe +35, 🥕 colheita +30 de fome saciada. |
 | `!dormir` | Vai para casa e descansa até recuperar a energia. |
 | `!parar` | Cancela a ordem. |
-| `!status` | Mostra ❤️ vida, 🍗 fome, ⚡ energia, 💰 moedas e ataque. |
-| `!mochila` | Mostra moedas, itens e o que está equipado. |
+| `!status` (ou `!meu`) | Entra na fila da câmera e mostra ❤️ vida, 🍗 fome, ⚡ energia, 💰 moedas e ataque. |
+| `!mochila` | Entra na fila da câmera e mostra moedas, itens, o que está equipado e o pet. |
 | `!loja` / `!comprar item` / `!equipar item` / `!usar item` | Compra, equipa e usa itens. |
 | `!pet cachorro` (gato, coelho, galinha, raposa, porco) | Adota um pet por 25 💰. `!pet nome Rex` dá nome, `!pet carinho` dá ânimo, `!pet soltar` devolve à floresta. |
 | `!atacar` | Luta contra a fera que apareceu ou entra na defesa contra saqueadores. |
-| `!duelo @nome` / `!aceitar` | Duelo amigável na praça, vale 5 💰. |
+| `!duelo @nome` / `!aceitar` | Duelo amigável na praça: o vencedor ganha 5 💰, quem perde ganha 1 💰. Ninguém perde nada. |
 
-**Necessidades:** a fome e a energia caem com o tempo (mais rápido trabalhando sob ordem). Com fome zerada, a vida cai. Vida zerada: o morador desmaia por 1 minuto em casa. Sem ordem, o morador come sozinho quando a fome fica baixa e descansa quando a energia acaba. Uma barrinha de vida aparece embaixo de quem está machucado.
+**Necessidades (só bônus):** a fome e a energia caem devagar. Morador alimentado (🍗 60+) e descansado (⚡ 40+) trabalha 60% mais rápido. Fome e cansaço nunca tiram vida: só aparece um ícone 🍗 ou 💤 ao lado da cabeça, convidando a dar `!comer` ou `!dormir`. Sem ordem, o morador come sozinho quando a fome fica baixa. A vida só cai em combate e volta sozinha; se zerar, o morador desmaia por 20 s (💫) e não perde nada. Uma barrinha de vida aparece embaixo de quem está machucado. Arma e escudo equipados aparecem desenhados no morador.
+
+**Contra repetição (spam):** repetir a mesma ordem só renova o tempo dela; ordens novas valem no máximo uma a cada 5 s; `!comer` só com fome (abaixo de 90) e a cada 30 s; a `!loja` aparece na tela no máximo a cada 30 s; no desafio de mensagens cada pessoa conta 1 mensagem a cada 5 s. Votos já contam um por pessoa.
 
 **Moedas:** cada tarefa do morador rende 1 💰 ao dono (2 com a ferramenta certa). Às vezes ele encontra um item trabalhando. Todo morador novo começa com 10 💰.
 

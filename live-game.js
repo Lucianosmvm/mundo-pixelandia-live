@@ -253,7 +253,8 @@ function onChat(v, uid, text) {
   if (!text) return '';
   const now = Date.now();
   v.msgs++; statMsg(uid);
-  if (L().chal && L().chal.track === 'msg') chalAdd(uid, 1);
+  // Desafio de mensagens: repetir a mesma coisa não adianta, conta 1 mensagem por pessoa a cada 5 s.
+  if (L().chal && L().chal.track === 'msg' && now - (v.chalMsg || 0) >= 5000) { v.chalMsg = now; chalAdd(uid, 1); }
   if (now - v.last > 15000) { v.last = now; addXp(v, 1); researchAdd(3); const n = npcOf(v); if (n) n.boost = Math.max(n.boost || 0, 45); }
 
   const arrive = text.match(/^@\s*([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/u) || text.match(/^!morador\s+([^/|]{1,24}?)\s*[/|]\s*(.{2,30})$/iu);
@@ -542,14 +543,14 @@ let showTop = 0, showHelp = 0;
 // Fila de câmera: cada !meu ganha alguns segundos de destaque, um de cada vez.
 const SPOT_SEC = 8;
 const camQ = { cur: null, until: 0, queue: [], lastWasSpot: false };
-function showMine(v) {
+function showMine(v, kind = 'meu') {
   const n = npcOf(v);
   if (!n) return 'Você ainda não tem morador: digite @Nome/profissão';
   if (camQ.cur && camQ.cur.npc === n.id && Date.now() < camQ.until) return 'Seu morador já está na tela!';
   const pos = camQ.queue.findIndex(x => x.npc === n.id);
-  if (pos >= 0) return `Você já está na fila da câmera (${pos + 1}º).`;
+  if (pos >= 0) { camQ.queue[pos].kind = kind; return `Você já está na fila da câmera (${pos + 1}º).`; }
   if (camQ.queue.length >= 30) return 'Fila da câmera cheia, tente daqui a pouco.';
-  camQ.queue.push({ npc: n.id, uid: norm(v.name) });
+  camQ.queue.push({ npc: n.id, uid: norm(v.name), kind });
   liveDirty = true;
   return camQ.queue.length > 1 || camQ.cur ? `Fila da câmera: ${camQ.queue.length}º.` : 'Seu morador vai aparecer!';
 }
@@ -569,7 +570,8 @@ function processSpotlight() {
   follow = n.id; pinnedFollow = false; followUntil = performance.now() + SPOT_SEC * 1000;
   camQ.cur = { npc: n.id, name: n.name, who: v.name }; camQ.until = now + SPOT_SEC * 1000; camQ.lastWasSpot = true;
   const work = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
-  announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)}${v.hp != null ? ' · ' + bars(v) + ' · 💰 ' + v.coins : ''} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'}`);
+  if (item.kind === 'mochila' && v.hp != null) announce(`🎒 Mochila de ${n.name}`, `de @${v.name} · 💰 ${v.coins} · ${invText(v)} · ${eqText(v)}${n.pet ? ' · ' + (PET_BY_K[n.pet.k] || {}).icon + ' ' + (n.pet.name || (PET_BY_K[n.pet.k] || {}).label || 'pet') : ''}`);
+  else announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)}${v.hp != null ? ' · ' + bars(v) + ' · 💰 ' + v.coins + ' · ⚔️ ' + atkOf(v, n) : ''} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'}`);
   say(n, pick(['Oi, chat! 👋', 'Tô aqui!', 'Olha eu! ✨', 'Trabalhando duro 💪']));
   liveDirty = true;
 }
@@ -736,10 +738,10 @@ function renderLiveHud() {
   if (s.goal > 0) h += `<div class="lh-goal">💛 Meta da live: R$ ${fmt(Math.round(s.raised))} / ${fmt(s.goal)}${bar(s.raised / s.goal, 'g')}</div>`;
   if (Date.now() < showTop) h += `<div class="lh-box"><b>🏆 Quem mais ajudou</b>${topViewers(5).map((v, i) => `<div class="opt"><span>${i + 1}. ${esc(v.name)}${npcOf(v) ? ' · ' + esc(npcOf(v).name) : ''}</span><em>nv ${level(v)}</em></div>`).join('') || '<small>Ninguém ainda</small>'}</div>`;
   if (Date.now() < showHall) h += hallBox();
-  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br>🎮 <b>!ir</b> floresta/rio/mina/praça/casa · <b>!cortar</b> <b>!minerar</b> <b>!pescar</b> <b>!caçar</b> <b>!construir</b><br>🍗 <b>!comer</b> · 💤 <b>!dormir</b> · <b>!parar</b> · <b>!status</b> vida, fome e energia<br>🐾 <b>!pet cachorro</b> · 🛒 <b>!loja</b> <b>!comprar</b> <b>!equipar</b> <b>!usar</b> <b>!mochila</b><br>⚔️ <b>!atacar</b> feras e saqueadores · <b>!duelo @nome</b> / <b>!aceitar</b><br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
+  if (Date.now() < showHelp) h += `<div class="lh-box"><b>📜 Comandos</b><small><b>@Nome/profissão</b> traz seu morador<br><b>1 2 3</b> votam na obra · <b>A B</b> nas escolhas<br><b>!ajudar</b> nos mutirões · <b>!meu</b> mostra seu morador<br><b>!top</b> ranking · <b>!era</b> progresso<br>⭐ <b>Principais:</b> <b>@Nome/profissão</b> · <b>!cortar</b> <b>!pescar</b> <b>!minerar</b> <b>!caçar</b> · <b>!atacar</b> · <b>!meu</b><br>➕ <b>Extras:</b> <b>!ir</b> lugar · <b>!comer</b> · <b>!dormir</b> · <b>!parar</b> · <b>!mochila</b> · <b>!pet cachorro</b> · <b>!loja</b> <b>!comprar</b> <b>!equipar</b> <b>!usar</b> · <b>!duelo @nome</b><br>Super Chat/Pix: recursos, eventos e obras relâmpago</small></div>`;
   const recent = s.feed.filter(f => Date.now() - f.at < 25000).slice(-4);
   if (recent.length) h += `<div class="lh-feed">${recent.map(f => `<div>${esc(f.t)}</div>`).join('')}</div>`;
-  const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos', '🎮 <b>!ir floresta</b> · <b>!cortar</b> · <b>!pescar</b>: dê ordens ao seu morador', '🍗 <b>!comer</b> e 💤 <b>!dormir</b> cuidam do seu morador', '🐾 <b>!pet cachorro</b> adota um pet (25 💰)', '🛒 <b>!loja</b> · trabalhar rende 💰 para comprar armas e itens', '⚔️ <b>!atacar</b> quando aparecer lobo ou saqueador'];
+  const tips = ['⚡ Falar no chat dá ânimo ao seu morador', '🏆 <b>!top</b> mostra quem mais ajudou', '📍 <b>!meu</b> mostra seu morador na tela', '📜 <b>!ajuda</b> mostra todos os comandos', '🪓 <b>!cortar</b> · <b>!pescar</b> · <b>!minerar</b>: dê ordens ao seu morador', '💰 Trabalhar rende moedas: <b>!loja</b> tem armas, pets e mais', '⚔️ <b>!atacar</b> quando aparecer lobo ou saqueador', '🍗 Morador alimentado trabalha mais rápido: <b>!comer</b>', '🐾 <b>!pet cachorro</b> adota um pet (25 💰)'];
   if (npcs.length) {
     h += `<div class="lh-tip">${tips[Math.floor(Date.now() / 8000) % tips.length]}</div>`;
     h += `<div class="lh-join">💬 Entre na vila: <b>@SeuNome/profissão</b></div>`;
@@ -1161,11 +1163,12 @@ function raidersEntities() { return raiders.map(z => ({ y: z.y, k: 'live', draw:
 // Cada espectador controla o próprio morador por ordens no chat (o chat chega com 7 a 15 s de atraso,
 // então o controle é por ordem, não por setas). Sem ordem nova, o morador volta à rotina sozinho.
 // Tudo fica salvo no espectador (L().viewers), que vai junto no salvamento e no backup do mundo.
-//   Fase 1: ordens e necessidades (❤️ vida, 🍗 fome, ⚡ energia)
+//   Fase 1: ordens e necessidades (❤️ vida, 🍗 fome, ⚡ energia). Modo leve: fome e energia só dão
+//           bônus (bem alimentado e descansado trabalha mais rápido) e nunca castigam; vida só cai em combate.
 //   Fase 2: pets que seguem o dono e trazem achados
 //   Fase 3: 💰 moedas pessoais, mochila, loja, ferramentas e armas
 //   Fase 4: combate (lobos, saqueadores, duelos) e desmaio
-const ORDER_MS = 3 * 60000, KO_MS = 60000, NEED_TICK = 10000;
+const ORDER_MS = 3 * 60000, KO_MS = 20000, NEED_TICK = 10000, ORDER_GAP = 5000, EAT_GAP = 30000;
 const ORDER_LABEL = { go: 'Indo', stay: 'Esperando', chop: 'Cortando árvores 🪓', mine: 'Minerando ⛏️', fish: 'Pescando 🎣', hunt: 'Caçando 🏹', build: 'Construindo 🔨', job: 'Trabalhando', sleep: 'Descansando 💤', fight: 'Lutando ⚔️' };
 const ITEMS = {
   machado: { icon: '🪓', label: 'Machado', price: 20, slot: 'tool', work: 'chop', desc: 'corta árvores 60% mais rápido' },
@@ -1193,6 +1196,7 @@ const PET_KINDS = {
 const PET_BY_K = Object.fromEntries(Object.entries(PET_KINDS).map(([nm, p]) => [p.k, { ...p, nm }]));
 const PET_PRICE = 25;
 const PLAYER_START_COINS = 10;
+let shopAt = 0;
 
 // ---------- Estado do jogador (fica no espectador) ----------
 function pl(v) {
@@ -1214,8 +1218,6 @@ function defOf(v) { const a = ITEMS[v.eq.armor]; return a ? a.def : 0; }
 function invText(v) { const it = Object.entries(v.inv).filter(([, q]) => q > 0).map(([k, q]) => `${ITEMS[k].icon}${q > 1 ? '×' + q : ''}`); return it.join(' ') || 'vazia'; }
 function eqText(v) { return ['tool', 'weapon', 'armor'].map(s => v.eq[s] && ITEMS[v.eq[s]] ? ITEMS[v.eq[s]].icon + ' ' + ITEMS[v.eq[s]].label : null).filter(Boolean).join(' · ') || 'nada equipado'; }
 function findItem(word) { const w = norm(word || '').replace(/[^a-z]/g, ''); if (!w) return null; if (ITEM_ALIAS[w]) return ITEM_ALIAS[w]; return Object.keys(ITEMS).find(k => k.startsWith(w) || w.startsWith(k)) || null; }
-// Cada espectador pode mostrar a própria ficha no topo da tela no máximo a cada 8 s.
-function card(v, title, sub) { if (Date.now() - (v.cardAt || 0) < 8000) return; v.cardAt = Date.now(); announce(title, sub); }
 function hurt(v, n, dmg, why) {
   pl(v); dmg = Math.max(1, Math.round(dmg - defOf(v) * 0.5)); v.hp = Math.max(0, v.hp - dmg);
   if (n) { floatTxt(n.x, n.y - 26, '-' + dmg + ' ❤️'); burst(n.x, n.y - 10, '#e74c3c', 5); }
@@ -1223,13 +1225,17 @@ function hurt(v, n, dmg, why) {
 }
 function knockOut(v, n, why) {
   v.ko = Date.now() + KO_MS; v.ord = null; v.hp = 0;
-  feed(`💫 ${n ? n.name : v.name} desmaiou${why ? ' (' + why + ')' : ''} e volta em 1 minuto`);
+  feed(`💫 ${n ? n.name : v.name} desmaiou${why ? ' (' + why + ')' : ''} e volta em 20 s`);
   if (n) { say(n, 'Ai… 💫'); n.plan = []; n.step = null; n.anim = null; const h = homeB(n); n.status = 'Desmaiado 💫'; if (h) { const f = frontOf(h); n.plan = [goTile(f.x, f.y), fn(m => { m.inside = true; })]; } else { n.sleeping = true; n.idle = 5; } }
 }
 
 // ---------- Fase 1: ordens ----------
 function setOrder(v, n, k, extra) {
   pl(v);
+  // Repetir a mesma ordem não reinicia o caminho; ordens novas, no máximo uma a cada 5 s.
+  if (v.ord && v.ord.k === k && !extra) { v.ord.until = Date.now() + ORDER_MS; return ''; }
+  if (Date.now() - (v.ordAt || 0) < ORDER_GAP) return '';
+  v.ordAt = Date.now();
   if (v.ko > Date.now()) return `${n.name} está desmaiado 💫 e volta em ${Math.ceil((v.ko - Date.now()) / 1000)}s.`;
   v.ord = Object.assign({ k, until: Date.now() + ORDER_MS }, extra || {});
   if (!n.active) activate(n);
@@ -1255,20 +1261,16 @@ function placeGoal(word, n) {
 function orderPlan(n, v) {
   const now = Date.now();
   if (v.ko > now) { n.inside = !!homeB(n); n.sleeping = !homeB(n); n.status = 'Desmaiado 💫'; n.idle = 4; return true; }
-  if (v.ko && v.ko <= now) { v.ko = 0; v.hp = Math.max(v.hp, 40); v.food = Math.max(v.food, 30); n.inside = false; n.sleeping = false; say(n, 'Acordei! 😵‍💫'); }
+  if (v.ko && v.ko <= now) { v.ko = 0; v.hp = Math.max(v.hp, 60); n.inside = false; n.sleeping = false; say(n, 'Acordei! 😵‍💫'); }
   const o = v.ord;
   if (!o) {
     // Sem ordem: cuida das próprias necessidades antes da rotina.
     if (v.food < 20 && !isNight() && (res.meals > 0 || res.fish > 0 || res.crops > 0)) { planEat(n, v, false); return true; }
-    // Exausto: descansa até recuperar 70 de energia (não fica entrando e saindo de casa).
-    if (v.en < 12) v.rest = true;
-    if (v.rest) { if (v.en >= 70) v.rest = false; else { planSleep(n); n.status = 'Exausto, descansando 💤'; return true; } }
     return false;
   }
   if (now > o.until || (o.k === 'sleep' && v.en >= 98)) { v.ord = null; say(n, 'Voltando à rotina!', 0.6); return false; }
   if (EV.party > 0 || EV.fire) return false;
   if (o.k !== 'sleep') { n.inside = false; n.sleeping = false; }
-  if (v.en < 5 && o.k !== 'sleep') { v.ord = null; say(n, 'Cansado demais… 😩'); planSleep(n); return true; }
   const tool = ITEMS[v.eq.tool], weap = ITEMS[v.eq.weapon];
   if ((tool && tool.work === o.k) || (weap && weap.work === o.k)) n.boost = Math.max(n.boost || 0, 20);
   const want = { chop: 'wood', mine: 'stone', fish: 'fish', hunt: 'crops' }[o.k];
@@ -1303,10 +1305,12 @@ function needsTick() {
     if (v.npc == null || v.banned || v.hp == null) continue;
     const n = npcOf(v); if (!n) continue;
     const resting = n.inside || n.sleeping, working = v.ord && !['stay', 'sleep'].includes(v.ord.k);
-    v.food = clamp(v.food - (working ? 1 : 0.35), 0, 100);
-    v.en = clamp(v.en + (resting ? 4 : working ? -1.1 : -0.15), 0, 100);
-    if (v.food <= 0) hurt(v, n.active ? n : null, 2, 'fome');
-    else if (v.food > 40 && v.en > 25 && v.hp < 100 && !(v.ko > Date.now())) v.hp = Math.min(100, v.hp + (resting ? 3 : 0.8));
+    v.food = clamp(v.food - (working ? 0.8 : 0.3), 0, 100);
+    v.en = clamp(v.en + (resting ? 5 : working ? -0.8 : -0.1), 0, 100);
+    // Vida volta sozinha (mais rápido descansando). Fome e energia nunca tiram vida.
+    if (v.hp < 100 && !(v.ko > Date.now())) v.hp = Math.min(100, v.hp + (resting ? 5 : 2));
+    // Bônus: bem alimentado e descansado trabalha 60% mais rápido.
+    if (v.food >= 60 && v.en >= 40 && n.active) n.boost = Math.max(n.boost || 0, NEED_TICK / 1000 + 1);
   }
 }
 
@@ -1335,7 +1339,7 @@ function petCmd(v, n, args, rawRest) {
   if (n.active) { heart(n.x, n.y - 20); say(n, `Meu ${kind.label.toLowerCase()}! ${kind.icon}`); }
   npcVer++; save(); return '';
 }
-function petCard(v, n) { const p = PET_BY_K[n.pet.k]; card(v, `${p ? p.icon : '🐾'} ${n.pet.name || (p ? p.label : 'Pet')} de ${n.name}`, `${p ? p.label : ''} · ataque +${p ? p.atk : 0} · traz ${p ? p.find[0] : 'achados'} de vez em quando`); return ''; }
+function petCard(v, n) { return showMine(v, 'mochila'); }
 function petFind(v, n, forced) {
   const p = n.pet && PET_BY_K[n.pet.k]; if (!p) return;
   const [txt, key, q] = p.find;
@@ -1500,9 +1504,15 @@ function drawBeast(z) {
 function hpBarEntities() {
   const out = [];
   for (const v of Object.values(L().viewers)) {
-    if (v.npc == null || v.hp == null || v.hp >= 100) continue; const n = npcOf(v);
+    if (v.npc == null || v.hp == null) continue; const n = npcOf(v);
     if (!n || !n.active || n.inside) continue;
-    out.push({ y: n.y + 0.5, k: 'live', draw: () => { const w = 14, f = clamp(v.hp / 100, 0, 1), x = Math.round(n.x), y = Math.round(n.y); px(ctx, 'rgba(0,0,0,.55)', x - w / 2 - 1, y + 2, w + 2, 3); px(ctx, f > 0.5 ? '#2ecc71' : f > 0.25 ? '#f1c40f' : '#e74c3c', x - w / 2, y + 3, Math.round(w * f), 1); } });
+    const icon = v.ko > Date.now() ? '💫' : v.food < 30 ? '🍗' : v.en < 25 ? '💤' : '';
+    if (v.hp >= 100 && !icon) continue;
+    out.push({ y: n.y + 0.5, k: 'live', draw: () => {
+      const x = Math.round(n.x), y = Math.round(n.y);
+      if (v.hp < 100) { const w = 14, f = clamp(v.hp / 100, 0, 1); px(ctx, 'rgba(0,0,0,.55)', x - w / 2 - 1, y + 2, w + 2, 3); px(ctx, f > 0.5 ? '#2ecc71' : f > 0.25 ? '#f1c40f' : '#e74c3c', x - w / 2, y + 3, Math.round(w * f), 1); }
+      if (icon) { ctx.save(); ctx.font = '8px "Segoe UI Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(gtime * 3)); ctx.fillText(icon, x + 9, y - 20); ctx.restore(); }
+    } });
   }
   return out;
 }
@@ -1532,7 +1542,7 @@ function duelCmd(v, uid, n, target) {
   duels = duels.filter(d => Date.now() < d.expires && !d.done);
   if (duels.some(d => d.av === v || d.bv === ov || d.av === ov || d.bv === v)) return 'Já tem um duelo pendente.';
   duels.push({ av: v, bv: ov, expires: Date.now() + 60000, done: false });
-  announce(`⚔️ ${n.name} desafiou ${on.name}!`, `@${ov.name}, digite !aceitar em até 60 s · vale 5 💰`);
+  announce(`⚔️ ${n.name} desafiou ${on.name}!`, `@${ov.name}, digite !aceitar em até 60 s · ninguém perde nada`);
   return '';
 }
 function acceptDuel(v, uid, n) {
@@ -1545,15 +1555,30 @@ function acceptDuel(v, uid, n) {
   setTimeout(() => {
     const pa = atkOf(d.av, an) + d.av.hp / 10 + rnd(0, 12), pb = atkOf(v, n) + v.hp / 10 + rnd(0, 12);
     const [wv, wn, lv, ln] = pa >= pb ? [d.av, an, v, n] : [v, n, d.av, an];
-    const prize = Math.min(5, lv.coins); lv.coins -= prize; wv.coins += prize; addXp(wv, 6); addXp(lv, 2);
-    hurt(lv, ln.active ? ln : null, 15, 'duelo');
-    announce(`🏆 ${wn.name} venceu o duelo!`, `${ln.name} perdeu ${prize} 💰 · boa luta!`);
-    feed(`⚔️ ${wn.name} venceu ${ln.name} no duelo (+${prize} 💰)`);
+    wv.coins += 5; lv.coins += 1; addXp(wv, 6); addXp(lv, 3);
+    announce(`🏆 ${wn.name} venceu o duelo!`, `+5 💰 para o vencedor · +1 💰 para ${ln.name} · boa luta!`);
+    feed(`⚔️ ${wn.name} venceu ${ln.name} no duelo (+5 💰)`);
     if (wn.active) { confetti(wn.x, wn.y - 10); say(wn, 'Vitória! 🏆'); }
     if (ln.active) say(ln, 'Revanche! 😤');
   }, 14000);
   return '';
 }
+
+// ---------- Arma e escudo desenhados no morador ----------
+const drawNPCBase = drawNPC;
+drawNPC = function (n) {
+  drawNPCBase(n);
+  if (n.id == null || n.sleeping || n.inside || n.prof === 'saqueador') return;
+  const v = ownerOf(n); if (!v || !v.eq) return;
+  const w = v.eq.weapon, a = v.eq.armor; if (!w && !a) return;
+  const x = Math.round(n.x), y = Math.round(n.y), swing = n.anim === 'hammer' ? Math.round(Math.sin(n.animT * 14) * 2) : 0;
+  ctx.save(); ctx.translate(x, y); if (n.dir === 'left') ctx.scale(-1, 1);
+  if (w === 'espada') { px(ctx, '#e3e8ee', 5, -17 + swing, 1, 8); px(ctx, '#ffffff', 5, -17 + swing, 1, 1); px(ctx, '#b8862f', 4, -9 + swing, 3, 1); px(ctx, '#5a3a1e', 5, -8 + swing, 1, 2); }
+  else if (w === 'lanca') { px(ctx, '#8a5a2a', 5, -20 + swing, 1, 14); px(ctx, '#cfd6de', 4, -22 + swing, 3, 2); px(ctx, '#cfd6de', 5, -23 + swing, 1, 1); }
+  else if (w === 'arco') { px(ctx, '#8a5a2a', 6, -16, 1, 1); px(ctx, '#8a5a2a', 7, -15, 1, 7); px(ctx, '#8a5a2a', 6, -8, 1, 1); px(ctx, '#eeeeee', 5, -15, 1, 7); }
+  if (a === 'escudo') { px(ctx, '#cfd6de', -8, -12, 4, 6); px(ctx, '#8a5a2a', -7, -11, 2, 4); px(ctx, '#f1c40f', -7, -10, 1, 1); }
+  ctx.restore();
+};
 
 // ---------- Comandos ----------
 function playerCommand(v, uid, lower, raw) {
@@ -1561,19 +1586,20 @@ function playerCommand(v, uid, lower, raw) {
   const [cmd0, ...args] = lower.slice(1).split(/\s+/); const cmd = cmd0.replace(/[^a-z]/g, '');
   const known = ['ir', 'va', 'vai', 'andar', 'anda', 'cortar', 'madeira', 'minerar', 'pedra', 'pescar', 'cacar', 'construir', 'trabalhar', 'comer', 'dormir', 'descansar', 'parar', 'status', 'ficha', 'vida', 'pet', 'mochila', 'inventario', 'loja', 'comprar', 'equipar', 'usar', 'atacar', 'lutar', 'duelo', 'aceitar', 'moedas'];
   if (!known.includes(cmd)) return null;
-  if (cmd === 'loja') { card(v, '🛒 Loja da vila', shopText() + ' · !comprar item'); return ''; }
+  if (cmd === 'loja') { if (Date.now() - shopAt > 30000) { shopAt = Date.now(); announce('🛒 Loja da vila', shopText() + ' · !comprar item'); } return ''; }
   const n = npcOf(v); if (!n) return 'Você ainda não tem morador: digite @Nome/profissão';
   pl(v);
-  if (['status', 'ficha', 'vida', 'moedas'].includes(cmd)) { card(v, `${n.name} · nível ${level(v)}`, `${bars(v)} · 💰 ${v.coins} · ⚔️ ${atkOf(v, n)}${v.ord ? ' · ' + (ORDER_LABEL[v.ord.k] || '') : ''}`); return ''; }
-  if (cmd === 'mochila' || cmd === 'inventario') { card(v, `🎒 Mochila de ${n.name}`, `💰 ${v.coins} · ${invText(v)} · ${eqText(v)}`); return ''; }
+  // Fichas entram na fila do !meu: a câmera mostra um jogador por vez, sem atropelar ninguém.
+  if (['status', 'ficha', 'vida', 'moedas'].includes(cmd)) return showMine(v, 'meu');
+  if (cmd === 'mochila' || cmd === 'inventario') return showMine(v, 'mochila');
   if (cmd === 'comprar') return buy(v, n, args.join(' '));
   if (cmd === 'equipar') return equip(v, n, args.join(' '));
   if (cmd === 'usar') return useItem(v, n, args.join(' '));
   if (cmd === 'pet') return petCmd(v, n, args, String(raw || '').trim().split(/\s+/).slice(2).join(' '));
   if (cmd === 'duelo') return duelCmd(v, uid, n, args[0]);
   if (cmd === 'aceitar') return acceptDuel(v, uid, n);
-  if (cmd === 'parar') { v.ord = null; n.plan = []; n.step = null; n.anim = null; say(n, 'Ok, de volta à rotina!', 0.8); return ''; }
-  if (cmd === 'comer') { if (v.ko > Date.now()) return ''; if (!n.active) activate(n); n.plan = []; n.step = null; n.inside = false; n.sleeping = false; planEat(n, v, true); return ''; }
+  if (cmd === 'parar') { if (!v.ord) return ''; v.ord = null; n.plan = []; n.step = null; n.anim = null; say(n, 'Ok, de volta à rotina!', 0.8); return ''; }
+  if (cmd === 'comer') { if (v.ko > Date.now() || v.food >= 90 || Date.now() - (v.eatAt || 0) < EAT_GAP) return ''; v.eatAt = Date.now(); if (!n.active) activate(n); n.plan = []; n.step = null; n.inside = false; n.sleeping = false; planEat(n, v, true); return ''; }
   if (cmd === 'dormir' || cmd === 'descansar') return setOrder(v, n, 'sleep');
   if (cmd === 'atacar' || cmd === 'lutar') {
     const rr = raidAttackCmd(v, uid, n); if (rr != null) return rr;
