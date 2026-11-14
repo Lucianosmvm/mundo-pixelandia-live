@@ -53,7 +53,7 @@ O jogo é feito para ser divertido, não para castigar quem saiu da live: nada s
 | `!status` (ou `!meu`) | Entra na fila da câmera e mostra ❤️ vida, 🍗 fome, ⚡ energia, 💰 moedas e ataque. |
 | `!mochila` | Entra na fila da câmera e mostra moedas, itens, o que está equipado e o pet. |
 | `!loja` / `!comprar item` / `!equipar item` / `!usar item` | Compra, equipa e usa itens. |
-| `!pet cachorro` (gato, coelho, galinha, raposa, porco) | Adota um pet por 25 💰. `!pet nome Rex` dá nome, `!pet carinho` dá ânimo, `!pet soltar` devolve à floresta. |
+| `!pet cachorro` (veja a lista abaixo) | Adota um pet. `!pet` sozinho mostra a lista na tela. `!pet nome Rex` dá nome, `!pet carinho` dá ânimo, `!pet soltar` devolve à floresta. |
 | `!atacar` | Luta contra a fera que apareceu ou entra na defesa contra saqueadores. |
 | `!duelo @nome` / `!aceitar` | Duelo amigável na praça: o vencedor ganha 5 💰, quem perde ganha 1 💰. Ninguém perde nada. |
 
@@ -63,9 +63,19 @@ O jogo é feito para ser divertido, não para castigar quem saiu da live: nada s
 
 **Moedas:** cada tarefa do morador rende 1 💰 ao dono (2 com a ferramenta certa). Às vezes ele encontra um item trabalhando. Todo morador novo começa com 10 💰.
 
+**💎 Cristais (Pix e Super Chat):** cada R$ 1 doado vira 1 💎 para quem doou; membro novo ganha 10 💎. Os cristais são a única forma de liberar os pets lendários e as armas e itens raros. Dá para resgatar na hora escrevendo o comando na mensagem do Pix ou Super Chat, por exemplo `!pet dragao` ou `!comprar katana`. Itens raros já entram equipados.
+
 **Loja:** 🪓 machado, ⛏️ picareta, 🎣 vara e 🔨 martelo (20 💰, deixam o trabalho certo 60% mais rápido); 🏹 arco (30, +6 de ataque), 🔱 lança (40, +9), 🗡️ espada (60, +14), 🛡️ escudo (40, menos dano); 🧪 poção (15, +50 vida), 🥖 pão (6, +45 fome), ☕ café (8, +40 energia), 🦴 petisco (5, o pet traz um achado na hora).
 
-**Pets:** seguem o dono, somam ataque (cachorro +4, raposa +3) e a cada 4 minutos trazem um achado: cachorro 3 💰, raposa 4 💰, porquinho 6 💰, gato 2 🐟, coelho 3 🥕, galinha 1 🍲 para a vila.
+**Raros (só 💎):** ⚔️ katana (15 💎, +22 de ataque), 🔨 marreta de guerra (15 💎, +20 e constrói rápido), 🏹 besta (12 💎, +18 e caça rápido), 🔮 cajado mágico (25 💎, +28), 🛡️ armadura dourada (15 💎, quase não leva dano), ⚗️ elixir (3 💎, vida, fome e energia no máximo). Todos aparecem desenhados no morador.
+
+**Pets:** seguem o dono (os que voam ficam pairando ao lado dele), somam ataque e a cada 4 minutos trazem um achado.
+
+| Tipo | Pets | Preço |
+|---|---|---|
+| Comuns | 🐶 cachorro, 🐱 gato, 🐰 coelho, 🐔 galinha, 🦊 raposa, 🐷 porco, 🐸 sapo, 🐢 tartaruga, 🐹 capivara, 🦜 papagaio, 🐒 macaco | 25 💰 |
+| Raros | 🐍 cobra, 🕷️ aranha, 🦇 morcego, 🦉 coruja, 🐆 onça | 50 💰 e nível 2 |
+| Lendários | 🟢 slime (5 💎), 🧚 fada (10 💎, cura o dono), 👹 orc (10 💎, +9 de ataque), 🦄 unicórnio (15 💎, recupera energia), 🦅 grifo (20 💎), 🔥 fênix (25 💎, o dono renasce em 5 s), 🐉 dragão (30 💎, +12 de ataque e cospe fogo) | só 💎 |
 
 **Feras:** de dia, a cada 6 a 11 minutos, um 🐺 lobo, 🐗 javali ou 🐻 urso (eras mais avançadas) aparece na beira da floresta e ataca quem estiver perto. Quem dá `!atacar` vai lutar; ataque = 4 + metade do nível + arma + pet. Derrotada a fera, as moedas são divididas pelo dano de cada um. Sem ninguém lutando, ela volta para a floresta em 2 minutos. As feras aparecem junto com os eventos automáticos (opção no painel).
 

@@ -496,6 +496,11 @@ function onDonation(v, uid, amount, text, src) {
   const perks = [`+${wood} 🌲 +${stone} ⛰️`];
   if (amount >= 5) { v.turbo += 3; perks.push('3 votos turbinados'); }
   const lower = norm(text);
+  // 💎 Cristais: cada R$ 1 vira 1 cristal, que libera pets lendários e itens raros.
+  const gems = Math.max(1, Math.floor(amount)); pl(v); v.gems = (v.gems || 0) + gems; perks.push(`+${gems} 💎`);
+  // Resgate na hora: "!pet dragao" ou "!comprar katana" na mensagem do Pix/Super Chat.
+  const redeem = lower.match(/!(pet|comprar)\s+[a-z]+/);
+  if (redeem && n) { const r = playerCommand(v, uid, redeem[0], redeem[0]); if (r) feed(`💎 ${v.name}: ${r}`); else perks.push('resgatado: ' + redeem[0].slice(1)); }
   const merc = raidMercs(amount, v.name); if (merc) perks.push(merc);
   if (amount >= 10) {
     const site = buildings.find(b => !b.done);
@@ -526,11 +531,11 @@ function liveGoalReached() {
   s.goal *= 2;
 }
 function onMember(v) {
-  v.member = true; stat('members'); addXp(v, 50);
+  v.member = true; stat('members'); addXp(v, 50); pl(v); v.gems = (v.gems || 0) + 10; // membro novo ganha 10 💎
   const n = npcOf(v);
   if (n && !n.vip) { n.fan = true; setVip(n, true); }
   else announce('👑 NOVO MEMBRO!', `${v.name} ganha mansão quando trouxer seu morador`);
-  feed(`👑 ${v.name} virou membro do canal!`); save(); return 'Membro registrado.';
+  feed(`👑 ${v.name} virou membro do canal! +10 💎`); save(); return 'Membro registrado.';
 }
 function onGift(v, count) {
   addXp(v, 30 * count);
@@ -570,8 +575,8 @@ function processSpotlight() {
   follow = n.id; pinnedFollow = false; followUntil = performance.now() + SPOT_SEC * 1000;
   camQ.cur = { npc: n.id, name: n.name, who: v.name }; camQ.until = now + SPOT_SEC * 1000; camQ.lastWasSpot = true;
   const work = Object.values(n.st || {}).reduce((a, b) => a + b, 0);
-  if (item.kind === 'mochila' && v.hp != null) announce(`🎒 Mochila de ${n.name}`, `de @${v.name} · 💰 ${v.coins} · ${invText(v)} · ${eqText(v)}${n.pet ? ' · ' + (PET_BY_K[n.pet.k] || {}).icon + ' ' + (n.pet.name || (PET_BY_K[n.pet.k] || {}).label || 'pet') : ''}`);
-  else announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)}${v.hp != null ? ' · ' + bars(v) + ' · 💰 ' + v.coins + ' · ⚔️ ' + atkOf(v, n) : ''} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'}`);
+  if (item.kind === 'mochila' && v.hp != null) announce(`🎒 Mochila de ${n.name}`, `de @${v.name} · 💰 ${v.coins}${gemsText(v)} · ${invText(v)} · ${eqText(v)}${n.pet ? ' · ' + (PET_BY_K[n.pet.k] || {}).icon + ' ' + (n.pet.name || (PET_BY_K[n.pet.k] || {}).label || 'pet') : ''}`);
+  else announce(`${profIcon(n)} ${n.name} · nível ${level(v)}`, `de @${v.name} · ${title(v)}${v.hp != null ? ' · ' + bars(v) + ' · 💰 ' + v.coins + gemsText(v) + ' · ⚔️ ' + atkOf(v, n) : ''} · ${n.abT > 0 ? 'abduzido pelo OVNI 👽' : n.status || 'Na vila'}`);
   say(n, pick(['Oi, chat! 👋', 'Tô aqui!', 'Olha eu! ✨', 'Trabalhando duro 💪']));
   liveDirty = true;
 }
@@ -1183,16 +1188,44 @@ const ITEMS = {
   pao: { icon: '🥖', label: 'Pão', price: 6, use: 'food', amount: 45, desc: '+45 de fome saciada' },
   cafe: { icon: '☕', label: 'Café', price: 8, use: 'en', amount: 40, desc: '+40 de energia' },
   petisco: { icon: '🦴', label: 'Petisco', price: 5, use: 'pet', desc: 'o pet traz um achado na hora' },
+  // Raros: só com 💎 cristais (cada R$ 1 em Pix ou Super Chat = 1 💎).
+  katana: { icon: '⚔️', label: 'Katana', gems: 15, slot: 'weapon', atk: 22, desc: '+22 de ataque' },
+  marreta: { icon: '🔨', label: 'Marreta de guerra', gems: 15, slot: 'weapon', atk: 20, work: 'build', desc: '+20 de ataque e constrói rápido' },
+  besta: { icon: '🏹', label: 'Besta', gems: 12, slot: 'weapon', atk: 18, work: 'hunt', desc: '+18 de ataque e caça rápido' },
+  cajado: { icon: '🔮', label: 'Cajado mágico', gems: 25, slot: 'weapon', atk: 28, desc: '+28 de ataque com magia' },
+  armadura: { icon: '🛡️', label: 'Armadura dourada', gems: 15, slot: 'armor', def: 20, desc: 'quase não leva dano' },
+  elixir: { icon: '⚗️', label: 'Elixir', gems: 3, use: 'all', desc: 'vida, fome e energia no máximo' },
 };
-const ITEM_ALIAS = { pocao: 'pocao', pocoes: 'pocao', vida: 'pocao', pao: 'pao', comida: 'pao', cafe: 'cafe', osso: 'petisco', petisco: 'petisco', machado: 'machado', picareta: 'picareta', vara: 'vara', martelo: 'martelo', arco: 'arco', lanca: 'lanca', espada: 'espada', escudo: 'escudo' };
+const ITEM_ALIAS = { katana: 'katana', marreta: 'marreta', besta: 'besta', cajado: 'cajado', varinha: 'cajado', armadura: 'armadura', elixir: 'elixir', pocao: 'pocao', pocoes: 'pocao', vida: 'pocao', pao: 'pao', comida: 'pao', cafe: 'cafe', osso: 'petisco', petisco: 'petisco', machado: 'machado', picareta: 'picareta', vara: 'vara', martelo: 'martelo', arco: 'arco', lanca: 'lanca', espada: 'espada', escudo: 'escudo' };
+// Pets: comuns (25 💰), raros (50 💰, nível 2) e lendários de RPG (só com 💎 cristais, que vêm de Pix/Super Chat).
+// k = código de 3 letras (é o que vai no salvamento); fly = voa ao lado do dono; art = artigo (um/uma).
 const PET_KINDS = {
-  cachorro: { k: 'dog', icon: '🐶', label: 'Cachorro', atk: 4, find: ['🦴 um osso enterrado', 'coins', 3] },
-  gato: { k: 'cat', icon: '🐱', label: 'Gato', atk: 1, find: ['🐟 um peixe', 'fish', 2] },
-  coelho: { k: 'bun', icon: '🐰', label: 'Coelho', atk: 0, find: ['🥕 cenouras', 'crops', 3] },
-  galinha: { k: 'hen', icon: '🐔', label: 'Galinha', atk: 0, find: ['🥚 ovos fresquinhos', 'meals', 1] },
-  raposa: { k: 'fox', icon: '🦊', label: 'Raposa', atk: 3, find: ['💰 moedas perdidas', 'coins', 4] },
-  porco: { k: 'pig', icon: '🐷', label: 'Porquinho', atk: 1, find: ['🍄 uma trufa rara', 'coins', 6] },
+  cachorro: { k: 'dog', icon: '🐶', label: 'Cachorro', tier: 'comum', atk: 4, find: ['🦴 um osso enterrado', 'coins', 3] },
+  gato: { k: 'cat', icon: '🐱', label: 'Gato', tier: 'comum', atk: 1, find: ['🐟 um peixe', 'fish', 2] },
+  coelho: { k: 'bun', icon: '🐰', label: 'Coelho', tier: 'comum', atk: 0, find: ['🥕 cenouras', 'crops', 3] },
+  galinha: { k: 'hen', icon: '🐔', label: 'Galinha', art: 'uma', tier: 'comum', atk: 0, find: ['🥚 ovos fresquinhos', 'meals', 1] },
+  raposa: { k: 'fox', icon: '🦊', label: 'Raposa', art: 'uma', tier: 'comum', atk: 3, find: ['💰 moedas perdidas', 'coins', 4] },
+  porco: { k: 'pig', icon: '🐷', label: 'Porquinho', tier: 'comum', atk: 1, find: ['🍄 uma trufa rara', 'coins', 6] },
+  sapo: { k: 'fro', icon: '🐸', label: 'Sapo', tier: 'comum', atk: 0, find: ['💰 uma moeda no fundo do lago', 'coins', 3] },
+  tartaruga: { k: 'tur', icon: '🐢', label: 'Tartaruga', art: 'uma', tier: 'comum', atk: 0, find: ['🐟 peixinhos', 'fish', 2] },
+  capivara: { k: 'cap', icon: '🐹', label: 'Capivara', art: 'uma', tier: 'comum', atk: 1, find: ['🥕 capim fresquinho', 'crops', 3] },
+  papagaio: { k: 'par', icon: '🦜', label: 'Papagaio', tier: 'comum', fly: true, atk: 0, find: ['💰 uma moeda brilhante', 'coins', 3] },
+  macaco: { k: 'mon', icon: '🐒', label: 'Macaco', tier: 'comum', atk: 2, find: ['🍌 bananas', 'crops', 3] },
+  cobra: { k: 'sna', icon: '🐍', label: 'Cobra', art: 'uma', tier: 'raro', atk: 4, find: ['💰 ouro escondido', 'coins', 5] },
+  aranha: { k: 'spi', icon: '🕷️', label: 'Aranha', art: 'uma', tier: 'raro', atk: 3, find: ['🕸️ seda para ferramentas', 'tools', 1] },
+  morcego: { k: 'bat', icon: '🦇', label: 'Morcego', tier: 'raro', fly: true, atk: 2, find: ['💰 moedas de uma caverna', 'coins', 5] },
+  coruja: { k: 'owl', icon: '🦉', label: 'Coruja', art: 'uma', tier: 'raro', fly: true, atk: 2, find: ['💰 moedas vistas lá do alto', 'coins', 5] },
+  onca: { k: 'jag', icon: '🐆', label: 'Onça', art: 'uma', tier: 'raro', atk: 7, find: ['🍖 uma caça', 'meals', 2] },
+  slime: { k: 'sli', icon: '🟢', label: 'Slime', tier: 'mitico', gems: 5, atk: 2, find: ['💰 moedas que ele engoliu', 'coins', 7] },
+  fada: { k: 'fai', icon: '🧚', label: 'Fada', art: 'uma', tier: 'mitico', gems: 10, fly: true, atk: 1, find: ['✨ pó de fada', 'coins', 6], perk: 'Cura o dono aos pouquinhos' },
+  orc: { k: 'orc', icon: '👹', label: 'Orc', tier: 'mitico', gems: 10, atk: 9, find: ['🌲 uma pilha de lenha', 'wood', 8], perk: 'Forte na luta' },
+  unicornio: { k: 'uni', icon: '🦄', label: 'Unicórnio', tier: 'mitico', gems: 15, atk: 5, find: ['🍎 frutas mágicas', 'crops', 6], perk: 'Recupera a energia do dono' },
+  grifo: { k: 'grf', icon: '🦅', label: 'Grifo', tier: 'mitico', gems: 20, fly: true, atk: 8, find: ['💰 o tesouro do ninho', 'coins', 10] },
+  fenix: { k: 'phx', icon: '🔥', label: 'Fênix', art: 'uma', tier: 'mitico', gems: 25, fly: true, atk: 6, find: ['💰 uma pena dourada', 'coins', 9], perk: 'Se o dono desmaiar, ele renasce em 5 s' },
+  dragao: { k: 'drg', icon: '🐉', label: 'Dragão', tier: 'mitico', gems: 30, fly: true, atk: 12, find: ['💰 o tesouro do dragão', 'coins', 15], perk: 'Cospe fogo na luta' },
 };
+const PET_ALIAS = { serpente: 'cobra', jaguar: 'onca', pantera: 'onca', arara: 'papagaio', sapinho: 'sapo', ra: 'sapo', capivaras: 'capivara', fenix: 'fenix', phoenix: 'fenix', unicornio: 'unicornio', dragon: 'dragao', dragao: 'dragao', grifo: 'grifo', grifon: 'grifo', slime: 'slime', gosma: 'slime', fadinha: 'fada', porquinho: 'porco', cao: 'cachorro', cachorrinho: 'cachorro', gatinho: 'gato', morcegos: 'morcego', aranhas: 'aranha' };
+for (const p of Object.values(PET_KINDS)) { if (p.price == null && !p.gems) p.price = p.tier === 'raro' ? 50 : 25; if (p.lvl == null) p.lvl = p.tier === 'raro' ? 2 : 1; }
 const PET_BY_K = Object.fromEntries(Object.entries(PET_KINDS).map(([nm, p]) => [p.k, { ...p, nm }]));
 const PET_PRICE = 25;
 const PLAYER_START_COINS = 10;
@@ -1215,6 +1248,7 @@ function ownerOf(n) {
 function bars(v) { return `❤️ ${Math.round(v.hp)} · 🍗 ${Math.round(v.food)} · ⚡ ${Math.round(v.en)}`; }
 function atkOf(v, n) { const w = ITEMS[v.eq.weapon]; const p = n && n.pet && PET_BY_K[n.pet.k]; return 4 + Math.floor(level(v) / 2) + (w ? w.atk : 0) + (p ? p.atk : 0); }
 function defOf(v) { const a = ITEMS[v.eq.armor]; return a ? a.def : 0; }
+function gemsText(v) { return v.gems ? ` · 💎 ${v.gems}` : ''; }
 function invText(v) { const it = Object.entries(v.inv).filter(([, q]) => q > 0).map(([k, q]) => `${ITEMS[k].icon}${q > 1 ? '×' + q : ''}`); return it.join(' ') || 'vazia'; }
 function eqText(v) { return ['tool', 'weapon', 'armor'].map(s => v.eq[s] && ITEMS[v.eq[s]] ? ITEMS[v.eq[s]].icon + ' ' + ITEMS[v.eq[s]].label : null).filter(Boolean).join(' · ') || 'nada equipado'; }
 function findItem(word) { const w = norm(word || '').replace(/[^a-z]/g, ''); if (!w) return null; if (ITEM_ALIAS[w]) return ITEM_ALIAS[w]; return Object.keys(ITEMS).find(k => k.startsWith(w) || w.startsWith(k)) || null; }
@@ -1224,6 +1258,12 @@ function hurt(v, n, dmg, why) {
   if (v.hp <= 0) knockOut(v, n, why);
 }
 function knockOut(v, n, why) {
+  if (n && n.pet && n.pet.k === 'phx') { // Fênix: o dono renasce rapidinho
+    v.ko = Date.now() + 5000; v.ord = null; v.hp = 0;
+    feed(`🔥 ${n.name} caiu, mas a fênix ${n.pet.name || ''} o fez renascer das cinzas!`);
+    if (n.active) { for (let i = 0; i < 3; i++) burst(n.x + rnd(-6, 6), n.y - 10, pick(['#ff9a2a', '#ffd04a', '#ff5a2a']), 8); say(n, 'Renasci! 🔥'); }
+    return;
+  }
   v.ko = Date.now() + KO_MS; v.ord = null; v.hp = 0;
   feed(`💫 ${n ? n.name : v.name} desmaiou${why ? ' (' + why + ')' : ''} e volta em 20 s`);
   if (n) { say(n, 'Ai… 💫'); n.plan = []; n.step = null; n.anim = null; const h = homeB(n); n.status = 'Desmaiado 💫'; if (h) { const f = frontOf(h); n.plan = [goTile(f.x, f.y), fn(m => { m.inside = true; })]; } else { n.sleeping = true; n.idle = 5; } }
@@ -1311,13 +1351,17 @@ function needsTick() {
     if (v.hp < 100 && !(v.ko > Date.now())) v.hp = Math.min(100, v.hp + (resting ? 5 : 2));
     // Bônus: bem alimentado e descansado trabalha 60% mais rápido.
     if (v.food >= 60 && v.en >= 40 && n.active) n.boost = Math.max(n.boost || 0, NEED_TICK / 1000 + 1);
+    // Poderes dos pets lendários: fada cura, unicórnio recupera energia.
+    const pk = n.pet && n.pet.k;
+    if (pk === 'fai' && v.hp < 100 && !(v.ko > Date.now())) { v.hp = Math.min(100, v.hp + 4); if (n.active && n.petO) burst(n.petO.x, n.petO.y - 16, '#ffd1f0', 3); }
+    if (pk === 'uni') v.en = Math.min(100, v.en + 3);
   }
 }
 
 // ---------- Fase 2: pets ----------
 function petCmd(v, n, args, rawRest) {
   const [a, ...rest] = args;
-  if (!a) return n.pet ? petCard(v, n) : `Adote um pet com !pet cachorro (${PET_PRICE} 💰). Tipos: ${Object.keys(PET_KINDS).join(', ')}.`;
+  if (!a) { if (n.pet) return petCard(v, n); petList(); return ''; }
   if (a === 'nome') {
     if (!n.pet) return 'Você ainda não tem pet.';
     const nm = (rawRest || rest.join(' ')).trim().slice(0, 14); if (!nm || badName(nm)) return 'Nome inválido.';
@@ -1330,16 +1374,27 @@ function petCmd(v, n, args, rawRest) {
     if (n.petO) { heart(n.petO.x, n.petO.y - 12); } say(n, pick(['Quem é o bonzinho? 🐾', 'Que fofura! 💛', 'Bom pet!'])); return '';
   }
   if (a === 'soltar') { if (!n.pet) return ''; feed(`🐾 ${n.name} soltou ${n.pet.name || 'o pet'} na floresta`); n.pet = null; n.petO = null; npcVer++; save(); return ''; }
-  const kind = PET_KINDS[a] || Object.values(PET_KINDS).find(p => norm(p.label) === a);
-  if (!kind) return `Tipos de pet: ${Object.keys(PET_KINDS).join(', ')}.`;
+  const key = PET_KINDS[a] ? a : PET_ALIAS[a] || Object.keys(PET_KINDS).find(k => norm(PET_KINDS[k].label) === a);
+  const kind = key && PET_KINDS[key];
+  if (!kind) { petList(); return ''; }
   if (n.pet) return `${n.name} já tem um pet. Use !pet soltar antes de adotar outro.`;
-  if (v.coins < PET_PRICE) return `Adotar custa ${PET_PRICE} 💰 (você tem ${v.coins}). Trabalhe para ganhar moedas!`;
-  v.coins -= PET_PRICE; n.pet = { k: kind.k, c: (Math.random() * 5) | 0, name: '' }; n.petO = null; v.petAt = Date.now();
-  feed(`${kind.icon} ${n.name} adotou ${['galinha', 'raposa'].includes(a) ? 'uma' : 'um'} ${kind.label.toLowerCase()}! Dê um nome com !pet nome …`);
+  if (level(v) < kind.lvl) return `${kind.label} pede nível ${kind.lvl} (você é nível ${level(v)}).`;
+  if (kind.gems) { if ((v.gems || 0) < kind.gems) return `${kind.label} é lendári${kind.art === 'uma' ? 'a' : 'o'}: ${kind.gems} 💎 (você tem ${v.gems || 0}). Cristais vêm de Pix e Super Chat.`; v.gems -= kind.gems; }
+  else { if (v.coins < kind.price) return `${kind.label} custa ${kind.price} 💰 (você tem ${v.coins}). Trabalhe para ganhar moedas!`; v.coins -= kind.price; } n.pet = { k: kind.k, c: (Math.random() * 5) | 0, name: '' }; n.petO = null; v.petAt = Date.now();
+  const rare = kind.tier === 'mitico';
+  feed(`${kind.icon} ${n.name} adotou ${kind.art || 'um'} ${kind.label.toLowerCase()}${rare ? ' lendári' + (kind.art === 'uma' ? 'a' : 'o') + '!' : '!'} Dê um nome com !pet nome …`);
+  if (rare) { announce(`${kind.icon} ${n.name} tem ${kind.art || 'um'} ${kind.label.toUpperCase()}!`, kind.perk || 'Um pet lendário chegou à vila'); sfx('fanfare'); if (n.active) for (let i = 0; i < 3; i++) confetti(n.x + rnd(-10, 10), n.y - 20); }
   if (n.active) { heart(n.x, n.y - 20); say(n, `Meu ${kind.label.toLowerCase()}! ${kind.icon}`); }
   npcVer++; save(); return '';
 }
 function petCard(v, n) { return showMine(v, 'mochila'); }
+// Lista de pets na tela (no máximo a cada 30 s, igual à loja).
+let petListAt = 0;
+function petList() {
+  if (Date.now() - petListAt < 30000) return; petListAt = Date.now();
+  const g = t => Object.entries(PET_KINDS).filter(([, p]) => p.tier === t).map(([k, p]) => `${p.icon}${k}${p.gems ? ' ' + p.gems + '💎' : ''}`).join(' ');
+  announce('🐾 Pets: !pet nome-do-pet', `Comuns 25💰: ${g('comum')} · Raros 50💰 nv2: ${g('raro')} · Lendários (💎 via Pix/Super Chat): ${g('mitico')}`);
+}
 function petFind(v, n, forced) {
   const p = n.pet && PET_BY_K[n.pet.k]; if (!p) return;
   const [txt, key, q] = p.find;
@@ -1359,17 +1414,53 @@ function petTickAll() {
 Object.assign(PET_COL, {
   bun: ['#f2f2f2', '#c8a27a', '#8a8a8a', '#e8d8c0', '#5a4a3a'], hen: ['#f5f5f5', '#c8763a', '#2b2b2b', '#e8c26a', '#a0522d'],
   fox: ['#e0722a', '#c8581e', '#b0b0b0', '#f08a3a', '#8a4a2a'], pig: ['#f2a7b8', '#e892a5', '#c97a8a', '#f7c3cf', '#d68c9c'],
+  fro: ['#4ab04a', '#2a8a6a', '#c8c020', '#3a7ae0', '#e05a5a'], tur: ['#4a7a3a', '#6a5a3a', '#3a6a6a', '#7a8a3a', '#5a4a2a'],
+  cap: ['#9a6a3a', '#8a5a30', '#a8784a', '#7a5a3a', '#b08858'], par: ['#e03a2a', '#2a6ae0', '#2ab04a', '#f1c40f', '#e07020'],
+  mon: ['#8a5a2a', '#5a3a1e', '#b08050', '#4a4a4a', '#c8a070'], sna: ['#3a9a3a', '#c8a020', '#7a3aa0', '#2a2a2a', '#d05a2a'],
+  spi: ['#2b2b2b', '#6a3a1e', '#7a2a8a', '#3a3a5a', '#8a1e1e'], bat: ['#3a2a3a', '#5a4a3a', '#2b2b3a', '#6a3a5a', '#4a4a4a'],
+  owl: ['#8a6a4a', '#c8c0b0', '#5a4a3a', '#a08060', '#e8e8e8'], jag: ['#e0a030', '#2b2b2b', '#f0f0f0', '#c88020', '#d8b060'],
+  sli: ['#5ad05a', '#5aa0e0', '#e05ab0', '#e0c040', '#a05ae0'], fai: ['#ff8ad0', '#8ad0ff', '#a0ff8a', '#ffd08a', '#d08aff'],
+  orc: ['#5a8a3a', '#4a7a4a', '#6a9a2a', '#3a6a3a', '#7a8a5a'], uni: ['#f5f5f5', '#f0e0f5', '#e0f0ff', '#fff0d0', '#3a3a3a'],
+  grf: ['#c8a050', '#b08040', '#e0c080', '#a07040', '#d8b070'], phx: ['#e8601a', '#f0a020', '#e83a2a', '#5ab0f0', '#a050e0'],
+  drg: ['#c0392b', '#27ae60', '#2980b9', '#8e44ad', '#2b2b2b'],
 });
 const drawPetBase = drawPet;
+// Desenha os pets novos em pixel art, olhando para a direita, com o chão em y = 0.
+// Pets que voam ficam pairando ao lado do dono, com uma sombrinha no chão.
+function drawPetArt(k, col, dk, lt, ph, moving, t) {
+  const P = (c, x, y, w, h) => px(ctx, c, x, y, w, h), E = '#222', flap = Math.sin(t * 18) > 0;
+  if (k === 'bun') { const hop = moving ? -Math.abs(Math.sin(t * 8)) * 2 : 0; ctx.translate(0, hop); P(col, -3, -5, 6, 4); P(col, 2, -7, 3, 3); P(col, 2, -11, 1, 4); P(col, 4, -11, 1, 4); P('#f5a0b0', 2, -10, 1, 2); P(E, 4, -6, 1, 1); P('#fff', -4, -5, 2, 2); P(dk, -2, -1, 1, 1); P(dk, 1, -1, 1, 1); }
+  else if (k === 'hen') { const b = ph ? -1 : 0; P(col, -3, -6 + b, 6, 5); P(col, 2, -9 + b, 3, 3); P('#e74c3c', 3, -10 + b, 2, 1); P('#f1c40f', 5, -8 + b, 2, 1); P(E, 3, -8 + b, 1, 1); P(dk, -4, -6 + b, 2, 3); P('#f1c40f', -1, -1, 1, 1); P('#f1c40f', 1, -1 + (ph ? -1 : 0), 1, 1); }
+  else if (k === 'fox') { P(col, -4, -6, 8, 4); for (const [lx, u] of [[-4, !ph], [-1, ph], [1, !ph], [3, ph]]) P(dk, lx, -2 - (u ? 1 : 0), 1, 2); P(col, 3, -9, 4, 4); P(col, 3, -11, 1, 2); P(col, 6, -11, 1, 2); P('#fff', 5, -7, 2, 2); P(E, 6, -8, 1, 1); const w = Math.sin(t * 10) > 0 ? -1 : 0; P(col, -8, -7 + w, 4, 3); P('#fff', -9, -7 + w, 2, 2); }
+  else if (k === 'pig') { P(col, -4, -6, 8, 5); P(dk, -3, -1 + (ph ? -1 : 0), 1, 1); P(dk, -1, -1, 1, 1); P(dk, 1, -1 + (ph ? -1 : 0), 1, 1); P(dk, 3, -1, 1, 1); P(col, 3, -8, 4, 4); P(dk, 6, -6, 2, 2); P(E, 5, -7, 1, 1); P(dk, 3, -9, 1, 1); P(dk, -5, -6, 1, 1); }
+  else if (k === 'fro') { const hop = moving ? -Math.abs(Math.sin(t * 7)) * 3 : 0; ctx.translate(0, hop); P(col, -3, -4, 6, 4); P(lt, -2, -2, 4, 1); P('#fff', -2, -6, 2, 2); P('#fff', 1, -6, 2, 2); P(E, -1, -6, 1, 1); P(E, 2, -6, 1, 1); P(dk, -4, -1, 2, 1); P(dk, 2, -1, 2, 1); P('#c0392b', -1, -3, 3, 1); }
+  else if (k === 'tur') { P(col, -4, -5, 8, 4); P(dk, -3, -4, 2, 2); P(dk, 1, -4, 2, 2); P(lt, -4, -5, 8, 1); P('#8ab060', 4, -4 + (ph ? 0 : -1), 3, 2); P(E, 6, -4 + (ph ? 0 : -1), 1, 1); P('#8ab060', -3, -1, 2, 1); P('#8ab060', 2, -1, 2, 1); P('#8ab060', -5, -3, 1, 1); }
+  else if (k === 'cap') { P(col, -5, -6, 10, 5); P(lt, -5, -6, 10, 1); for (const [lx, u] of [[-4, ph], [-1, !ph], [1, ph], [3, !ph]]) P(dk, lx, -1 - (u ? 1 : 0), 1, 2); P(col, 4, -8, 4, 5); P(dk, 7, -6, 1, 2); P(E, 6, -7, 1, 1); P(dk, 4, -9, 1, 1); }
+  else if (k === 'mon') { P(col, -2, -8, 4, 5); P(col, -2, -3, 1, 2 + (ph ? 0 : -1)); P(col, 1, -3, 1, 2 + (ph ? -1 : 0)); P(col, 0, -12, 5, 4); P('#e8c8a0', 2, -11, 3, 3); P(E, 3, -11, 1, 1); P(col, -1, -11, 1, 1); const w = Math.sin(t * 4) > 0; P(col, -4, -7, 2, 1); P(col, -5, w ? -9 : -8, 1, 2); }
+  else if (k === 'sna') { const wv = i => Math.round(Math.sin(t * 8 + i) * (moving ? 1 : 0.4)); for (let i = 0; i < 4; i++) { P(col, -7 + i * 3, -3 + wv(i), 3, 2); if (i % 2) P(dk, -6 + i * 3, -3 + wv(i), 1, 1); } P(col, 5, -5 + wv(4), 3, 3); P(E, 7, -5 + wv(4), 1, 1); if (Math.sin(t * 6) > 0.4) P('#e74c3c', 8, -3 + wv(4), 2, 1); }
+  else if (k === 'spi') { P(col, -3, -6, 5, 4); P(col, 2, -6, 3, 3); P('#e74c3c', 3, -5, 1, 1); P('#e74c3c', 4, -6, 1, 1); for (let i = 0; i < 4; i++) { const u = (i + (ph ? 1 : 0)) % 2; P(dk, -4 + i * 2, -2 - u, 1, 2); P(dk, -5 + i * 2, -1, 1, 1); } P(lt, -2, -6, 2, 1); }
+  else if (k === 'par') { P(col, -2, -6, 4, 5); P(PET_COL.par[(PET_COL.par.indexOf(col) + 1) % 5], -3, flap ? -6 : -4, 2, 3); P(col, 1, -9, 3, 3); P('#f1c40f', 4, -8, 1, 2); P(E, 2, -8, 1, 1); P('#f1c40f', -3, -1, 1, 3); }
+  else if (k === 'bat') { P(col, -1, -6, 3, 4); P(col, -1, -8, 3, 2); P(col, -1, -9, 1, 1); P(col, 1, -9, 1, 1); P('#e74c3c', 0, -7, 1, 1); if (flap) { P(dk, -6, -8, 5, 2); P(dk, 2, -8, 5, 2); P(dk, -7, -6, 2, 1); P(dk, 6, -6, 2, 1); } else { P(dk, -5, -5, 4, 3); P(dk, 2, -5, 4, 3); } }
+  else if (k === 'owl') { P(col, -3, -9, 6, 8); P(lt, -2, -8, 4, 3); P('#f1c40f', -2, -7, 1, 1); P('#f1c40f', 1, -7, 1, 1); P(E, -2, -7, 1, 1); P(E, 1, -7, 1, 1); P('#e0a020', 0, -6, 1, 1); P(col, -3, -10, 1, 1); P(col, 2, -10, 1, 1); P(dk, flap ? -5 : -4, -6, 2, 4); P(dk, flap ? 3 : 2, -6, 2, 4); }
+  else if (k === 'jag') { P(col, -5, -7, 10, 5); for (const [sx, sy] of [[-3, -6], [0, -5], [2, -7], [-1, -7], [3, -5]]) P(col === '#2b2b2b' ? '#444' : '#5a3a10', sx, sy, 1, 1); for (const [lx, u] of [[-5, ph], [-2, !ph], [1, ph], [3, !ph]]) P(dk, lx, -2 - (u ? 1 : 0), 2, 2); P(col, 4, -10, 4, 4); P(col, 4, -11, 1, 1); P(col, 7, -11, 1, 1); P(col === '#2b2b2b' ? '#8ef08e' : E, 6, -9, 1, 1); const w = Math.sin(t * 5) > 0 ? -1 : 0; P(col, -8, -8 + w, 3, 1); P(col, -9, -9 + w, 1, 1); }
+  else if (k === 'sli') { const sq = Math.sin(t * 6) * (moving ? 1 : 0.5); ctx.globalAlpha *= 0.85; P(col, -4 - Math.round(sq), -5 + Math.round(sq), 8 + Math.round(sq * 2), 5 - Math.round(sq)); P(lt, -3, -4 + Math.round(sq), 2, 1); P(E, -1, -3, 1, 1); P(E, 2, -3, 1, 1); ctx.globalAlpha /= 0.85; }
+  else if (k === 'fai') { P('rgba(220,250,255,.75)', flap ? -5 : -4, -8, 3, 4); P('rgba(220,250,255,.75)', flap ? 2 : 1, -8, 3, 4); P(col, -1, -6, 2, 4); P('#f5d0b0', -1, -8, 2, 2); P('#ffe05a', -1, -9, 2, 1); if (Math.sin(t * 9) > 0.6) P('#fff', rnd(-4, 4) | 0, rnd(-10, -2) | 0, 1, 1); }
+  else if (k === 'orc') { const b = ph ? -1 : 0; P('#5a3a1e', -2, -3 + b, 1, 3); P('#5a3a1e', 1, -3, 1, 3); P('#6a4a2a', -2, -7 + b, 4, 4); P(col, -3, -7 + b, 1, 3); P(col, 2, -7 + b, 1, 3); P(col, -2, -11 + b, 4, 4); P(E, 0, -10 + b, 1, 1); P('#fff', 1, -8 + b, 1, 1); P('#fff', -1, -8 + b, 1, 1); P('#8a5a2a', 3, -11 + b, 1, 6); P('#8a5a2a', 3, -12 + b, 2, 2); }
+  else if (k === 'uni') { for (const [lx, u] of [[-4, ph], [-2, !ph], [1, ph], [3, !ph]]) P(dk, lx, -4 - (u ? 1 : 0), 1, 4); P(col, -5, -9, 10, 5); P(col, 3, -13, 3, 5); P(col, 4, -14, 4, 3); P(E, 6, -13, 1, 1); P('#f1c40f', 6, -16, 1, 2); P('#f1c40f', 7, -17, 1, 1); const rb = ['#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6']; for (let i = 0; i < 5; i++) P(rb[i], 2, -14 + i, 1, 1); for (let i = 0; i < 4; i++) P(rb[(i + Math.floor(t * 4)) % 6], -6 - (i > 1 ? 1 : 0), -9 + i, 1, 1); }
+  else if (k === 'grf') { P(col, -4, -7, 8, 4); for (const [lx, u] of [[-4, ph], [-1, !ph], [1, ph], [3, !ph]]) P(dk, lx, -3 - (u ? 1 : 0), 1, 3); P('#f0f0f0', 3, -11, 4, 4); P('#f1c40f', 7, -10, 2, 1); P(E, 5, -10, 1, 1); P('#8a5a2a', -3, flap ? -13 : -10, 5, 3); P('#6a4a1e', -2, flap ? -14 : -11, 3, 1); P(col, -7, -7, 3, 1); P(dk, -8, -8, 1, 2); }
+  else if (k === 'phx') { P(col, -2, -7, 5, 5); P(lt, -1, -6, 3, 2); P(col, 2, -10, 3, 3); P('#ffe05a', 5, -9, 1, 1); P(E, 3, -9, 1, 1); P('#ffd04a', flap ? -6 : -5, flap ? -11 : -8, 4, 3); const fl = ['#ff5a1a', '#ffb02a', '#ffe05a']; for (let i = 0; i < 4; i++) P(fl[(i + Math.floor(t * 10)) % 3], -4 - i, -4 + (i % 2), 2, 2); }
+  else if (k === 'drg') { const belly = '#f5c16c'; P(col, -4, -8, 8, 5); P(belly, -3, -5, 6, 2); for (const [lx, u] of [[-3, ph], [2, !ph]]) P(dk, lx, -3 - (u ? 1 : 0), 2, 3); P(col, 3, -12, 5, 4); P(col, 7, -11, 2, 2); P('#ffe05a', 5, -11, 1, 1); P('#eeeeee', 4, -13, 1, 1); P('#eeeeee', 6, -13, 1, 1); P(dk, flap ? -4 : -3, flap ? -15 : -12, 5, 4); P(lt, flap ? -3 : -2, flap ? -14 : -11, 3, 1); P(col, -7, -7, 3, 2); P(dk, -9, -8, 2, 2); if (Math.sin(t * 2) > 0.92) P('#ff8a2a', 9, -11, 2, 1); }
+}
 drawPet = function (n) {
   const pet = n.pet; if (!pet || pet.k === 'dog' || pet.k === 'cat' || !PET_COL[pet.k]) return drawPetBase(n);
-  const p = n.petO, x = Math.round(p.x), y = Math.round(p.y), col = PET_COL[pet.k][pet.c % 5], dk = shade(col, -35), ph = p.moving ? Math.floor(p.walkT * 10) % 2 : 0;
-  ctx.save(); ctx.translate(x, y); if (p.dir === 'left') ctx.scale(-1, 1);
-  px(ctx, 'rgba(0,0,0,.22)', -5, 0, 10, 1);
-  if (pet.k === 'bun') { const hop = p.moving ? -Math.abs(Math.sin(p.walkT * 8)) * 2 : 0; ctx.translate(0, hop); px(ctx, col, -3, -5, 6, 4); px(ctx, col, 2, -7, 3, 3); px(ctx, col, 2, -11, 1, 4); px(ctx, col, 4, -11, 1, 4); px(ctx, '#f5a0b0', 2, -10, 1, 2); px(ctx, '#222', 4, -6, 1, 1); px(ctx, '#fff', -4, -5, 2, 2); px(ctx, dk, -2, -1, 1, 1); px(ctx, dk, 1, -1, 1, 1); }
-  else if (pet.k === 'hen') { const bob = ph ? -1 : 0; px(ctx, col, -3, -6 + bob, 6, 5); px(ctx, col, 2, -9 + bob, 3, 3); px(ctx, '#e74c3c', 3, -10 + bob, 2, 1); px(ctx, '#f1c40f', 5, -8 + bob, 2, 1); px(ctx, '#222', 3, -8 + bob, 1, 1); px(ctx, dk, -4, -6 + bob, 2, 3); px(ctx, '#f1c40f', -1, -1, 1, 1); px(ctx, '#f1c40f', 1, -1 + (ph ? -1 : 0), 1, 1); }
-  else if (pet.k === 'fox') { px(ctx, col, -4, -6, 8, 4); px(ctx, dk, -4, -2 + (ph ? 0 : -1), 1, 2); px(ctx, dk, -1, -2 + (ph ? -1 : 0), 1, 2); px(ctx, dk, 1, -2 + (ph ? 0 : -1), 1, 2); px(ctx, dk, 3, -2 + (ph ? -1 : 0), 1, 2); px(ctx, col, 3, -9, 4, 4); px(ctx, col, 3, -11, 1, 2); px(ctx, col, 6, -11, 1, 2); px(ctx, '#fff', 5, -7, 2, 2); px(ctx, '#222', 6, -8, 1, 1); const wag = Math.sin(gtime * 10) > 0 ? -1 : 0; px(ctx, col, -8, -7 + wag, 4, 3); px(ctx, '#fff', -9, -7 + wag, 2, 2); }
-  else if (pet.k === 'pig') { px(ctx, col, -4, -6, 8, 5); px(ctx, dk, -3, -1 + (ph ? -1 : 0), 1, 1); px(ctx, dk, -1, -1, 1, 1); px(ctx, dk, 1, -1 + (ph ? -1 : 0), 1, 1); px(ctx, dk, 3, -1, 1, 1); px(ctx, col, 3, -8, 4, 4); px(ctx, dk, 6, -6, 2, 2); px(ctx, '#222', 5, -7, 1, 1); px(ctx, dk, 3, -9, 1, 1); px(ctx, dk, -5, -6, 1, 1); }
+  const p = n.petO, x = Math.round(p.x), y = Math.round(p.y), col = PET_COL[pet.k][(pet.c || 0) % 5], dk = shade(col, -35), lt = shade(col, 30), ph = p.moving ? Math.floor(p.walkT * 10) % 2 : 0;
+  const fly = PET_BY_K[pet.k] && PET_BY_K[pet.k].fly && !n.sleeping;
+  ctx.save(); ctx.translate(x, y);
+  px(ctx, 'rgba(0,0,0,.22)', fly ? -3 : -5, 0, fly ? 6 : 10, 1);
+  if (fly) ctx.translate(0, -10 + Math.round(Math.sin(gtime * 3 + n.id) * 2));
+  if (p.dir === 'left') ctx.scale(-1, 1);
+  if (n.sleeping && !fly) ctx.translate(0, 1);
+  drawPetArt(pet.k, col, dk, lt, ph, p.moving, gtime + n.id);
   ctx.restore();
 };
 
@@ -1385,12 +1476,14 @@ inc = function (m, k, val = 1) {
   v.coins += c;
   if (Math.random() < 0.03) { const it = pick(['pao', 'cafe', 'pocao', 'petisco']); v.inv[it] = (v.inv[it] || 0) + 1; feed(`🎁 ${m.name} encontrou ${ITEMS[it].icon} ${ITEMS[it].label} trabalhando!`); }
 };
-function shopText() { return Object.entries(ITEMS).map(([k, it]) => `${it.icon} ${k} ${it.price}💰`).join(' · '); }
+function shopText() { return Object.entries(ITEMS).filter(([, it]) => !it.gems).map(([k, it]) => `${it.icon} ${k} ${it.price}💰`).join(' · ') + ' · 💎 com Pix/Super Chat: ' + Object.entries(ITEMS).filter(([, it]) => it.gems).map(([k, it]) => `${it.icon} ${k} ${it.gems}💎`).join(' · '); }
 function buy(v, n, word) {
   const k = findItem(word); if (!k) return `Item não encontrado. Loja: ${shopText()}`;
   const it = ITEMS[k];
-  if (v.coins < it.price) return `${it.label} custa ${it.price} 💰 (você tem ${v.coins}).`;
-  v.coins -= it.price; v.inv[k] = (v.inv[k] || 0) + 1;
+  if (it.gems) { if ((v.gems || 0) < it.gems) return `${it.label} é um item raro: ${it.gems} 💎 (você tem ${v.gems || 0}). Cristais vêm de Pix e Super Chat.`; v.gems -= it.gems; }
+  else { if (v.coins < it.price) return `${it.label} custa ${it.price} 💰 (você tem ${v.coins}).`; v.coins -= it.price; }
+  v.inv[k] = (v.inv[k] || 0) + 1;
+  if (it.gems && it.slot) v.eq[it.slot] = k; // item raro já entra equipado
   if (it.slot && !v.eq[it.slot]) v.eq[it.slot] = k;
   feed(`🛒 ${n.name} comprou ${it.icon} ${it.label}${it.slot && v.eq[it.slot] === k ? ' (equipado)' : ''}`);
   if (n.active) { say(n, `Comprei ${it.icon}!`); burst(n.x, n.y - 14, '#ffe066', 6); }
@@ -1411,6 +1504,7 @@ function useItem(v, n, word) {
   if (it.use === 'food') v.food = Math.min(100, v.food + it.amount);
   if (it.use === 'en') v.en = Math.min(100, v.en + it.amount);
   if (it.use === 'pet') petFind(v, n, true);
+  if (it.use === 'all') { v.hp = 100; v.food = 100; v.en = 100; }
   if (n.active) { floatTxt(n.x, n.y - 26, it.icon); say(n, pick(['Ahh, melhor agora!', 'Valeu!', 'Isso que eu precisava!'])); }
   return '';
 }
@@ -1450,7 +1544,9 @@ function beastOrder(n, v) {
 }
 function strike(n, v, z) {
   if (z.dead || Math.hypot(z.x - n.x, z.y - n.y) > 44) return;
-  const dmg = Math.round(atkOf(v, n) * rnd(0.8, 1.25)); z.hpNow -= dmg; z.fighters[n.id] = (z.fighters[n.id] || 0) + dmg;
+  let dmg = Math.round(atkOf(v, n) * rnd(0.8, 1.25));
+  if (n.pet && n.pet.k === 'drg' && n.petO) { dmg += 6; for (let i = 0; i < 6; i++) particles.push({ x: n.petO.x, y: n.petO.y - 18, vx: (z.x - n.petO.x) * rnd(1.2, 2) + rnd(-10, 10), vy: (z.y - n.petO.y) * rnd(1.2, 2) + rnd(-10, 10), life: 0.5, max: 0.5, type: 'px', col: pick(['#ff5a1a', '#ffb02a', '#ffe05a']) }); }
+  z.hpNow -= dmg; z.fighters[n.id] = (z.fighters[n.id] || 0) + dmg;
   floatTxt(z.x, z.y - 18, '-' + dmg); burst(z.x, z.y - 8, '#ffffff', 4); sfxAt('whoosh', z.x, z.y);
   v.en = Math.max(0, v.en - 2);
   if (z.hpNow <= 0) beastDie(z);
@@ -1576,7 +1672,12 @@ drawNPC = function (n) {
   if (w === 'espada') { px(ctx, '#e3e8ee', 5, -17 + swing, 1, 8); px(ctx, '#ffffff', 5, -17 + swing, 1, 1); px(ctx, '#b8862f', 4, -9 + swing, 3, 1); px(ctx, '#5a3a1e', 5, -8 + swing, 1, 2); }
   else if (w === 'lanca') { px(ctx, '#8a5a2a', 5, -20 + swing, 1, 14); px(ctx, '#cfd6de', 4, -22 + swing, 3, 2); px(ctx, '#cfd6de', 5, -23 + swing, 1, 1); }
   else if (w === 'arco') { px(ctx, '#8a5a2a', 6, -16, 1, 1); px(ctx, '#8a5a2a', 7, -15, 1, 7); px(ctx, '#8a5a2a', 6, -8, 1, 1); px(ctx, '#eeeeee', 5, -15, 1, 7); }
+  else if (w === 'katana') { px(ctx, '#f0f4f8', 5, -19 + swing, 1, 10); px(ctx, '#ffffff', 6, -19 + swing, 1, 2); px(ctx, '#2b2b2b', 4, -9 + swing, 3, 1); px(ctx, '#8e1f1f', 5, -8 + swing, 1, 3); }
+  else if (w === 'marreta') { px(ctx, '#6a4a2a', 5, -16 + swing, 1, 10); px(ctx, '#7a8088', 3, -19 + swing, 5, 4); px(ctx, '#aab0b8', 3, -19 + swing, 5, 1); }
+  else if (w === 'besta') { px(ctx, '#6a4a2a', 4, -11, 5, 1); px(ctx, '#7a8088', 8, -14, 1, 7); px(ctx, '#eeeeee', 7, -13, 1, 5); px(ctx, '#cfd6de', 9, -11, 1, 1); }
+  else if (w === 'cajado') { px(ctx, '#5a3a1e', 5, -19 + swing, 1, 14); px(ctx, '#8a5a2a', 4, -20 + swing, 3, 1); const g = Math.sin(gtime * 5) > 0; px(ctx, g ? '#9b59ff' : '#c08aff', 4, -23 + swing, 3, 3); px(ctx, '#ffffff', 5, -22 + swing, 1, 1); if (Math.random() < 0.05) particles.push({ x: x + (n.dir === 'left' ? -5 : 5), y: y - 22, vx: rnd(-6, 6), vy: -10, life: 0.6, max: 0.6, type: 'px', col: '#c08aff' }); }
   if (a === 'escudo') { px(ctx, '#cfd6de', -8, -12, 4, 6); px(ctx, '#8a5a2a', -7, -11, 2, 4); px(ctx, '#f1c40f', -7, -10, 1, 1); }
+  else if (a === 'armadura') { px(ctx, '#e8b830', -4, -12, 8, 2); px(ctx, '#f5d870', -4, -12, 8, 1); px(ctx, '#e8b830', -5, -11, 1, 2); px(ctx, '#e8b830', 4, -11, 1, 2); px(ctx, '#c8961a', -3, -8, 6, 1); }
   ctx.restore();
 };
 
