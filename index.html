@@ -246,7 +246,7 @@ const BT={
   sobrado:{label:'Sobrado',icon:'🏘️',grp:'m',w:4,h:4,wood:30,stone:14,time:28,wall:'#ead2ad',roof:'#8e4a3a',cap:8},
   predio:{label:'Prédio',icon:'🏢',grp:'m',w:5,h:5,wood:55,stone:45,time:48,wall:'#cfd6de',roof:'#5d6670',flat:true,cap:30},
   cabana:{label:'Cabana do Caçador',icon:'🏹',grp:'w',w:3,h:3,wood:18,stone:2,time:14,wall:'#7a5230',roof:'#3f5a2a'},
-  serraria:{label:'Serraria',icon:'🪵',grp:'w',w:4,h:3,wood:16,stone:0,time:16,wall:'#a8743f',roof:'#5b3a1e'},
+  serraria:{label:'Serraria',icon:'🌲',grp:'w',w:4,h:3,wood:16,stone:0,time:16,wall:'#a8743f',roof:'#5b3a1e'},
   peixaria:{label:'Peixaria',icon:'🐟',grp:'w',w:3,h:3,wood:14,stone:0,time:14,wall:'#cfe3f0',roof:'#2e6f9e'},
   curral:{label:'Curral',icon:'🐄',grp:'w',w:5,h:4,wood:30,stone:5,time:22,open:'curral'},
   celeiro:{label:'Celeiro',icon:'🌾',grp:'w',w:4,h:3,wood:22,stone:0,time:20,wall:'#b5452f',roof:'#6e2a22'},
@@ -259,7 +259,7 @@ const BT={
   escola:{label:'Escola',icon:'📚',grp:'w',w:5,h:3,wood:24,stone:10,time:28,wall:'#f5e6c8',roof:'#c0392b',flag:'#3fae5a'},
   correio:{label:'Correio',icon:'✉️',grp:'w',w:3,h:3,wood:14,stone:4,time:16,wall:'#f4e7a1',roof:'#1f4e9e'},
   prefeitura:{label:'Prefeitura',icon:'🏛️',grp:'w',w:5,h:4,wood:30,stone:20,time:36,wall:'#f3e6c8',roof:'#6b3fa0',flag:'#3fae5a'},
-  poco:{label:'Poço',icon:'🪣',grp:'c',w:2,h:2,wood:6,stone:10,time:10,open:'poco',roof:'#8e4a3a',fun:2},
+  poco:{label:'Poço',icon:'🚰',grp:'c',w:2,h:2,wood:6,stone:10,time:10,open:'poco',roof:'#8e4a3a',fun:2},
   fonte:{label:'Fonte',icon:'⛲',grp:'c',w:3,h:3,wood:0,stone:25,time:18,open:'fonte',fun:4},
   estatua:{label:'Estátua',icon:'🗿',grp:'c',w:2,h:2,wood:0,stone:20,time:16,open:'estatua',fun:3},
   parque:{label:'Parque',icon:'🌳',grp:'c',w:4,h:4,wood:10,stone:5,time:14,open:'parque',fun:4},
@@ -284,7 +284,7 @@ const BT={
   // Eras iniciais (jogo da live)
   deposito:{label:'Depósito',icon:'📦',grp:'w',w:3,h:3,wood:14,stone:0,time:14,wall:'#a8743f',roof:'#c9a24a'},
   oficina:{label:'Oficina de ferramentas',icon:'🛠️',grp:'w',w:3,h:3,wood:16,stone:6,time:16,wall:'#8b5a2b',roof:'#5b3a1e'},
-  totem:{label:'Totem',icon:'🪶',grp:'c',w:2,h:2,wood:10,stone:0,time:10,open:'totem',fun:2},
+  totem:{label:'Totem',icon:'🗿',grp:'c',w:2,h:2,wood:10,stone:0,time:10,open:'totem',fun:2},
   moinho:{label:'Moinho',icon:'🌀',grp:'w',w:3,h:3,wood:22,stone:8,time:18,open:'moinho'},
   palicada:{label:'Paliçada',icon:'🚧',grp:'w',w:5,h:2,wood:20,stone:0,time:12,open:'palicada'},
   mina:{label:'Mina',icon:'⛏️',grp:'w',w:3,h:3,wood:20,stone:20,time:22,open:'mina'},
@@ -302,7 +302,7 @@ const BT={
 };
 const GOALS=[[5,'poco'],[15,'fonte'],[30,'parque'],[50,'estatua'],[100,'farol'],[200,'rodagigante'],[350,'estacao'],[500,'castelo'],[1000,'estadio'],[1500,'aeroporto'],[2500,'teatro'],[5000,'foguete'],[10000,'LAUNCH']];
 const BRIGAS=['por causa de uma galinha','por quem pescou o maior peixe','porque um cortou a árvore favorita do outro','por causa do volume da música','pela última coxinha da festa','por causa de uma fofoca da taverna','porque um pisou na horta do outro','por causa de um jogo de dominó'];
-const STAT_L_DUMMY=0;const STAT_L={t:'🌲 árvores cortadas',s:'🪨 pedras mineradas',f:'🐟 peixes pescados',c:'🥕 colheitas',m:'🍲 refeições feitas',o:'🔨 marteladas em obras',v:'🪙 vendas',k:'🔧 ferramentas forjadas',p:'🌷 flores plantadas',r:'👮 rondas',e:'✉️ cartas entregues',u:'🎵 shows na praça',d:'🎤 discursos',a:'🚒 incêndios combatidos',g:'🐔 galinhas capturadas',n:'⛵ viagens ao mar',y:'✈️ voos',q:'🚂 trens recebidos',h:'💼 turnos de trabalho',x:'🏹 caçadas',z:'🌙 exames do sono feitos',l:'🥛 ordenhas e ovos'};
+const STAT_L_DUMMY=0;const STAT_L={t:'🌲 árvores cortadas',s:'⛰️ pedras mineradas',f:'🐟 peixes pescados',c:'🥕 colheitas',m:'🍲 refeições feitas',o:'🔨 marteladas em obras',v:'💰 vendas',k:'🔧 ferramentas forjadas',p:'🌷 flores plantadas',r:'👮 rondas',e:'✉️ cartas entregues',u:'🎵 shows na praça',d:'🎤 discursos',a:'🚒 incêndios combatidos',g:'🐔 galinhas capturadas',n:'⛵ viagens ao mar',y:'✈️ voos',q:'🚂 trens recebidos',h:'💼 turnos de trabalho',x:'🏹 caçadas',z:'🌙 exames do sono feitos',l:'🥛 ordenhas e ovos'};
 const isHouse=t=>!!BT[t].cap;
 const LINES={
   lenhador:['Madeira!','Timber! 🌲','Mais uma!','Que árvore grande!'],
@@ -451,6 +451,17 @@ function bfs(sx,sy,goal,limit){
 }
 function npcTile(n){return[Math.floor(n.x/T),Math.floor(n.y/T)]}
 function findPath(n,goal,limit){const[x,y]=npcTile(n);return bfs(x,y,goal,limit)}
+// Destrava um morador cercado (árvore ou prédio em volta, ou obra erguida em cima dele):
+// leva-o ao ladrilho livre mais próximo que tenha caminho até a praça.
+function unstick(n){
+  const[x,y]=npcTile(n),toPlaza=(a,b)=>(a-CX)*(a-CX)+(b-CY)*(b-CY)<=9;
+  if(walkable(x,y)&&(toPlaza(x,y)||bfs(x,y,toPlaza,20000))){n.stuck=0;return false} // não está preso: o alvo é que estava inacessível
+  for(let r=1;r<=14;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+    if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const tx=x+dx,ty=y+dy;
+    if(!walkable(tx,ty))continue;if(!toPlaza(tx,ty)&&!bfs(tx,ty,toPlaza,20000))continue;
+    n.x=tx*T+8;n.y=ty*T+12;n.stuck=0;return true}
+  if(walkable(spawn.x,spawn.y)){n.x=spawn.x*T+8;n.y=spawn.y*T+12}
+  n.stuck=0;return false}
 function clearRes(n){for(const[k,v]of reserved)if(v===n.id)reserved.delete(k)}
 function inR(x,y,R){return(x-CX)*(x-CX)+(y-CY)*(y-CY)<=R*R}
 function farmSector(x,y){const dx=x-CX,dy=y-CY;return dx<-3&&Math.abs(dy)<=-dx*0.85}
@@ -481,7 +492,7 @@ function say(n,txt,ch=1){if(Math.random()<ch)n.bubble={text:txt,t:3.2}}
 function sayLine(n,ch){say(n,pick(LINES[n.prof]||LINES._),ch)}
 function setCarry(m,kind,resKey,q){m.carry=kind;m.carryRes=resKey;m.carryN=q}
 function planDeliver(n){n.status='Guardando no estoque';n.plan=[goAdj(CRX,CRY),fn(m=>{deposit(m)})]}
-const RES_ICON={wood:'🪵',stone:'🪨',fish:'🐟',crops:'🥕',meals:'🍲',coins:'🪙',tools:'🔧'};
+const RES_ICON={wood:'🌲',stone:'⛰️',fish:'🐟',crops:'🥕',meals:'🍲',coins:'💰',tools:'🔧'};
 function deposit(m,silent){if(!m.carry)return;if(m.carryRes){res[m.carryRes]=(res[m.carryRes]||0)+m.carryN;if(!silent)floatTxt(CRX*T+8,CRY*T,'+'+m.carryN+' '+RES_ICON[m.carryRes])}m.carry=null;m.carryN=0}
 function take(key,q){if(res[key]>=q){res[key]-=q;return true}return false}
 
@@ -562,7 +573,7 @@ function saleOpt(){const o=SALES.filter(s=>res[s[0]]>=s[1]+(s[0]==='meals'?npcs.
 function aiMerchant(n){
   const o=saleOpt();
   if(o){n.status='Vendendo mercadorias';
-    n.plan=[goAdj(CRX,CRY),fn(m=>{if(take(o[0],o[2])){setCarry(m,'goods',o[0],o[2]);return true}return false}),goWork(n),work(3,'sell',m=>{m.carry=null;m.carryN=0;res.coins+=o[3];inc(m,'v');floatTxt(m.x,m.y-20,'+'+o[3]+' 🪙');sayLine(m,0.3)})];return true}
+    n.plan=[goAdj(CRX,CRY),fn(m=>{if(take(o[0],o[2])){setCarry(m,'goods',o[0],o[2]);return true}return false}),goWork(n),work(3,'sell',m=>{m.carry=null;m.carryN=0;res.coins+=o[3];inc(m,'v');floatTxt(m.x,m.y-20,'+'+o[3]+' 💰');sayLine(m,0.3)})];return true}
   n.status='Atendendo clientes';n.plan=[goWork(n),wait(rnd(3,6))];sayLine(n,0.25);return true;
 }
 function aiGuard(n){
@@ -640,7 +651,7 @@ function aiBuilder(n){
   if(r.lack){
     if(r.lack==='wood'&&!hasProf('lenhador')&&aiLumber(n)){n.status='Buscando madeira';return true}
     if(r.lack==='stone'&&!hasProf('minerador')&&aiMiner(n)){n.status='Buscando pedra';return true}
-    n.status='Esperando '+(r.lack==='wood'?'madeira 🪵':'pedra 🪨');say(n,'Falta '+(r.lack==='wood'?'madeira!':'pedra!'),0.12);return false}
+    n.status='Esperando '+(r.lack==='wood'?'madeira 🌲':'pedra ⛰️');say(n,'Falta '+(r.lack==='wood'?'madeira!':'pedra!'),0.12);return false}
   if(r.noSpace){if(aiLumber(n)){n.status='Abrindo espaço';return true}n.status='Esperando espaço';return false}
   if(lampCount<Math.min(350,Math.ceil(npcs.length*1.3))&&res.wood>=3&&res.stone>=2){
     const R=clearR();let cand=-1;
@@ -812,7 +823,7 @@ function updateNPC(n,dt){
   }
   const s=n.step;
   if(s.t==='go'){
-    if(!s.path){s.path=findPath(n,s.goal,15000);if(!s.path){abort(n);return}}
+    if(!s.path){s.path=findPath(n,s.goal,15000);if(!s.path){n.stuck=(n.stuck||0)+1;abort(n);if(n.stuck>=3)unstick(n);return}n.stuck=0}
     if(!s.path.length){if(s.face)faceTo(n,s.face[0],s.face[1]);n.step=null;return}
     let remaining=SPEED*dt,travelled=0;
     // Percorre vários nós no mesmo quadro, sem frear a cada ladrilho.
@@ -1060,7 +1071,7 @@ function updateVehicles(dt){
     const L=b.rail.length;
     if(t.st==='away'){t.t-=dt;if(t.t<=0){t.st='in';t.p=L+5}}
     else if(t.st==='in'){const sp=t.p<8?Math.max(0.6,t.p*0.35):3.2;t.p-=sp*dt;if(t.p<=0.3){t.p=0.3;t.st='stop';t.t=7;
-      res.wood+=15;res.stone+=15;res.coins+=10;sfxAt('whistle',(b.x+b.w/2)*T,b.y*T);floatTxt((b.x+b.w/2)*T,b.y*T,'+15 🪵 +15 🪨');creditRandom('maquinista','q');if(onScreen(idx(b.x,b.y)))logEv('🚂 O trem chegou com madeira e pedra!')}}
+      res.wood+=15;res.stone+=15;res.coins+=10;sfxAt('whistle',(b.x+b.w/2)*T,b.y*T);floatTxt((b.x+b.w/2)*T,b.y*T,'+15 🌲 +15 ⛰️');creditRandom('maquinista','q');if(onScreen(idx(b.x,b.y)))logEv('🚂 O trem chegou com madeira e pedra!')}}
     else if(t.st==='stop'){t.t-=dt;if(t.t<=0)t.st='out'}
     else{t.p+=Math.min(3.2,0.5+(t.p)*0.3)*dt;if(t.p>L+6){t.st='away';t.t=30}}
     if(t.st==='in'||t.st==='out'){if(Math.random()<dt*6){const[lx,ly]=railXY(b.rail,t.p);particles.push({x:lx,y:ly-12,vx:rnd(-4,4),vy:-14,life:1.8,max:1.8,type:'smoke',size:2})}}}
@@ -1071,7 +1082,7 @@ function updateVehicles(dt){
     if(p.st==='parked'){p.t-=dt;if(p.t<=0){p.st='takeoff';p.x=xL;p.v=10;sfxAt('whoosh',xL,(b.y+b.h)*T)}}
     else if(p.st==='takeoff'){p.v=Math.min(170,p.v+55*dt);p.x+=p.v*dt;if(p.x>xL+(xR-xL)*0.55)p.alt+=48*dt;if(p.alt>220){p.st='away';p.t=28}}
     else if(p.st==='away'){p.t-=dt;if(p.t<=0){p.st='landing';p.x=xL-420;p.alt=180;p.v=150}}
-    else if(p.st==='landing'){const touch=xL+30;if(p.x<touch){p.x+=p.v*dt;p.alt=Math.max(0,180*(touch-p.x)/450)}else{if(!p.landed){p.landed=true;res.coins+=30;floatTxt(p.x,(b.y+b.h)*T-20,'+30 🪙 turistas');creditRandom('piloto','y');if(onScreen(idx(b.x,b.y)))logEv('✈️ Um avião pousou com turistas!')}
+    else if(p.st==='landing'){const touch=xL+30;if(p.x<touch){p.x+=p.v*dt;p.alt=Math.max(0,180*(touch-p.x)/450)}else{if(!p.landed){p.landed=true;res.coins+=30;floatTxt(p.x,(b.y+b.h)*T-20,'+30 💰 turistas');creditRandom('piloto','y');if(onScreen(idx(b.x,b.y)))logEv('✈️ Um avião pousou com turistas!')}
       p.alt=0;p.v=Math.max(25,p.v-60*dt);p.x+=p.v*dt;if(p.x>=xR-40){p.st='parked';p.t=18;p.landed=false}}}}
   // barcos de pesca dos cais
   for(const b of buildings)if(b.type==='cais'&&b.boatT>0)b.boatT-=dt;
@@ -1083,7 +1094,7 @@ function updateVehicles(dt){
   sailT-=dt;if(sailT<=0){sailT=rnd(18,35);const y0=Math.random()<0.5?-2:H+2,yy=clamp(Math.floor(Math.random()*H),0,H-1);SHIPS.push({kind:'veleiro',x:(Math.min(SEAX[yy],W-3)+rnd(3,10))*T,y:y0*T,vy:(y0<0?1:-1)*rnd(12,18),st:'go'})}
   for(const s of SHIPS){
     if(s.kind==='navio'&&s.dock!=null&&s.st==='go'){const c=bById.get(s.dock);if(c){const dy=(c.y+1)*T+8;if(Math.abs(s.y-dy)<2){s.st='dock';s.t=10;s.y=dy;s.x=(c.x+c.w)*T+92}}}
-    if(s.st==='dock'){s.t-=dt;if(s.t<=0){s.st='go';s.dock=null;res.fish+=8;res.coins+=12;creditRandom('marinheiro','n');const c=caisL[0];if(c)floatTxt((c.x+c.w)*T+60,c.y*T,'+8 🐟 +12 🪙');if(c&&onScreen(idx(c.x,c.y)))logEv('🚢 Um navio atracou no cais!')}continue}
+    if(s.st==='dock'){s.t-=dt;if(s.t<=0){s.st='go';s.dock=null;res.fish+=8;res.coins+=12;creditRandom('marinheiro','n');const c=caisL[0];if(c)floatTxt((c.x+c.w)*T+60,c.y*T,'+8 🐟 +12 💰');if(c&&onScreen(idx(c.x,c.y)))logEv('🚢 Um navio atracou no cais!')}continue}
     s.y+=s.vy*dt;if(s.kind==='navio'&&Math.random()<dt*3)particles.push({x:s.x+4,y:s.y-14,vx:rnd(-3,3),vy:-10,life:2,max:2,type:'smoke',size:2})}
   SHIPS=SHIPS.filter(s=>s.y>-8*T&&s.y<(H+8)*T);
 }
@@ -2055,7 +2066,7 @@ function openCard(n){
   const stats=Object.entries(n.st||{}).filter(([k,v])=>STAT_L[k]&&v>0).sort((a,b)=>b[1]-a[1]).slice(0,4);
   const badges=[resNum(n)<=100?'🌱 Fundador(a)':'',n.vip?'👑 Membro do canal':'',n.fan?'💬 Comentarista':'',n.mayor?'🎖️ Prefeito(a) eleito(a)':'',n.abT>0?'👽 No espaço':''].filter(Boolean);
   const where=n.abT>0?'Abduzido(a) pelo OVNI 👽':home?bName(home):'Ainda sem casa 🏚️';const bairro=home?distName(distKey(home)):null;
-  modal(`<div class="pcard"><div class="pc-top" style="background:linear-gradient(135deg,${c1},${c2})"><canvas id="pcAv"></canvas><div style="min-width:0"><div class="pc-num">🪪 ${resNum(n)<=100?'Fundador(a)':'Morador'} nº ${fmt(resNum(n))}</div><div class="pc-name">${esc(n.name)}</div><div class="pc-prof">${profIcon(n)} ${esc(profLabel(n))}</div><div class="pc-badges">${badges.map(b=>`<span class="badge">${b}</span>`).join('')}</div></div></div>
+  modal(`<div class="pcard"><div class="pc-top" style="background:linear-gradient(135deg,${c1},${c2})"><canvas id="pcAv"></canvas><div style="min-width:0"><div class="pc-num">📛 ${resNum(n)<=100?'Fundador(a)':'Morador'} nº ${fmt(resNum(n))}</div><div class="pc-name">${esc(n.name)}</div><div class="pc-prof">${profIcon(n)} ${esc(profLabel(n))}</div><div class="pc-badges">${badges.map(b=>`<span class="badge">${b}</span>`).join('')}</div></div></div>
     <div class="pc-body"><div>🏠 <b>Mora em:</b> ${esc(where)}</div>${home&&DIST[distKey(home)]?`<div>🏘️ <b>Bairro:</b> ${bairro?esc(bairro):'sem nome (vote!)'}</div>`:''}<div>📅 <b>Chegou:</b> dia ${n.day||1} ${days?`(há ${days} dia${days>1?'s':''})`:'(hoje!)'}</div>
     ${sp?`<div>💍 <b>Casado(a) com:</b> ${esc(sp.name)}</div>`:''}${kids.length?`<div>👶 <b>Filhos:</b> ${kids.map(k=>esc(k.name)).join(', ')}</div>`:''}${n.pet?`<div>${n.pet.k==='dog'?'🐶':'🐱'} <b>Pet:</b> ${n.pet.name?esc(n.pet.name)+' ('+(n.pet.k==='dog'?'cachorro':'gato')+')':(n.pet.k==='dog'?'um cachorro':'um gato')}</div>`:''}
     ${stats.length?`<div class="pc-stats">${stats.map(([k,v])=>`<div class="pc-stat"><b>${fmt(v)}</b>${STAT_L[k]}</div>`).join('')}</div>`:'<div style="opacity:.7">Acabou de chegar, ainda conhecendo a vila 👋</div>'}</div>
@@ -2169,7 +2180,7 @@ function refreshHud(){
   const h=hour(),hh=Math.floor(h),mm=Math.floor((h-hh)*6)*10;
   $('clock').textContent=(FF?`🌙 Dia ${day()} · noite...`:(dayMode==='ep'&&h>=16&&h<20.5)?`🌇 Dia ${day()} · fim de tarde`:`${isNight()?'🌙':h<17?'☀️':'🌇'} Dia ${day()} · ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`)+' · '+SEASONS[SEASON].icon;
   $('vnHud').textContent=villageName;
-  $('res').innerHTML=`<span title="Moradores">👥 ${fmt(npcs.length)}</span><span title="Madeira">🪵 ${fmt(res.wood)}</span><span title="Pedra">🪨 ${fmt(res.stone)}</span><span title="Peixe">🐟 ${fmt(res.fish)}</span><span title="Colheita">🥕 ${fmt(res.crops)}</span><span title="Refeições">🍲 ${fmt(res.meals)}</span>${(liveState.era??9)>=2?`<span title="Ouro">🪙 ${fmt(res.coins)}</span>`:''}${(liveState.era??9)>=3?`<span title="Ferro">⚙️ ${fmt(res.iron||0)}</span>`:''}${(liveState.era??9)>=8?`<span title="Energia">⚡ ${fmt(res.energy||0)}</span>`:''}<span title="Ferramentas">🔧 ${fmt(res.tools)}</span><span title="Felicidade">${happiness>=70?'😄':happiness>=45?'🙂':npcs.length?'😟':'😶'} ${happiness}%</span>${homeless?`<span class="warn" title="Moradores sem casa">🏚️ ${fmt(homeless)} sem casa</span>`:''}`;
+  $('res').innerHTML=`<span title="Moradores">👥 ${fmt(npcs.length)}</span><span title="Madeira">🌲 ${fmt(res.wood)}</span><span title="Pedra">⛰️ ${fmt(res.stone)}</span><span title="Peixe">🐟 ${fmt(res.fish)}</span><span title="Colheita">🥕 ${fmt(res.crops)}</span><span title="Refeições">🍲 ${fmt(res.meals)}</span>${(liveState.era??9)>=2?`<span title="Ouro">💰 ${fmt(res.coins)}</span>`:''}${(liveState.era??9)>=3?`<span title="Ferro">⚙️ ${fmt(res.iron||0)}</span>`:''}${(liveState.era??9)>=8?`<span title="Energia">⚡ ${fmt(res.energy||0)}</span>`:''}<span title="Ferramentas">🔧 ${fmt(res.tools)}</span><span title="Felicidade">${happiness>=70?'😄':happiness>=45?'🙂':npcs.length?'😟':'😶'} ${happiness}%</span>${homeless?`<span class="warn" title="Moradores sem casa">🏚️ ${fmt(homeless)} sem casa</span>`:''}`;
   $('empty').style.display=npcs.length?'none':'block';
   const g=goalAt(goalIdx),prev=goalIdx>0?goalAt(goalIdx-1)[0]:0,pct=clamp((npcs.length-prev)/(g[0]-prev)*100,0,100);
   const gh=`🎯 Meta: ${goalLabel(g[1])} · faltam <b>${fmt(g[0]-npcs.length)}</b> moradores<div class="gbar"><i style="width:${pct.toFixed(1)}%"></i></div>`;if($('goal').dataset.h!==gh){$('goal').dataset.h=gh;$('goal').innerHTML=gh}
@@ -2199,9 +2210,9 @@ function refreshPanel(force){
     if(cnt++>=25)continue;
     const ok=res.wood>=d.wood&&res.stone>=d.stone;
     const own=q.owner!=null?npcs.find(m=>m.id===q.owner):null;
-    html+=`<div class="q${q.manual?' man':''}"><span class="n">${q.free?'🎁 ':q.manual?'🗳️ ':''}${d.icon} ${esc(d.label+(own?' de '+own.name:''))}</span><span class="c">${q.free?'presente':(ok?'✅':'⏳')+' '+d.wood+'🪵'+(d.stone?' '+d.stone+'🪨':'')}</span><button class="btn xs" data-up="${i}" title="Prioridade">⬆</button><button class="btn xs red" data-del="${i}" title="Cancelar">✕</button></div>`}
+    html+=`<div class="q${q.manual?' man':''}"><span class="n">${q.free?'🎁 ':q.manual?'🗳️ ':''}${d.icon} ${esc(d.label+(own?' de '+own.name:''))}</span><span class="c">${q.free?'presente':(ok?'✅':'⏳')+' '+d.wood+'🌲'+(d.stone?' '+d.stone+'⛰️':'')}</span><button class="btn xs" data-up="${i}" title="Prioridade">⬆</button><button class="btn xs red" data-del="${i}" title="Cancelar">✕</button></div>`}
   if(cnt>25)html+=`<div class="more">+ ${cnt-25} obras na fila</div>`;
-  for(const t in autoH){const d=BT[t];html+=`<div class="q"><span class="n">${d.icon} ${autoH[t]}× ${d.label} (moradia automática)</span><span class="c">${d.wood}🪵${d.stone?' '+d.stone+'🪨':''} cada</span></div>`}
+  for(const t in autoH){const d=BT[t];html+=`<div class="q"><span class="n">${d.icon} ${autoH[t]}× ${d.label} (moradia automática)</span><span class="c">${d.wood}🌲${d.stone?' '+d.stone+'⛰️':''} cada</span></div>`}
   if(!html)html='<div class="more">Nenhuma obra pendente. Clique em 🗳️ Gerar obra!</div>';
   if(!hasProf('pedreiro')&&(queue.length||buildings.some(b=>!b.done)))html+='<div class="tip" style="margin:4px 0 0">⚠️ Sem pedreiro, ninguém constrói!</div>';
   if(ql.dataset.h!==html){ql.dataset.h=html;ql.innerHTML=html}
@@ -4009,7 +4020,7 @@ $('voteBtn').onclick=()=>{
   }
   for(const g in grp){h+=`<div class="bgrp">${grp[g]}</div><div class="bgrid">`;
     for(const k in BT){const d=BT[k];if(d.grp!==g||d.vip)continue;const ok=res.wood>=d.wood&&res.stone>=d.stone;const have=buildings.filter(b=>b.type===k).length;
-      h+=`<button class="bopt${ok?'':' lack'}" data-b="${k}"><span class="bi">${d.icon}</span><span class="bl">${d.label}</span><span class="bc">${d.wood}🪵 ${d.stone}🪨 · ${d.w}×${d.h}${d.cap?' · '+d.cap+' pessoas':''}${d.fun?' · +'+d.fun+'% 😄':''}</span><span class="bc" style="opacity:.6">${have?'Já existem: '+have:'Nova!'}</span></button>`}
+      h+=`<button class="bopt${ok?'':' lack'}" data-b="${k}"><span class="bi">${d.icon}</span><span class="bl">${d.label}</span><span class="bc">${d.wood}🌲 ${d.stone}⛰️ · ${d.w}×${d.h}${d.cap?' · '+d.cap+' pessoas':''}${d.fun?' · +'+d.fun+'% 😄':''}</span><span class="bc" style="opacity:.6">${have?'Já existem: '+have:'Nova!'}</span></button>`}
     h+='</div>'}
   h+=`<div class="row" style="margin-top:12px"><button class="btn" id="mClose">Fechar</button></div>`;
   modal(h);$('mClose').onclick=closeModal;$('mX').onclick=closeModal;

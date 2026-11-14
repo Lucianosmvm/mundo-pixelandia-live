@@ -6,7 +6,7 @@
 const LIVE_CFG_KEY = 'pixelandia-live-config-v1';
 const LIVE_CFG = Object.assign({
   ytKey: '', ytVideo: '', bridgeUrl: 'http://localhost:8787/eventos',
-  auto: true, vitrine: true, raids: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
+  auto: true, vitrine: true, raids: true, autoEv: true, evMin: 10, autoSeason: true, seasonDays: 5, hideStudio: true, raidMin: 15, voteMin: 4, dilemaMin: 7, chalMin: 6, voteSec: 75,
 }, (() => { try { return JSON.parse(localStorage.getItem(LIVE_CFG_KEY) || '{}'); } catch (e) { return {}; } })());
 function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify(LIVE_CFG)); } catch (e) {} }
 
@@ -15,7 +15,7 @@ function liveSaveCfg() { try { localStorage.setItem(LIVE_CFG_KEY, JSON.stringify
 // need = requisitos para SAIR da era: população, obras prontas, prédios, pesquisa-chave
 // e produção TOTAL (o que a vila já produziu, não o que tem guardado: construir não atrasa a era).
 const ERAS = [
-  { name: 'Era da Pedra', icon: '🪨',
+  { name: 'Era da Pedra', icon: '⛰️',
     profs: ['lenhador', 'pedreiro', 'minerador', 'cacador', 'pescador', 'guerreiro'],
     blds: ['casa', 'cabana', 'serraria', 'peixaria', 'deposito', 'oficina', 'totem'],
     need: { pop: 4, built: 4, has: ['deposito'], research: 'agricultura', prod: { wood: 150, food: 40 } } },
@@ -62,12 +62,12 @@ const ERAS = [
 const RESEARCH = {
   ferramentas: { era: 0, icon: '🪓', label: 'Ferramentas de pedra', unlock: ['oficina'], fx: () => { res.tools += 6; return '+6 🔧 e a oficina liberada'; } },
   cestaria: { era: 0, icon: '🧺', label: 'Cestaria', unlock: ['deposito'], fx: () => { res.crops += 15; return 'Cestos para guardar comida: depósito liberado'; } },
-  rituais: { era: 0, icon: '🪶', label: 'Rituais da tribo', unlock: ['totem'], fx: () => 'Totem liberado: a vila fica mais feliz' },
+  rituais: { era: 0, icon: '🔮', label: 'Rituais da tribo', unlock: ['totem'], fx: () => 'Totem liberado: a vila fica mais feliz' },
   agricultura: { era: 0, icon: '🌾', label: 'Agricultura', key: true, fx: () => 'Plantar em vez de só coletar!' },
   domesticacao: { era: 1, icon: '🐄', label: 'Domesticação', unlock: ['curral'], fx: () => 'Curral liberado' },
   moagem: { era: 1, icon: '🌀', label: 'Moagem', unlock: ['moinho'], fx: () => 'Moinho liberado: mais comida' },
   metalurgia: { era: 1, icon: '🔥', label: 'Metalurgia do bronze', key: true, fx: () => 'O fogo agora derrete metal' },
-  comercio: { era: 2, icon: '⚖️', label: 'Comércio', unlock: ['mercado'], fx: () => { res.coins += 20; return 'Mercado liberado e +20 🪙'; } },
+  comercio: { era: 2, icon: '⚖️', label: 'Comércio', unlock: ['mercado'], fx: () => { res.coins += 20; return 'Mercado liberado e +20 💰'; } },
   mineracao: { era: 2, icon: '⛏️', label: 'Mineração profunda', unlock: ['mina'], fx: () => 'Mina liberada: ouro!' },
   ferro: { era: 2, icon: '⚙️', label: 'Fundição de ferro', key: true, fx: () => 'Ferro: mais forte que o bronze' },
   forja: { era: 3, icon: '⚒️', label: 'Forja', unlock: ['ferraria'], fx: () => { res.tools += 10; return 'Ferraria liberada e +10 🔧'; } },
@@ -80,14 +80,14 @@ const RESEARCH = {
   cavalaria: { era: 5, icon: '🐴', label: 'Cavalaria', fx: () => { L().defBonus = (L().defBonus || 0) + 10; return '+10 de defesa contra invasores'; } },
   feudalismo: { era: 5, icon: '🛡️', label: 'Feudalismo', key: true, fx: () => 'Castelos e senhores' },
   gotica: { era: 6, icon: '⛪', label: 'Arquitetura gótica', unlock: ['catedral'], fx: () => 'Catedral liberada' },
-  imprensa: { era: 6, icon: '📰', label: 'Imprensa', fx: () => { res.coins += 80; return 'Notícias correm: +80 🪙'; } },
+  imprensa: { era: 6, icon: '📰', label: 'Imprensa', fx: () => { res.coins += 80; return 'Notícias correm: +80 💰'; } },
   universidades: { era: 6, icon: '🎓', label: 'Universidades', key: true, unlock: ['universidade'], fx: () => 'Universidade liberada: pesquisas mais rápidas' },
   polvora: { era: 7, icon: '💥', label: 'Pólvora', fx: () => { L().defBonus = (L().defBonus || 0) + 20; return '+20 de defesa contra piratas'; } },
   bancos: { era: 7, icon: '🏦', label: 'Bancos', unlock: ['banco'], fx: () => 'Banco liberado' },
   navegacao: { era: 7, icon: '🧭', label: 'Navegação oceânica', key: true, fx: () => 'Mares abertos' },
   vapor: { era: 8, icon: '♨️', label: 'Máquina a vapor', unlock: ['fabrica'], fx: () => 'Fábrica liberada' },
   ferrovia: { era: 8, icon: '🚂', label: 'Ferrovia', unlock: ['estacao'], fx: () => 'Estação de trem liberada' },
-  carvao: { era: 8, icon: '🪨', label: 'Usina a carvão', unlock: ['usina'], fx: () => 'Usina liberada: ⚡ energia!' },
+  carvao: { era: 8, icon: '⛰️', label: 'Usina a carvão', unlock: ['usina'], fx: () => 'Usina liberada: ⚡ energia!' },
   eletricidade: { era: 8, icon: '⚡', label: 'Eletricidade', key: true, fx: () => 'Luz em todas as casas' },
   aviacao: { era: 9, icon: '✈️', label: 'Aviação', unlock: ['aeroporto'], fx: () => 'Aeroporto liberado' },
   computacao: { era: 9, icon: '💻', label: 'Computação', unlock: ['centrotec'], fx: () => 'Centro de tecnologia liberado' },
@@ -147,15 +147,15 @@ function restyleHouses() { for (const b of buildings) if (b.type === 'casa') { b
 
 // ================== DILEMAS E DESAFIOS ==================
 const DILEMAS = [
-  { t: '🧳 Um mercador viajante quer 30 🪵 por 6 ferramentas',
+  { t: '🧳 Um mercador viajante quer 30 🌲 por 6 ferramentas',
     a: ['Trocar', () => { if (res.wood < 30) return 'Faltou madeira… o mercador foi embora 😕'; res.wood -= 30; res.tools += 6; return '+6 🔧 ferramentas: todo mundo trabalha mais rápido!'; }],
-    b: ['Recusar', () => { res.coins += 5; return 'Ele deixou 5 🪙 de gorjeta pela hospitalidade'; }] },
+    b: ['Recusar', () => { res.coins += 5; return 'Ele deixou 5 💰 de gorjeta pela hospitalidade'; }] },
   { t: '⛈️ Nuvens pretas no horizonte!',
     a: ['Proteger a horta', () => { startEvent('rain'); res.crops += 12; return 'A chuva veio e a horta rendeu +12 🥕'; }],
-    b: ['Cortar árvores antes da chuva', () => { startEvent('rain'); res.wood += 25; return 'Correria! +25 🪵 antes do temporal'; }] },
+    b: ['Cortar árvores antes da chuva', () => { startEvent('rain'); res.wood += 25; return 'Correria! +25 🌲 antes do temporal'; }] },
   { t: '🚶 Uma família de viajantes pede abrigo',
     a: ['Acolher', () => { liveGuest(); liveGuest(); return 'Dois novos vizinhos chegaram à vila ❤️'; }],
-    b: ['Seguir viagem', () => { res.coins += 10; return 'Pagaram 10 🪙 pelo pedágio e seguiram'; }] },
+    b: ['Seguir viagem', () => { res.coins += 10; return 'Pagaram 10 💰 pelo pedágio e seguiram'; }] },
   { t: '🎉 O pessoal está cansado. E agora?',
     a: ['Festa na praça', () => { startEvent('party'); return 'Fogos e dança: a vila ficou mais feliz!'; }],
     b: ['Mutirão de trabalho', () => { for (const n of npcs) n.boost = 90; return '⚡ Todos trabalham 60% mais rápido por um tempo'; }] },
@@ -164,17 +164,17 @@ const DILEMAS = [
     b: ['Deixar pra lá', () => { res.crops = Math.max(0, res.crops - 8); return 'Elas comeram 8 🥕 da horta…'; }] },
   { t: '🛸 Luzes estranhas no céu esta noite…',
     a: ['Investigar', () => { startEvent('ufo'); return 'Ninguém estava preparado para isso 👽'; }],
-    b: ['Acender mais fogueiras', () => { res.wood = Math.max(0, res.wood - 10); res.stone += 6; return 'Gastaram 10 🪵, mas acharam 6 🪨 brilhantes'; }] },
+    b: ['Acender mais fogueiras', () => { res.wood = Math.max(0, res.wood - 10); res.stone += 6; return 'Gastaram 10 🌲, mas acharam 6 ⛰️ brilhantes'; }] },
   { t: '💎 Encontraram um veio de pedra rara',
-    a: ['Minerar tudo', () => { res.stone += 30; return '+30 🪨 para as próximas obras'; }],
-    b: ['Preservar a natureza', () => { res.coins += 8; for (const n of npcs) n.boost = Math.max(n.boost || 0, 40); return 'Turistas vieram ver: +8 🪙 e ânimo geral'; }] },
+    a: ['Minerar tudo', () => { res.stone += 30; return '+30 ⛰️ para as próximas obras'; }],
+    b: ['Preservar a natureza', () => { res.coins += 8; for (const n of npcs) n.boost = Math.max(n.boost || 0, 40); return 'Turistas vieram ver: +8 💰 e ânimo geral'; }] },
 ];
 
 // Moradores dormem à noite: desafio de coleta só se ainda houver dia pela frente.
 function dayLeft() { return !isNight() && hour() < 15.5; }
 const CHALLENGES = {
-  madeira: { icon: '🪵', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 && dayLeft() },
-  pedra: { icon: '🪨', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => (hasProf('minerador') || hasProf('pedreiro')) && dayLeft() },
+  madeira: { icon: '🌲', min: 4, title: n => `Juntar ${n} de madeira`, target: () => 30 + npcs.length * 4, track: 'wood', ok: () => npcs.length >= 1 && dayLeft() },
+  pedra: { icon: '⛰️', min: 4, title: n => `Juntar ${n} de pedra`, target: () => 15 + npcs.length * 2, track: 'stone', ok: () => (hasProf('minerador') || hasProf('pedreiro')) && dayLeft() },
   mutirao: { icon: '💪', min: 2, title: n => `Mutirão: ${n}× !ajudar no chat`, target: () => 10 + Math.min(40, Object.keys(L().viewers).length), track: 'help', ok: () => true },
   boasvindas: { icon: '👋', min: 5, title: n => `Receber ${n} novos moradores`, target: () => 3, track: 'arrive', ok: () => true },
   hype: { icon: '💬', min: 3, title: n => `${n} mensagens no chat`, target: () => 25 + Math.min(75, Object.keys(L().viewers).length * 2), track: 'msg', ok: () => true },
@@ -423,7 +423,7 @@ function closeVote() {
     let at = 0; while (at < queue.length && queue[at].manual) at++;
     queue.splice(at, 0, { type: win.k, manual: true, voteId: result.id });
     lastTry = -99;
-    const lacks = [res.wood < d.wood ? `${d.wood - res.wood} 🪵` : '', res.stone < d.stone ? `${d.stone - res.stone} 🪨` : ''].filter(Boolean).join(' e ');
+    const lacks = [res.wood < d.wood ? `${d.wood - res.wood} 🌲` : '', res.stone < d.stone ? `${d.stone - res.stone} ⛰️` : ''].filter(Boolean).join(' e ');
     announce(`${d.icon} O chat escolheu: ${d.label}!`, voters ? `${voters} voto(s)` + (lacks ? ` · faltam ${lacks}` : ' · obra começando!') : 'Ninguém votou… sorteio!');
     feed(`🏗️ ${d.label} venceu com ${max} ponto(s)` + (lacks ? ` — faltam ${lacks}` : ''));
     logEv(`🗳️ Chat escolheu ${d.icon} ${d.label}`);
@@ -469,7 +469,7 @@ function endChallenge(win) {
     res.wood += 15 + k * 2; res.stone += 8 + k; res.coins += 10;
     for (const n of npcs) n.boost = Math.max(n.boost || 0, 60);
     for (const uid of helpers) if (s.viewers[uid]) addXp(s.viewers[uid], 10);
-    announce(`🏆 DESAFIO CUMPRIDO!`, `${def.icon} ${def.title(c.target)} · +${15 + k * 2} 🪵 +${8 + k} 🪨 e ânimo geral`);
+    announce(`🏆 DESAFIO CUMPRIDO!`, `${def.icon} ${def.title(c.target)} · +${15 + k * 2} 🌲 +${8 + k} ⛰️ e ânimo geral`);
     feed(helpers.length ? `🏆 Desafio cumprido! ${helpers.length} pessoa(s) do chat ajudaram` : '🏆 Desafio cumprido pelos moradores!');
     sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
   } else {
@@ -491,7 +491,7 @@ function onDonation(v, uid, amount, text, src) {
   res.wood += wood; res.stone += stone;
   const ch = s.chal;
   if (ch && (ch.track === 'wood' || ch.track === 'stone')) { ch.last[ch.track] = res[ch.track]; chalAdd(uid, ch.track === 'wood' ? wood : stone); }
-  const perks = [`+${wood} 🪵 +${stone} 🪨`];
+  const perks = [`+${wood} 🌲 +${stone} ⛰️`];
   if (amount >= 5) { v.turbo += 3; perks.push('3 votos turbinados'); }
   const lower = norm(text);
   const merc = raidMercs(amount, v.name); if (merc) perks.push(merc);
@@ -518,7 +518,7 @@ function onDonation(v, uid, amount, text, src) {
 }
 function liveGoalReached() {
   const s = L();
-  announce('🎆 META DA LIVE BATIDA!', `R$ ${fmt(s.goal)} — festa gigante e +100 🪵 +60 🪨`);
+  announce('🎆 META DA LIVE BATIDA!', `R$ ${fmt(s.goal)} — festa gigante e +100 🌲 +60 ⛰️`);
   feed(`🎆 Meta de R$ ${fmt(s.goal)} batida! Próxima: R$ ${fmt(s.goal * 2)}`);
   res.wood += 100; res.stone += 60; startEvent('party'); for (let i = 0; i < 12; i++) firework();
   s.goal *= 2;
@@ -574,7 +574,7 @@ function processSpotlight() {
 }
 
 // ================== ERA ==================
-const PROD_L = { wood: ['🪵', 'madeira'], stone: ['🪨', 'pedra'], food: ['🍖', 'comida'], gold: ['🪙', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
+const PROD_L = { wood: ['🌲', 'madeira'], stone: ['⛰️', 'pedra'], food: ['🍖', 'comida'], gold: ['💰', 'ouro'], iron: ['⚙️', 'ferro'], energy: ['⚡', 'energia'] };
 function eraProgress() {
   const s = L(), e = ERAS[s.era], n = e.need || (!s.finale && e.finale); if (!n) return null;
   const done = buildings.filter(b => b.done && b.type !== 'monumento'); // memorial e presente de população não contam
@@ -842,6 +842,9 @@ $('livePanel').innerHTML = `
   <label><input type="checkbox" id="lvAuto"> Ciclo automático (votações, dilemas e desafios)</label>
   <label><input type="checkbox" id="lvRaids"> Ataques de saqueadores (a partir da Era Agrícola, com 5 moradores)</label>
   <label><input type="checkbox" id="lvVitrine"> Modo vitrine (câmera passeia quando o chat está parado)</label>
+  <label><input type="checkbox" id="lvAutoEv"> Eventos automáticos (chuva, festa, galinhas, OVNI e neve em dezembro)</label>
+  <label><input type="checkbox" id="lvAutoSeason"> Estações do ano automáticas (mudam a cada 5 dias do jogo)</label>
+  <label><input type="checkbox" id="lvHideStudio"> Esconder vídeos e eventos manuais (modo live sozinha)</label>
   <div class="row" style="flex-wrap:nowrap;font-size:13px"><label style="flex:1">Obra a cada (min)<input class="in" id="lvVoteMin" type="number" min="1" max="60"></label><label style="flex:1">Dilema (min)<input class="in" id="lvDilMin" type="number" min="1" max="60"></label><label style="flex:1">Desafio (min)<input class="in" id="lvChalMin" type="number" min="1" max="60"></label></div>
   <p class="tip" id="lvStatus"></p>
   <label for="lvBanName">Bloquear espectador (remove o morador e ignora as mensagens)</label>
@@ -879,6 +882,7 @@ $('lvSeason').onclick = () => { if (startNewSeason()) $('lvFeedback').textConten
 $('lvStats').onclick = openStats;
 $('lvHall').onclick = () => { showHall = Date.now() + 20000; };
 $('lvVitrine').checked = LIVE_CFG.vitrine; $('lvVitrine').onchange = e => { LIVE_CFG.vitrine = e.target.checked; liveSaveCfg(); vit.target = null; };
+for (const [id, key] of [['lvAutoEv', 'autoEv'], ['lvAutoSeason', 'autoSeason'], ['lvHideStudio', 'hideStudio']]) { $(id).checked = LIVE_CFG[key]; $(id).onchange = e => { LIVE_CFG[key] = e.target.checked; liveSaveCfg(); if (key === 'hideStudio') applyStudioHide(); }; }
 $('lvAuto').checked = LIVE_CFG.auto; $('lvAuto').onchange = e => { LIVE_CFG.auto = e.target.checked; liveSaveCfg(); };
 $('lvGoal').value = L().goal; $('lvGoal').onchange = e => { L().goal = Math.max(0, +e.target.value || 0); save(); liveDirty = true; };
 
@@ -1052,7 +1056,7 @@ function raidResolve() {
     if (s.era >= 2) res.coins += loot; else res.wood += loot;
     for (const v of new Set(helpers.concat(owners))) addXp(v, 15);
     s.raidsWon = (s.raidsWon || 0) + 1;
-    announce('🛡️ VITÓRIA!', `Os ${(r.kind || 'Saqueadores').toLowerCase()} fugiram e deixaram ${loot} ${s.era >= 2 ? '🪙' : '🪵'} para trás`);
+    announce('🛡️ VITÓRIA!', `Os ${(r.kind || 'Saqueadores').toLowerCase()} fugiram e deixaram ${loot} ${s.era >= 2 ? '💰' : '🌲'} para trás`);
     feed(`🛡️ A vila venceu os ${(r.kind || 'Saqueadores').toLowerCase()} (${r.def} contra ${r.str})! ${helpers.length} pessoa(s) do chat ajudaram`);
     sfx('fanfare'); for (let i = 0; i < 6; i++) firework();
     for (const z of raiders) { z.tx = z.hx; z.ty = z.hy; z.fade = true; }
@@ -1091,7 +1095,7 @@ const MODS = {
   inverno: { icon: '❄️', label: 'Inverno eterno', desc: 'Neve o tempo todo e plantações lentas' },
   fertil: { icon: '🌱', label: 'Terra fértil', desc: 'Comida em dobro' },
   hostil: { icon: '⚔️', label: 'Terras hostis', desc: 'Ataques desde a Pedra, mais fortes e com saque dobrado' },
-  ouro: { icon: '🪙', label: 'Corrida do ouro', desc: 'Minas rendem o dobro' },
+  ouro: { icon: '💰', label: 'Corrida do ouro', desc: 'Minas rendem o dobro' },
   sabio: { icon: '📚', label: 'Povo sábio', desc: 'Pesquisas 50% mais rápidas' },
 };
 function mod() { return L().mod || 'normal'; }
@@ -1284,7 +1288,26 @@ function vitrinePick() {
     return null;
   }
   if (done.length && roll < 0.8) { const b = pick(done); return { x: (b.x + b.w / 2) * T, y: (b.y + b.h / 2) * T, z: z + 0.4 }; }
-  return { x: CX * T + 8, y: CY * T + 8, z: Math.max(zMin(), z - 1) };
+  return overviewShot();
+}
+// Plano geral: enquadra todas as obras e moradores. Quanto maior a vila, mais a câmera se afasta.
+// O lado esquerdo da tela fica coberto pelo overlay da live, então a vila é enquadrada no resto.
+function overviewShot() {
+  let x0 = CX - 6, y0 = CY - 5, x1 = CX + 6, y1 = CY + 5;
+  for (const b of buildings) { x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y - 1); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); }
+  for (const n of npcs) if (n.active && !n.inside) { const tx = n.x / T, ty = n.y / T; if (Math.abs(tx - CX) < 40 && Math.abs(ty - CY) < 40) { x0 = Math.min(x0, tx); y0 = Math.min(y0, ty - 1); x1 = Math.max(x1, tx + 1); y1 = Math.max(y1, ty + 1); } }
+  const pad = 2, usableW = cw * (cw < 700 ? 1 : 0.74), usableH = ch * 0.86;
+  const z = Math.max(zMin(), Math.min(isMobile() ? 2.2 : 2.6, usableW / ((x1 - x0 + pad * 2) * T), usableH / ((y1 - y0 + pad * 2) * T)));
+  const shift = (cw - usableW) / 2 / z; // empurra a vila para a direita, longe do overlay
+  return { x: (x0 + x1) / 2 * T - shift, y: (y0 + y1) / 2 * T + ch * 0.04 / z, z };
+}
+// Sem ninguém em destaque, a câmera volta ao plano geral da vila (e se afasta conforme ela cresce).
+let ovAt = 0, ovTarget = null;
+function overviewFrame(dt) {
+  if (!npcs.length || TOUR || REC || follow != null || Date.now() < camQ.until || Date.now() - lastUserCam < 60000) { ovTarget = null; return; }
+  if (!ovTarget || Date.now() - ovAt > 3000) { ovAt = Date.now(); ovTarget = overviewShot(); }
+  const k = Math.min(1, dt * 0.6);
+  cam.x += (ovTarget.x - cam.x) * k; cam.y += (ovTarget.y - cam.y) * k; cam.z += (ovTarget.z - cam.z) * k;
 }
 function vitrineSummary() {
   const s = L(), e = ERAS[s.era], built = buildings.filter(b => b.done).length;
@@ -1308,6 +1331,8 @@ function vitrineFrame(now) {
       cam.x += (vit.target.x - cam.x) * k; cam.y += (vit.target.y - cam.y) * k; cam.z += (vit.target.z - cam.z) * k;
     }
     if (npcs.length && t - vit.summaryAt > VIT_SUMMARY) { vit.summaryAt = t; vitrineSummary(); }
+  } else {
+    try { overviewFrame(dt); } catch (e) { console.error('câmera:', e); }
   }
   requestAnimationFrame(vitrineFrame);
 }
@@ -1338,8 +1363,100 @@ setInterval(() => {
   if (changed) save();
 })();
 
+// ================== LIVE SOZINHA ==================
+// Para a live rodar sem ninguém no comando: eventos e estações acontecem sozinhos,
+// e os botões de gravar vídeo e de disparar eventos à mão ficam escondidos.
+function applyStudioHide() {
+  let st = document.getElementById('lvHideCss');
+  if (!st) { st = document.createElement('style'); st.id = 'lvHideCss'; document.head.appendChild(st); }
+  st.textContent = LIVE_CFG.hideStudio ? '#recMenuBtn,#camBtn,#sndRec,#evBtn,#tlBtn,#pxQuick [data-action="cinema"],#pxQuick [data-action="events"]{display:none!important}' : '';
+}
+applyStudioHide();
+
+const AUTO_EV = [
+  { k: 'rain', w: 5, ok: () => !isNight(), msg: ['🌧️ CHUVA NA VILA!', 'As plantações agradecem 🌱'] },
+  { k: 'chickens', w: 3, ok: () => !isNight() && npcs.length >= 3, msg: null },
+  { k: 'party', w: 3, ok: () => hour() >= 16 && hour() < 20.5 && npcs.length >= 3, msg: ['🎆 FESTA NA PRAÇA!', 'Fim de tarde é dia de festa!'] },
+  { k: 'ufo', w: 1, ok: () => npcs.length >= 4, msg: null },
+  { k: 'snow', w: 3, ok: () => new Date().getMonth() === 11 && mod() !== 'inverno', msg: null },
+];
+let autoEvNext = Date.now() + 4 * 60000;
+function autoEventBusy() {
+  return TOUR || REC || L().raid || EV.rain > 0 || EV.snow > 0 || EV.party > 0 || EV.fire || EV.chickens.length || EV.ufo || EV.launch;
+}
+function autoEventTick() {
+  if (!LIVE_CFG.autoEv || npcs.length < 2) return;
+  if (Date.now() < autoEvNext) return;
+  if (autoEventBusy()) { autoEvNext = Date.now() + 60000; return; }
+  const opts = AUTO_EV.filter(e => e.ok());
+  autoEvNext = Date.now() + LIVE_CFG.evMin * 60000 * (0.7 + Math.random() * 0.6);
+  if (!opts.length) return;
+  let r = Math.random() * opts.reduce((a, e) => a + e.w, 0), ev = opts[0];
+  for (const e of opts) { r -= e.w; if (r <= 0) { ev = e; break; } }
+  startEvent(ev.k);
+  if (ev.msg) announce(ev.msg[0], ev.msg[1]);
+  feed(`🎲 Evento automático: ${ev.msg ? ev.msg[0] : ev.k}`);
+}
+const SEASON_ORDER = ['primavera', 'verao', 'outono', 'inverno'];
+function autoSeasonTick() {
+  if (!LIVE_CFG.autoSeason || TOUR || REC) return;
+  const want = mod() === 'inverno' ? 'inverno' : SEASON_ORDER[Math.floor((day() - 1) / Math.max(1, LIVE_CFG.seasonDays)) % 4];
+  if (want !== SEASON) setSeason(want, mod() === 'inverno');
+}
+setInterval(() => { try { autoEventTick(); autoSeasonTick(); } catch (e) { console.error('live sozinha:', e); } }, 5000);
+
+// ================== PAINEL: LEMBRA SE ESTAVA ESCONDIDO ==================
+// O estado da tecla H vale entre recarregamentos: atualizar o jogo nunca reabre o painel na live.
+const PANEL_KEY = 'pixelandia-live-panel-hidden';
+function panelHidden() { const p = document.getElementById('panel'); return !!p && p.classList.contains('hidden'); }
+addEventListener('load', () => setTimeout(() => {
+  try {
+    const p = document.getElementById('panel'); if (!p) return;
+    if (localStorage.getItem(PANEL_KEY) === '1' && !panelHidden() && typeof togglePanel === 'function') togglePanel();
+    new MutationObserver(() => { try { localStorage.setItem(PANEL_KEY, panelHidden() ? '1' : '0'); } catch (e) {} }).observe(p, { attributes: true, attributeFilter: ['class'] });
+  } catch (e) { console.warn('painel:', e); }
+}, 0));
+
+// ================== ATUALIZAÇÃO AUTOMÁTICA ==================
+// A cada minuto confere se index.html ou live-game.js mudaram no servidor local.
+// Achou versão nova (igual em duas conferências seguidas, para não pegar arquivo pela metade):
+// espera um momento calmo (sem ataque nem votação aberta), salva o mundo e recarrega sozinho.
+// O painel continua como estava (escondido com H fica escondido).
+const UPD_FILES = ['./index.html', './live-game.js'];
+let updBase = null, updSeen = null, updReadyAt = 0;
+function updHash(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ':' + (h >>> 0).toString(36); }
+async function updSig() {
+  const texts = await Promise.all(UPD_FILES.map(f => fetch(f + '?upd=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })));
+  return texts.map(updHash).join('|');
+}
+function updCalm() {
+  const s = L();
+  return !s.raid && !s.vote && !TOUR && !REC && !EV.ufo && !EV.launch && !(camQ.cur && Date.now() < camQ.until);
+}
+async function updCheck() {
+  if (!/^https?:$/.test(location.protocol)) return;
+  try {
+    const sig = await updSig();
+    if (!updBase) { updBase = sig; return; }
+    if (sig === updBase) { updSeen = null; updReadyAt = 0; return; }
+    if (sig !== updSeen) { updSeen = sig; return; } // espera a próxima conferência confirmar
+    if (!updReadyAt) { updReadyAt = Date.now(); console.log('Versão nova do jogo encontrada: recarrega no próximo momento calmo.'); }
+    if (updCalm() || Date.now() - updReadyAt > 10 * 60000) {
+      try { if (typeof save === 'function') save(); } catch (e) {}
+      try { localStorage.setItem(PANEL_KEY, panelHidden() ? '1' : '0'); } catch (e) {}
+      location.reload();
+    }
+  } catch (e) { /* servidor fora do ar: tenta de novo depois */ }
+}
+setTimeout(updCheck, 5000);
+setInterval(() => { updCheck(); }, 60000);
+// Com versão nova confirmada, confere a cada 10 s se já está calmo para recarregar.
+setInterval(() => { if (updReadyAt && (updCalm() || Date.now() - updReadyAt > 10 * 60000)) updCheck(); }, 10000);
+
 // Jogo aberto pelo servidor local (iniciar-live.bat): a ponte já conecta sozinha.
 try { if (new URL(LIVE_CFG.bridgeUrl, location.href).origin === location.origin) bridgeConnect(); } catch (e) {}
+// Chave e live já salvas: reconecta o chat do YouTube sozinho ao reabrir ou recarregar o jogo.
+if (LIVE_CFG.ytKey.trim() && LIVE_CFG.ytVideo.trim()) ytConnect();
 
 // Vigia: um erro inesperado no loop de desenho congelaria a tela da live. Religa uma vez por erro.
 let frameErrAt = 0;
